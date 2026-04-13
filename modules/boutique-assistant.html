@@ -969,7 +969,7 @@ function drawMockup() {
 function openMockupForge() {
   const productId = order.product ? order.product.id : '';
   const colorName = order.color ? order.color.name : '';
-  const url = '../agent8_boutique/admin-photos-produits.html'
+  const url = '../../mockup-forge-v12.html'
     + (productId ? '?product=' + encodeURIComponent(productId) + '&color=' + encodeURIComponent(colorName) : '');
   window.open(url, '_blank');
 }

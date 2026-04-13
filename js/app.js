@@ -179,7 +179,16 @@ const APPS = [
       { id: 'supervision-dashboard',   label: 'Supervision',           icon: '👁',  section: 'Supervision'      },
       { id: 'routine-dashboard',       label: 'Routines',              icon: '🔄', section: 'Supervision'      },
       { id: 'vocal-dashboard',         label: 'Agent Vocal',           icon: '🎙', section: 'Supervision'      },
-      { id: 'advisor',                  label: '⬡ Grace — Advisor IA',  icon: '🤖', section: 'Supervision'      }
+      { id: 'advisor',                  label: '⬡ Grace — Advisor IA',  icon: '🤖', section: 'Supervision'      },
+      /* ── Applications HCS externes ── */
+      { id: 'ext-andromeda',   label: 'Andromeda Builder', icon: '📡', section: 'Applications HCS', external: true, url: '../campaign/andromeda-campaign.html' },
+      { id: 'ext-mockupforge', label: 'MockupForge v12',   icon: '🖼️', section: 'Applications HCS', external: true, url: '../mockup-forge-v12.html' },
+      { id: 'ext-dtf-composer',label: 'DTF Composer v4',   icon: '🎨', section: 'Applications HCS', external: true, url: '../agents/agent3_visuel/dtf-composer-v4.html' },
+      { id: 'ext-dtf-calc',    label: 'Calculateur DTF',   icon: '🧮', section: 'Applications HCS', external: true, url: '../dtf-calculator-hcs-v2.html' },
+      { id: 'ext-hcs-builder', label: 'HCS Builder v2',    icon: '🏗️', section: 'Applications HCS', external: true, url: '../hcs-builder-v2-fixed.html' },
+      { id: 'ext-pass-hcs',    label: 'Pass HCS',          icon: '🎫', section: 'Applications HCS', external: true, url: '../hcs-hub-ecosystem/hcs-hub-ecosystem/hcs-pass-test.html' },
+      { id: 'ext-hub',         label: 'HCS Hub',           icon: '🗄️', section: 'Applications HCS', external: true, url: '../hcs-hub.html' },
+      { id: 'ext-cockpit',     label: 'HCS Cockpit',       icon: '🚀', section: 'Applications HCS', external: true, url: '../hcs-hub-ecosystem/hcs-hub-ecosystem/hcs-cockpit.html' }
     ]
   }
 ];
@@ -366,10 +375,15 @@ function renderSidebar(app) {
         <div class="sidebar-section-label">${section}</div>`;
     }
     views.forEach(v => {
+      const extBadge = v.external
+        ? `<span style="font-size:9px;opacity:.45;margin-left:auto;flex-shrink:0;">↗</span>`
+        : '';
       html += `
-        <button class="sidebar-item" data-view="${v.id}" onclick="openView('${v.id}')" title="${v.label}">
+        <button class="sidebar-item" data-view="${v.id}" onclick="openView('${v.id}')"
+          title="${v.label}${v.external ? ' — ouvre dans un nouvel onglet' : ''}">
           <span class="item-icon">${v.icon}</span>
           <span class="item-label">${v.label}</span>
+          ${extBadge}
         </button>`;
     });
     if (section) html += '</div>';
@@ -463,7 +477,7 @@ function renderView() {
     case 'caisse':
       renderIframe(`modules/${view}.html`, container);
       break;
-    case 'outils':
+    case 'outils': {
       /* Vue Advisor IA — rendu inline (pas d'iframe) */
       if (view === 'advisor') {
         container.style.padding = '';
@@ -474,9 +488,18 @@ function renderView() {
           container.innerHTML = `<div class="table-empty"><p>⬡ Module Advisor non chargé — vérifiez js/modules/advisor.js</p></div>`;
         }
       } else {
-        renderIframe(`modules/${view}.html`, container);
+        /* Vérifier si vue externe (Applications HCS) */
+        const outilsApp = APPS.find(a => a.id === 'outils');
+        const viewDef   = outilsApp ? outilsApp.views.find(v => v.id === view) : null;
+        if (viewDef && viewDef.external && viewDef.url) {
+          window.open(viewDef.url, '_blank');
+          /* Laisser le contenu actuel en place — juste ouvrir le nouvel onglet */
+        } else {
+          renderIframe(`modules/${view}.html`, container);
+        }
       }
       break;
+    }
     default:             container.innerHTML = `<div class="table-empty"><p>Module "${app}" à venir.</p></div>`;
   }
 }
