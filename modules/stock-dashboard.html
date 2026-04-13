@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock & Fournisseurs HCS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 'hcs-orange': '#FF6B00', 'hcs-bg': '#0a0a0a', 'hcs-panel': '#111111', 'hcs-border': '#222222' }, fontFamily: { inter: ['Inter','sans-serif'] } } }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #e5e7eb; min-height: 100vh; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #111111; }
+    ::-webkit-scrollbar-thumb { background: #333333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FF6B00; }
+    .tab-btn { padding: 10px 20px; border-bottom: 2px solid transparent; color: #9ca3af; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; background: none; border-left: none; border-right: none; border-top: none; }
+    .tab-btn:hover { color: #e5e7eb; border-bottom-color: #444; }
+    .tab-btn.active { color: #FF6B00; border-bottom-color: #FF6B00; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .stat-card { background: #111111; border: 1px solid #222222; border-radius: 12px; padding: 20px 24px; transition: border-color 0.2s; }
+    .stat-card:hover { border-color: #333; }
+    .hcs-table { width: 100%; border-collapse: collapse; }
+    .hcs-table thead tr { border-bottom: 1px solid #222222; }
+    .hcs-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+    .hcs-table td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid #1a1a1a; vertical-align: middle; }
+    .hcs-table tbody tr:hover { background: #161616; }
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-yellow { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+    .badge-green  { background: rgba(34,197,94,0.15);  color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+    .badge-gray   { background: rgba(107,114,128,0.15);color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
+    .badge-red    { background: rgba(239,68,68,0.15);  color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-blue   { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+    .btn-primary { background: #FF6B00; color: white; font-weight: 600; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: none; transition: background 0.2s, transform 0.1s; }
+    .btn-primary:hover { background: #e05e00; transform: translateY(-1px); }
+    .btn-secondary { background: #1a1a1a; color: #e5e7eb; font-weight: 500; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid #333; transition: all 0.2s; }
+    .btn-secondary:hover { background: #222; border-color: #444; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+    .btn-danger { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); font-weight: 500; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-danger:hover { background: rgba(239,68,68,0.2); }
+    .btn-success { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); font-weight: 500; padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .btn-success:hover { background: rgba(34,197,94,0.2); }
+    .hcs-input { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #e5e7eb; padding: 9px 12px; font-size: 13px; width: 100%; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
+    .hcs-input:focus { border-color: #FF6B00; }
+    .hcs-input::placeholder { color: #4b5563; }
+    select.hcs-input option { background: #1a1a1a; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 50; backdrop-filter: blur(4px); }
+    .modal-box { background: #111111; border: 1px solid #222222; border-radius: 16px; padding: 28px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.2s ease; }
+    @keyframes modalIn { from { opacity: 0; transform: translateY(-16px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .panel { background: #111111; border: 1px solid #222222; border-radius: 12px; overflow: hidden; }
+    .panel-header { padding: 16px 20px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; justify-content: space-between; }
+    .search-bar { position: relative; }
+    .search-bar input { padding-left: 36px; }
+    .search-bar .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #4b5563; pointer-events: none; }
+    .urgent-pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    .summary-bar { background: #111111; border: 1px solid #222222; border-radius: 12px; padding: 16px 20px; }
+    .note-info { background: rgba(255,107,0,0.07); border: 1px solid rgba(255,107,0,0.2); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #d97706; }
+    .week-group-header { background: #161616; padding: 8px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; border-bottom: 1px solid #1e1e1e; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     CONFIGURATION — À RENSEIGNER AVANT UTILISATION
+     ============================================================ -->
+<script>
+const CONFIG = {
+  ODOO_URL: 'https://highcoffeeshirt.easypme.com/odoo',
+  ODOO_DB: 'highcoffeeshirt',
+  ODOO_API_KEY: '935ebba41121b1e92035ae2239b39647c0b63d6d',
+  CSV_PATH: '../../data/Article (product.product).csv',
+  // Webhook n8n pour déclencher l'agent de validation commande
+  // Ex: https://hcstahiti.app.n8n.cloud/webhook/valider-reservation
+  N8N_WEBHOOK_URL: localStorage.getItem('hcs_n8n_webhook_url') || ''
+};
+</script>
+
+<!-- HEADER -->
+<header style="background:#111111;border-bottom:1px solid #222222;" class="sticky top-0 z-40">
+  <div class="max-w-screen-xl mx-auto px-6">
+    <div class="flex items-center justify-between h-14">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">📦</span>
+        <span class="font-bold text-white text-base tracking-tight">Stock &amp; Fournisseurs <span style="color:#FF6B00">HCS</span></span>
+      </div>
+      <nav class="flex items-center overflow-x-auto gap-1">
+        <button class="tab-btn active" onclick="switchTab('recapitulatif',this)">📊 Récapitulatif</button>
+        <button class="tab-btn" onclick="switchTab('taaroa',this)">👕 Taaroa Stock</button>
+        <button class="tab-btn" onclick="switchTab('anemone',this)">🧢 Anémone</button>
+        <button class="tab-btn" onclick="switchTab('dtfusa',this)">🇺🇸 DTF USA</button>
+        <button class="tab-btn" onclick="switchTab('fournisseurs',this)">🏭 Fournisseurs</button>
+      </nav>
+      <div class="text-xs text-gray-500 hidden lg:block" id="header-date"></div>
+    </div>
+  </div>
+</header>
+
+<!-- BANNIÈRE CONFIG N8N -->
+<div id="n8n-banner" style="display:none;background:#1c1917;border-bottom:1px solid #78350f;padding:10px 24px;align-items:center;gap:12px;font-size:0.82rem;">
+  <span>⚙️</span>
+  <span style="color:#fb923c;font-weight:600">Webhook n8n non configuré.</span>
+  <span style="color:#a8a29e">Les boutons de validation fournisseur enverront des emails à la place.</span>
+  <input id="n8n-url-input" type="text" placeholder="https://hcstahiti.app.n8n.cloud/webhook/..." style="flex:1;background:#292524;border:1px solid #57534e;border-radius:6px;color:#fff;padding:5px 10px;font-size:0.82rem;">
+  <button onclick="saveN8nUrl()" style="background:#fb923c;color:#000;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;white-space:nowrap;">Enregistrer</button>
+  <button onclick="document.getElementById('n8n-banner').style.display='none'" style="background:none;border:none;color:#78716c;cursor:pointer;font-size:1rem;">✕</button>
+</div>
+<script>
+(function() {
+  const saved = localStorage.getItem('hcs_n8n_webhook_url');
+  if (!saved) {
+    const b = document.getElementById('n8n-banner');
+    b.style.display = 'flex';
+  }
+})();
+function saveN8nUrl() {
+  const val = document.getElementById('n8n-url-input').value.trim();
+  if (!val) return;
+  localStorage.setItem('hcs_n8n_webhook_url', val);
+  CONFIG.N8N_WEBHOOK_URL = val;
+  document.getElementById('n8n-banner').style.display = 'none';
+}
+</script>
+
+<!-- MAIN -->
+<main class="max-w-screen-xl mx-auto px-6 py-6">
+
+  <!-- ONGLET RÉCAPITULATIF -->
+  <div id="tab-recapitulatif" class="tab-content active">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card"><div class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Réservations en attente</div><div class="text-3xl font-bold text-white" id="stat-attente">0</div><div class="text-xs text-gray-600 mt-1">commandes en file</div></div>
+      <div class="stat-card"><div class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Stock réservé total</div><div class="text-3xl font-bold text-white" id="stat-reserve">0</div><div class="text-xs text-gray-600 mt-1">articles réservés</div></div>
+      <div class="stat-card"><div class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">DTF en transit</div><div class="text-3xl font-bold" style="color:#FF6B00" id="stat-transit">0</div><div class="text-xs text-gray-600 mt-1">commandes en cours</div></div>
+      <div class="stat-card" id="card-alertes"><div class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Alertes actives</div><div class="text-3xl font-bold text-white" id="stat-alertes">0</div><div class="text-xs text-gray-600 mt-1">nécessitent attention</div></div>
+    </div>
+    <div class="panel mb-6">
+      <div class="panel-header"><h2 class="font-semibold text-white text-sm">Commandes en attente de stock</h2><span class="text-xs text-gray-500" id="recap-count">0 ligne(s)</span></div>
+      <div class="overflow-x-auto">
+        <table class="hcs-table">
+          <thead><tr><th>N° Devis</th><th>Client</th><th>Article</th><th>Qté</th><th>Fournisseur</th><th>Statut</th><th>Date besoin</th><th>Actions</th></tr></thead>
+          <tbody id="recap-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 flex-wrap">
+      <label class="btn-secondary flex items-center gap-2 cursor-pointer" title="Importer un bon de livraison Odoo (CSV)">
+        📦 Import bon livraison Odoo
+        <input type="file" accept=".csv,.txt" class="hidden" id="bl-csv-input" onchange="importerBonLivraison(this)" />
+      </label>
+      <button class="btn-primary flex items-center gap-2" onclick="exporterJSON()">⬇ Exporter JSON (Agent 5)</button>
+    </div>
+  </div>
+
+  <!-- ONGLET TAAROA -->
+  <div id="tab-taaroa" class="tab-content">
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+      <label class="btn-secondary flex items-center gap-2 cursor-pointer">
+        📂 Importer CSV <input type="file" accept=".csv" class="hidden" id="taaroa-csv" onchange="importerCSV('taaroa',this)" />
+      </label>
+      <div class="search-bar flex-1 min-w-52">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="hcs-input" placeholder="Rechercher..." id="taaroa-search" oninput="filtrerArticles('taaroa')" style="padding-left:32px;" />
+      </div>
+      <select class="hcs-input" style="width:auto;min-width:140px" id="taaroa-cat" onchange="filtrerArticles('taaroa')"><option value="">Toutes catégories</option></select>
+      <select class="hcs-input" style="width:auto;min-width:120px" id="taaroa-col" onchange="filtrerArticles('taaroa')"><option value="">Toutes couleurs</option></select>
+      <select class="hcs-input" style="width:auto;min-width:100px" id="taaroa-tai" onchange="filtrerArticles('taaroa')"><option value="">Toutes tailles</option></select>
+      <span class="text-xs text-gray-500" id="taaroa-count">0 article(s)</span>
+    </div>
+    <div class="note-info mb-4">ℹ Stock affiché à 0 par défaut — confirmer disponibilité avec Taaroa avant réservation.</div>
+    <div class="panel"><div class="overflow-x-auto">
+      <table class="hcs-table">
+        <thead><tr><th>Référence</th><th>Désignation</th><th>Couleur</th><th>Taille</th><th>Qté dispo</th><th>Prix achat XPF</th><th>Actions</th></tr></thead>
+        <tbody id="taaroa-tbody"><tr><td colspan="7" class="text-center text-gray-600 py-12 text-sm">Importez un fichier CSV pour afficher les articles Taaroa Stock</td></tr></tbody>
+      </table>
+    </div></div>
+  </div>
+
+  <!-- ONGLET ANÉMONE -->
+  <div id="tab-anemone" class="tab-content">
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+      <label class="btn-secondary flex items-center gap-2 cursor-pointer">
+        📂 Importer CSV <input type="file" accept=".csv" class="hidden" id="anemone-csv" onchange="importerCSV('anemone',this)" />
+      </label>
+      <div class="search-bar flex-1 min-w-52">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="hcs-input" placeholder="Rechercher une casquette..." id="anemone-search" oninput="filtrerArticles('anemone')" style="padding-left:32px;" />
+      </div>
+      <select class="hcs-input" style="width:auto;min-width:140px" id="anemone-cat" onchange="filtrerArticles('anemone')"><option value="">Toutes catégories</option></select>
+      <select class="hcs-input" style="width:auto;min-width:120px" id="anemone-col" onchange="filtrerArticles('anemone')"><option value="">Toutes couleurs</option></select>
+      <select class="hcs-input" style="width:auto;min-width:100px" id="anemone-tai" onchange="filtrerArticles('anemone')"><option value="">Toutes tailles</option></select>
+      <span class="text-xs text-gray-500" id="anemone-count">0 article(s)</span>
+    </div>
+    <div class="note-info mb-4">ℹ Filtre automatique sur "Casquette" — confirmer disponibilité avant réservation.</div>
+    <div class="panel"><div class="overflow-x-auto">
+      <table class="hcs-table">
+        <thead><tr><th>Référence</th><th>Désignation</th><th>Couleur</th><th>Taille</th><th>Qté dispo</th><th>Prix achat XPF</th><th>Actions</th></tr></thead>
+        <tbody id="anemone-tbody"><tr><td colspan="7" class="text-center text-gray-600 py-12 text-sm">Importez un fichier CSV pour afficher les casquettes Anémone</td></tr></tbody>
+      </table>
+    </div></div>
+  </div>
+
+  <!-- ONGLET DTF USA -->
+  <div id="tab-dtfusa" class="tab-content">
+
+    <!-- OUTILS PLACEMENT VISUEL -->
+    <div class="panel mb-5" style="border-left:3px solid #FF6B00;background:linear-gradient(135deg,#111,#1a1000)">
+      <div class="panel-header" style="margin-bottom:10px">
+        <div>
+          <h3 class="font-semibold text-white text-sm">🎨 Outils Placement Visuel DTF</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Placez vos logos sur la feuille avant impression — onglet Placement Visuel</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <a href="dtf-plaques-transfert.html?tab=visuel" target="_blank"
+           style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;background:#1a1a1a;border:1px solid #444;color:#f0c040;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s"
+           onmouseover="this.style.borderColor='#FF6B00';this.style.background='#1a0f00'"
+           onmouseout="this.style.borderColor='#444';this.style.background='#1a1a1a'">
+          📐 DTF Polynésie Arts<span style="font-size:10px;color:#888;font-weight:400">50×100 cm</span>
+        </a>
+        <a href="dtf-atelier-usa.html?tab=visuel" target="_blank"
+           style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;background:#1a1a1a;border:1px solid #444;color:#60a5fa;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s"
+           onmouseover="this.style.borderColor='#3b82f6';this.style.background='#00071a'"
+           onmouseout="this.style.borderColor='#444';this.style.background='#1a1a1a'">
+          🇺🇸 Atelier DTF USA<span style="font-size:10px;color:#888;font-weight:400">22"×1yd (55.9×91.4 cm)</span>
+        </a>
+        <a href="dtf-atelier-bn20-yannick.html?tab=visuel" target="_blank"
+           style="display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;background:#1a1a1a;border:1px solid #444;color:#22c55e;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s"
+           onmouseover="this.style.borderColor='#22c55e';this.style.background='#001a07'"
+           onmouseout="this.style.borderColor='#444';this.style.background='#1a1a1a'">
+          🖨️ BN20 Yannick<span style="font-size:10px;color:#888;font-weight:400">45×100 cm</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 mb-5">
+      <button class="btn-primary flex items-center gap-2" onclick="ouvrirModalDTF()">+ Nouvelle commande DTF</button>
+      <span class="text-xs text-gray-500 ml-auto" id="dtf-count">0 commande(s)</span>
+    </div>
+    <div class="panel mb-6"><div class="overflow-x-auto">
+      <table class="hcs-table" id="dtf-table">
+        <thead><tr><th>N° Commande</th><th>Date cmd</th><th>Désignation</th><th>Qté cm²</th><th>Montant USD</th><th>Tracking</th><th>Réception estimée</th><th>Statut</th><th>Alerte</th><th>Actions</th></tr></thead>
+        <tbody id="dtf-tbody"><tr><td colspan="10" class="text-center text-gray-600 py-12 text-sm">Aucune commande DTF enregistrée</td></tr></tbody>
+      </table>
+    </div></div>
+    <div class="summary-bar"><div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total en transit</div><div class="text-xl font-bold text-white" id="dtf-total-transit">0 commande(s)</div></div>
+      <div><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Total USD en cours</div><div class="text-xl font-bold" style="color:#FF6B00" id="dtf-total-usd">$0.00</div></div>
+      <div><div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Prochain arrivage</div><div class="text-xl font-bold text-white" id="dtf-prochain">—</div></div>
+    </div></div>
+  </div>
+
+  <!-- ONGLET FOURNISSEURS -->
+  <div id="tab-fournisseurs" class="tab-content">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div>
+        <h2 class="font-bold text-white text-base">🏭 Carnet de fournisseurs</h2>
+        <p class="text-xs text-gray-500 mt-0.5">Gérez vos contacts fournisseurs textile, DTF et accessoires</p>
+      </div>
+      <div class="flex gap-2">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="hcs-input" placeholder="Rechercher..." id="fourn-search" oninput="filtrerFournisseurs()" style="padding-left:32px;min-width:200px;" />
+        </div>
+        <select class="hcs-input" style="width:auto;min-width:150px" id="fourn-type-filter" onchange="filtrerFournisseurs()">
+          <option value="">Tous les types</option>
+          <option value="Textile">Textile</option>
+          <option value="DTF">DTF</option>
+          <option value="Accessoires">Accessoires</option>
+          <option value="Autre">Autre</option>
+        </select>
+        <button class="btn-primary flex items-center gap-2" onclick="ouvrirModalFournisseur()">+ Créer fournisseur</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3 class="font-semibold text-white text-sm">Liste des fournisseurs</h3>
+        <span class="text-xs text-gray-500" id="fourn-count">0 fournisseur(s)</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="hcs-table">
+          <thead>
+            <tr>
+              <th>Fournisseur</th>
+              <th>Type</th>
+              <th>Contact</th>
+              <th>Téléphone</th>
+              <th>Email</th>
+              <th>Pays / Ville</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="fourn-tbody">
+            <tr><td colspan="8" class="text-center text-gray-600 py-12 text-sm">Aucun fournisseur enregistré — cliquez sur "+ Créer fournisseur"</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL RÉSERVATION -->
+<div id="modal-reservation" class="modal-backdrop hidden" onclick="fermerSiBackdrop(event,'modal-reservation')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-white text-base">Réserver un article</h3>
+      <button onclick="fermerModal('modal-reservation')" class="text-gray-500 hover:text-white text-xl leading-none">×</button>
+    </div>
+    <div class="mb-5 p-3 rounded-lg" style="background:#1a1a1a;border:1px solid #2a2a2a">
+      <div class="text-xs text-gray-500 mb-1">Article sélectionné</div>
+      <div class="font-semibold text-white text-sm" id="modal-res-article">—</div>
+      <div class="text-xs text-gray-400 mt-0.5" id="modal-res-ref">—</div>
+    </div>
+    <div class="space-y-4">
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">N° Devis Odoo</label><input type="text" class="hcs-input" id="modal-devis" placeholder="ex: S00123" /></div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Client</label><input type="text" class="hcs-input" id="modal-client" placeholder="Nom du client" /></div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Quantité</label><input type="number" class="hcs-input" id="modal-qte" min="1" value="1" /></div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Date besoin</label><input type="date" class="hcs-input" id="modal-date-besoin" /></div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn-secondary flex-1" onclick="fermerModal('modal-reservation')">Annuler</button>
+      <button class="btn-primary flex-1" onclick="confirmerReservation()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DTF -->
+<div id="modal-dtf" class="modal-backdrop hidden" onclick="fermerSiBackdrop(event,'modal-dtf')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-white text-base">Nouvelle commande DTF</h3>
+      <button onclick="fermerModal('modal-dtf')" class="text-gray-500 hover:text-white text-xl leading-none">×</button>
+    </div>
+    <div class="space-y-4">
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Date commande</label><input type="date" class="hcs-input" id="dtf-date" /></div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Désignation</label><input type="text" class="hcs-input" id="dtf-design" placeholder="ex: Logos HCS blanc..." /></div>
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Qté cm²</label><input type="number" class="hcs-input" id="dtf-cm2" placeholder="0" min="0" oninput="calcCm2()" /></div>
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Hauteur cm</label><input type="number" class="hcs-input" id="dtf-h" placeholder="0" min="0" oninput="calcCm2()" /></div>
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Largeur cm</label><input type="number" class="hcs-input" id="dtf-l" placeholder="0" min="0" oninput="calcCm2()" /></div>
+      </div>
+      <div class="text-xs text-gray-500" id="dtf-calc-label">Saisir H × L pour calculer cm²</div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Montant USD</label><input type="number" class="hcs-input" id="dtf-montant" placeholder="0.00" min="0" step="0.01" /></div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">N° Tracking <span class="text-gray-600 normal-case font-normal">(optionnel)</span></label><input type="text" class="hcs-input" id="dtf-tracking" placeholder="ex: 1Z999AA1012345678" /></div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn-secondary flex-1" onclick="fermerModal('modal-dtf')">Annuler</button>
+      <button class="btn-primary flex-1" onclick="enregistrerDTF()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TRACKING -->
+<div id="modal-tracking" class="modal-backdrop hidden" onclick="fermerSiBackdrop(event,'modal-tracking')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-white text-base">Mettre à jour le tracking</h3>
+      <button onclick="fermerModal('modal-tracking')" class="text-gray-500 hover:text-white text-xl leading-none">×</button>
+    </div>
+    <input type="hidden" id="tracking-id" />
+    <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">N° Tracking</label><input type="text" class="hcs-input" id="tracking-val" placeholder="ex: 1Z999AA1012345678" /></div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn-secondary flex-1" onclick="fermerModal('modal-tracking')">Annuler</button>
+      <button class="btn-primary flex-1" onclick="sauvegarderTracking()">Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT BON LIVRAISON ODOO -->
+<div id="modal-bl" class="modal-backdrop hidden" onclick="fermerSiBackdrop(event,'modal-bl')">
+  <div class="modal-box" style="max-width:600px;" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-white text-base">📦 Import Bon de Livraison Odoo</h3>
+      <button onclick="fermerModal('modal-bl')" class="text-gray-500 hover:text-white text-xl leading-none">✕</button>
+    </div>
+    <div id="bl-parse-info" class="note-info mb-4" style="display:none;"></div>
+    <div id="bl-matches-section" style="display:none;">
+      <p class="text-xs text-gray-400 mb-3">Réservations correspondantes trouvées — cochez celles à marquer :</p>
+      <div id="bl-matches-list" class="flex flex-col gap-2 mb-4 max-h-64 overflow-y-auto"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="confirmerBL('livree')" style="flex:1;">✅ Marquer Livrée(s)</button>
+        <button class="btn-secondary" onclick="confirmerBL('confirmee')" style="flex:1;">🔔 Marquer Confirmée(s)</button>
+      </div>
+    </div>
+    <div id="bl-no-match" style="display:none;background:#1a0a00;border:1px solid #7c2d1255;border-radius:8px;padding:12px 16px;color:#fdba74;font-size:13px;">
+      ⚠ Aucune réservation correspondante trouvée. Vérifiez que le CSV Odoo contient bien les numéros de devis (S00xxx) ou les références articles.
+    </div>
+    <div id="bl-raw-section" style="display:none;margin-top:12px;">
+      <p class="text-xs text-gray-500 mb-2">Données brutes importées :</p>
+      <div id="bl-raw-list" class="flex flex-col gap-1 max-h-40 overflow-y-auto text-xs text-gray-600"></div>
+    </div>
+    <button onclick="fermerModal('modal-bl')" class="btn-secondary w-full mt-4">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL VALIDATION RÉSERVATION -->
+<div id="modal-validation" class="modal-backdrop hidden" onclick="fermerSiBackdrop(event,'modal-validation')">
+  <div class="modal-box" style="max-width:540px;" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="font-bold text-white text-base">🔔 Validation commande fournisseur</h3>
+      <button onclick="fermerModal('modal-validation')" class="text-gray-500 hover:text-white text-xl leading-none">×</button>
+    </div>
+
+    <!-- Bandeau urgence -->
+    <div id="val-urgence-banner" class="rounded-lg p-4 mb-5 flex items-center gap-3">
+      <span id="val-urgence-icon" class="text-2xl"></span>
+      <div>
+        <div id="val-urgence-titre" class="font-bold text-sm"></div>
+        <div id="val-urgence-desc" class="text-xs mt-0.5 opacity-80"></div>
+      </div>
+    </div>
+
+    <!-- Détails réservation -->
+    <div class="rounded-lg p-4 mb-5" style="background:#1a1a1a;border:1px solid #2a2a2a;">
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div><span class="text-gray-500 text-xs uppercase tracking-wide">Devis</span><div class="font-mono font-bold mt-0.5" style="color:#FF6B00" id="val-devis">—</div></div>
+        <div><span class="text-gray-500 text-xs uppercase tracking-wide">Client</span><div class="font-semibold text-white mt-0.5" id="val-client">—</div></div>
+        <div><span class="text-gray-500 text-xs uppercase tracking-wide">Article</span><div class="text-gray-300 mt-0.5" id="val-article">—</div></div>
+        <div><span class="text-gray-500 text-xs uppercase tracking-wide">Quantité</span><div class="font-bold text-white mt-0.5" id="val-qte">—</div></div>
+        <div><span class="text-gray-500 text-xs uppercase tracking-wide">Fournisseur</span><div class="text-gray-300 mt-0.5" id="val-fourn">—</div></div>
+        <div><span class="text-gray-500 text-xs uppercase tracking-wide">Date besoin</span><div class="font-semibold mt-0.5" id="val-date">—</div></div>
+      </div>
+    </div>
+
+    <!-- Contact fournisseur -->
+    <div id="val-contact-section" class="rounded-lg p-4 mb-5 hidden" style="background:#111;border:1px solid #222;">
+      <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Contact fournisseur détecté</div>
+      <div class="flex items-center gap-3">
+        <div class="flex-1">
+          <div class="font-semibold text-white text-sm" id="val-contact-nom">—</div>
+          <div class="text-xs text-gray-500 mt-0.5" id="val-contact-info">—</div>
+        </div>
+        <div class="flex gap-2">
+          <a id="val-btn-tel" href="#" class="btn-sm" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-weight:600;padding:6px 14px;border-radius:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📞 Appeler</a>
+          <a id="val-btn-mail" href="#" class="btn-sm" style="background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);font-weight:600;padding:6px 14px;border-radius:6px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">✉ Email</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions agent n8n -->
+    <div class="rounded-lg p-4 mb-5" style="background:#0d0d0d;border:1px solid #1e1e1e;">
+      <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Action recommandée par l'agent IA</div>
+      <div id="val-action-recommandee" class="text-sm text-gray-300 mb-3"></div>
+      <div class="flex gap-2 flex-wrap">
+        <button id="val-btn-agent-call" class="btn-sm hidden" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-weight:600;padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer;" onclick="declencherAgent('call')">
+          <span id="val-agent-call-sp" class="hidden" style="display:inline-block;width:12px;height:12px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:spin 0.7s linear infinite;"></span>
+          📞 Déclencher appel agent
+        </button>
+        <button id="val-btn-agent-mail" class="btn-sm" style="background:rgba(96,165,250,0.15);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);font-weight:600;padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer;" onclick="declencherAgent('mail')">
+          <span id="val-agent-mail-sp" class="hidden" style="display:inline-block;width:12px;height:12px;border:2px solid rgba(96,165,250,0.3);border-top-color:#60a5fa;border-radius:50%;animation:spin 0.7s linear infinite;"></span>
+          ✉ Envoyer email agent
+        </button>
+        <button id="val-btn-agent-both" class="btn-sm hidden" style="background:rgba(255,107,0,0.15);color:#FF6B00;border:1px solid rgba(255,107,0,0.4);font-weight:700;padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer;" onclick="declencherAgent('both')">
+          <span id="val-agent-both-sp" class="hidden" style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,107,0,0.3);border-top-color:#FF6B00;border-radius:50%;animation:spin 0.7s linear infinite;"></span>
+          🚨 Appel + Email (URGENT)
+        </button>
+      </div>
+      <p class="text-xs text-gray-600 mt-2" id="val-webhook-note"></p>
+    </div>
+
+    <div class="flex gap-3">
+      <button class="btn-secondary flex-1" onclick="fermerModal('modal-validation')">Fermer</button>
+      <button class="btn-primary flex-1" onclick="confirmerValidation()">✅ Marquer confirmée</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOURNISSEUR -->
+<div id="modal-fournisseur" class="modal-backdrop hidden" onclick="fermerSiBackdrop(event,'modal-fournisseur')">
+  <div class="modal-box" style="max-width:560px;" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="font-bold text-white text-base" id="modal-fourn-titre">Nouveau fournisseur</h3>
+      <button onclick="fermerModal('modal-fournisseur')" class="text-gray-500 hover:text-white text-xl leading-none">×</button>
+    </div>
+    <input type="hidden" id="fourn-edit-id" />
+    <div class="grid grid-cols-1 gap-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Nom fournisseur *</label><input type="text" class="hcs-input" id="fourn-nom" placeholder="ex: Taaroa Stock" /></div>
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Type *</label>
+          <select class="hcs-input" id="fourn-type">
+            <option value="Textile">Textile</option>
+            <option value="DTF">DTF</option>
+            <option value="Accessoires">Accessoires</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Nom du contact</label><input type="text" class="hcs-input" id="fourn-contact" placeholder="ex: Marie Dupont" /></div>
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Téléphone</label><input type="tel" class="hcs-input" id="fourn-tel" placeholder="ex: +689 87 00 00 00" /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Email</label><input type="email" class="hcs-input" id="fourn-email" placeholder="contact@fournisseur.com" /></div>
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Site web</label><input type="text" class="hcs-input" id="fourn-web" placeholder="https://..." /></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Pays / Ville</label><input type="text" class="hcs-input" id="fourn-pays" placeholder="ex: Tahiti / France" /></div>
+        <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Statut</label>
+          <select class="hcs-input" id="fourn-statut">
+            <option value="actif">Actif</option>
+            <option value="inactif">Inactif</option>
+            <option value="prospect">Prospect</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Notes</label><textarea class="hcs-input" id="fourn-notes" rows="2" placeholder="Délais de livraison, conditions, remarques..."></textarea></div>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn-secondary flex-1" onclick="fermerModal('modal-fournisseur')">Annuler</button>
+      <button class="btn-primary flex-1" onclick="enregistrerFournisseur()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
+
+<script>
+/* ============================================================
+   ÉTAT GLOBAL
+   ============================================================ */
+let fournisseurActif = 'taaroa';
+let articleEnCours   = null;
+const articlesData   = { taaroa: [], anemone: [] };
+
+/* Données de démonstration */
+const DEMO_RES = [
+  { id:'RES-001', devis_odoo:'S00123', client:'Mairie de Papeete',  article:'T-Shirt Blanc Col Rond M', reference:'TSH-BLC-M',  quantite:10, fournisseur:'Taaroa Stock', statut:'en_attente', date_besoin:'2026-03-05', date_creation:today() },
+  { id:'RES-002', devis_odoo:'S00124', client:'Tahiti Tourisme',     article:'Polo Orange Piqué L',     reference:'POL-ORG-L',  quantite:5,  fournisseur:'Taaroa Stock', statut:'confirmee',  date_besoin:'2026-03-10', date_creation:today() },
+  { id:'RES-003', devis_odoo:'S00125', client:'Air Tahiti',          article:'Casquette Snapback Noire',reference:'CAP-BLK-UNI',quantite:20, fournisseur:'Anémone',      statut:'en_attente', date_besoin:'2026-03-15', date_creation:today() },
+];
+const DEMO_DTF = [
+  { id:'DTF-001', date_commande:'2026-02-05', designation:'Logos HCS Blanc — Grand format', cm2:5000, montant_usd:45.00, tracking:'1Z999AA1012345678', date_reception_estimee:'2026-02-26', statut:'en_transit' },
+  { id:'DTF-002', date_commande:'2026-02-12', designation:'Textes + pictogrammes Polynésie', cm2:3200, montant_usd:28.50, tracking:'', date_reception_estimee:'2026-03-05', statut:'en_transit' },
+];
+
+/* Init */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('modal-date-besoin').value = today();
+  document.getElementById('dtf-date').value = today();
+  if (!localStorage.getItem('hcs_reservations')) localStorage.setItem('hcs_reservations', JSON.stringify(DEMO_RES));
+  if (!localStorage.getItem('hcs_dtf'))          localStorage.setItem('hcs_dtf',          JSON.stringify(DEMO_DTF));
+  actualiserRecap(); actualiserDTF(); afficherFournisseurs(getFournisseurs());
+  document.addEventListener('keydown', e => { if (e.key==='Escape') ['modal-reservation','modal-dtf','modal-tracking','modal-fournisseur','modal-validation'].forEach(fermerModal); });
+});
+
+function getRes()  { try { return JSON.parse(localStorage.getItem('hcs_reservations'))||[]; } catch { return []; } }
+function saveRes(d){ localStorage.setItem('hcs_reservations', JSON.stringify(d)); }
+function getDTF()  { try { return JSON.parse(localStorage.getItem('hcs_dtf'))||[];          } catch { return []; } }
+function saveDTF(d){ localStorage.setItem('hcs_dtf', JSON.stringify(d)); }
+function today()   { return new Date().toISOString().split('T')[0]; }
+
+/* Navigation */
+function switchTab(nom, btn) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-${nom}`).classList.add('active'); btn.classList.add('active');
+  if (nom==='recapitulatif') actualiserRecap();
+  if (nom==='dtfusa') actualiserDTF();
+}
+
+/* ============================================================
+   RÉCAPITULATIF
+   ============================================================ */
+function actualiserRecap() {
+  const res = getRes(), dtf = getDTF();
+  const attente  = res.filter(r=>r.statut==='en_attente');
+  const reserve  = res.reduce((s,r)=>s+(parseInt(r.quantite)||0),0);
+  const transit  = dtf.filter(d=>d.statut==='en_transit');
+  const alertes  = dtf.filter(d=>estUrgent(d));
+  document.getElementById('stat-attente').textContent = attente.length;
+  document.getElementById('stat-reserve').textContent = reserve;
+  document.getElementById('stat-transit').textContent = transit.length;
+  document.getElementById('stat-alertes').textContent = alertes.length;
+  const ca = document.getElementById('card-alertes'), sa = document.getElementById('stat-alertes');
+  if (alertes.length>0) { ca.style.borderColor='rgba(239,68,68,0.4)'; sa.style.color='#ef4444'; }
+  else                  { ca.style.borderColor='#222222';              sa.style.color='#e5e7eb'; }
+  document.getElementById('recap-count').textContent = `${res.length} ligne(s)`;
+  const tbody = document.getElementById('recap-tbody');
+  if (!res.length) { tbody.innerHTML=`<tr><td colspan="8" class="text-center text-gray-600 py-10 text-sm">Aucune réservation</td></tr>`; return; }
+  tbody.innerHTML = res.map(r=>`<tr>
+    <td><span class="font-mono text-xs font-semibold" style="color:#FF6B00">${esc(r.devis_odoo)}</span></td>
+    <td class="font-medium text-white text-sm">${esc(r.client)}</td>
+    <td class="text-sm text-gray-300">${esc(r.article)}</td>
+    <td class="font-bold text-white">${r.quantite}</td>
+    <td class="text-sm text-gray-400">${esc(r.fournisseur)}</td>
+    <td>${badgeRes(r.statut)}</td>
+    <td class="text-sm text-gray-400">${fmtDate(r.date_besoin)}</td>
+    <td><div class="flex gap-1 flex-wrap">
+      ${r.statut==='en_attente'?`<button class="btn-sm" style="background:rgba(255,107,0,0.15);color:#FF6B00;border:1px solid rgba(255,107,0,0.4);font-weight:600;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;" onclick="ouvrirModalValidation('${r.id}')">🔔 Valider</button>`:''}
+      ${r.statut!=='livree'?`<button class="btn-success btn-sm" onclick="changerStatut('${r.id}','livree')">Livré</button>`:''}
+      <button class="btn-danger btn-sm" onclick="supprimerRes('${r.id}')">Suppr.</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+function changerStatut(id, statut) {
+  const d=getRes(); const i=d.findIndex(r=>r.id===id);
+  if (i!==-1) { d[i].statut=statut; saveRes(d); actualiserRecap(); toast('Statut mis à jour','success'); }
+}
+function supprimerRes(id) {
+  if (!confirm('Supprimer cette réservation ?')) return;
+  saveRes(getRes().filter(r=>r.id!==id)); actualiserRecap(); toast('Réservation supprimée','info');
+}
+
+/* ============================================================
+   IMPORT CSV
+   ============================================================ */
+function importerCSV(f, input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const articles = parseCSV(e.target.result, f);
+      articlesData[f] = articles;
+      peuplerFiltres(f); filtrerArticles(f);
+      toast(`${articles.length} article(s) importé(s)`,'success');
+    } catch(err) { toast(`Erreur CSV : ${err.message}`,'error'); }
+  };
+  reader.readAsText(input.files[0],'UTF-8');
+}
+
+function parseCSV(txt, fournisseur) {
+  const lignes = txt.split('\n').filter(l=>l.trim());
+  if (lignes.length<2) throw new Error('Fichier vide ou invalide');
+  const sep = lignes[0].includes(';')?';':',';
+  const ent = splitLine(lignes[0],sep).map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
+  const res = [];
+  for (let i=1;i<lignes.length;i++) {
+    const cols = splitLine(lignes[i],sep).map(c=>c.trim().replace(/^"|"$/g,''));
+    if (cols.length<2) continue;
+    const a={}; ent.forEach((h,j)=>a[h]=cols[j]||'');
+    const obj = {
+      reference:   a['internal reference']||a['ref']||a['default_code']||'',
+      designation: a['product name']||a['name']||a['display_name']||'',
+      categorie:   a['internal category']||a['category']||a['categ_id']||'',
+      couleur:     a['color']||a['couleur']||'',
+      taille:      a['size']||a['taille']||'',
+      qte_dispo:   a['qty available']||'0',
+      prix_achat:  a['cost']||a['standard_price']||'0',
+    };
+    if (!obj.designation) continue;
+    const nom = (obj.designation+' '+obj.categorie).toLowerCase();
+    if (fournisseur==='taaroa' && !(nom.includes('t-shirt')||nom.includes('tshirt')||nom.includes('polo')||nom.includes('t shirt'))) continue;
+    if (fournisseur==='anemone' && !(nom.includes('casquette')||nom.includes('cap')||nom.includes('snapback')||nom.includes('bonnet'))) continue;
+    res.push(obj);
+  }
+  if (!res.length) { toast('Aucun article filtré — affichage complet','warning'); return parseAll(txt); }
+  return res;
+}
+
+function parseAll(txt) {
+  const lignes=txt.split('\n').filter(l=>l.trim()); const sep=lignes[0].includes(';')?';':',';
+  const ent=splitLine(lignes[0],sep).map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
+  return lignes.slice(1).map(l=>{ const c=splitLine(l,sep).map(x=>x.trim().replace(/^"|"$/g,'')); const a={}; ent.forEach((h,j)=>a[h]=c[j]||''); return {reference:a['internal reference']||a['default_code']||'',designation:a['product name']||a['name']||'',categorie:a['internal category']||'',couleur:a['color']||'',taille:a['size']||'',qte_dispo:a['qty available']||'0',prix_achat:a['cost']||'0'}; }).filter(a=>a.designation);
+}
+
+function splitLine(l, sep) {
+  const r=[]; let cur='',q=false;
+  for (let i=0;i<l.length;i++) { const c=l[i]; if(c==='"'){ if(q&&l[i+1]==='"'){cur+='"';i++;}else q=!q; } else if(c===sep&&!q){r.push(cur);cur='';} else cur+=c; }
+  r.push(cur); return r;
+}
+
+function peuplerFiltres(f) {
+  const a=articlesData[f];
+  ['cat','col','tai'].forEach((k,i)=>{ const vals=[...new Set(a.map(x=>[x.categorie,x.couleur,x.taille][i]).filter(Boolean))].sort(); const labels=['Toutes catégories','Toutes couleurs','Toutes tailles']; document.getElementById(`${f}-${k}`).innerHTML=`<option value="">${labels[i]}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join(''); });
+}
+
+/* Filtrage et affichage articles */
+function filtrerArticles(f) {
+  let a=[...articlesData[f]];
+  const rech=document.getElementById(`${f}-search`).value.toLowerCase();
+  const cat=document.getElementById(`${f}-cat`).value;
+  const col=document.getElementById(`${f}-col`).value;
+  const tai=document.getElementById(`${f}-tai`).value;
+  if (rech) a=a.filter(x=>(x.designation+x.reference+x.couleur).toLowerCase().includes(rech));
+  if (cat)  a=a.filter(x=>x.categorie===cat);
+  if (col)  a=a.filter(x=>x.couleur===col);
+  if (tai)  a=a.filter(x=>x.taille===tai);
+  afficherArticles(f, a);
+  document.getElementById(`${f}-count`).textContent=`${a.length} article(s)`;
+}
+
+function afficherArticles(f, articles) {
+  const tbody=document.getElementById(`${f}-tbody`);
+  if (!articles.length) { tbody.innerHTML=`<tr><td colspan="7" class="text-center text-gray-600 py-10 text-sm">Aucun article trouvé</td></tr>`; return; }
+  tbody.innerHTML=articles.map(a=>`<tr>
+    <td><span class="font-mono text-xs text-gray-400">${esc(a.reference)||'—'}</span></td>
+    <td class="font-medium text-white text-sm">${esc(a.designation)}</td>
+    <td class="text-sm text-gray-400">${esc(a.couleur)||'—'}</td>
+    <td class="text-sm text-gray-400">${esc(a.taille)||'—'}</td>
+    <td><span class="${parseInt(a.qte_dispo)>0?'text-green-400':'text-gray-600'} font-bold">${parseInt(a.qte_dispo)||0}</span></td>
+    <td class="text-sm text-gray-400">${fmtPrix(a.prix_achat)} XPF</td>
+    <td><button class="btn-primary btn-sm" onclick="ouvrirModalRes('${esc(a.reference)}','${esc(a.designation)}','${f}')">Réserver</button></td>
+  </tr>`).join('');
+}
+
+/* ============================================================
+   MODAL RÉSERVATION
+   ============================================================ */
+function ouvrirModalRes(ref, design, f) {
+  articleEnCours={reference:ref,designation:design,fournisseur:f}; fournisseurActif=f;
+  document.getElementById('modal-res-article').textContent=design;
+  document.getElementById('modal-res-ref').textContent=ref;
+  ['modal-devis','modal-client'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('modal-qte').value='1';
+  document.getElementById('modal-date-besoin').value=today();
+  document.getElementById('modal-reservation').classList.remove('hidden');
+  document.getElementById('modal-devis').focus();
+}
+
+function confirmerReservation() {
+  const devis=document.getElementById('modal-devis').value.trim();
+  const client=document.getElementById('modal-client').value.trim();
+  const qte=parseInt(document.getElementById('modal-qte').value);
+  const date=document.getElementById('modal-date-besoin').value;
+  if (!devis)  { toast('N° Devis requis','error'); return; }
+  if (!client) { toast('Nom client requis','error'); return; }
+  if (!qte||qte<1) { toast('Quantité invalide','error'); return; }
+  if (!date)   { toast('Date besoin requise','error'); return; }
+  const res=getRes();
+  const fLabel=fournisseurActif==='taaroa'?'Taaroa Stock':fournisseurActif==='anemone'?'Anémone':fournisseurActif;
+  res.push({id:`RES-${Date.now().toString().slice(-6)}`,devis_odoo:devis,client,article:articleEnCours.designation,reference:articleEnCours.reference,quantite:qte,fournisseur:fLabel,statut:'en_attente',date_besoin:date,date_creation:today()});
+  saveRes(res); fermerModal('modal-reservation'); actualiserRecap(); toast('Réservation créée','success');
+}
+
+/* ============================================================
+   DTF USA
+   ============================================================ */
+function ouvrirModalDTF() {
+  document.getElementById('dtf-date').value=today();
+  ['dtf-design','dtf-cm2','dtf-h','dtf-l','dtf-montant','dtf-tracking'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dtf-calc-label').textContent='Saisir H × L pour calculer cm²';
+  document.getElementById('modal-dtf').classList.remove('hidden');
+  document.getElementById('dtf-design').focus();
+}
+
+function calcCm2() {
+  const h=parseFloat(document.getElementById('dtf-h').value)||0;
+  const l=parseFloat(document.getElementById('dtf-l').value)||0;
+  if (h>0&&l>0) { const c=Math.round(h*l); document.getElementById('dtf-cm2').value=c; document.getElementById('dtf-calc-label').textContent=`${h} cm × ${l} cm = ${c} cm²`; }
+}
+
+function enregistrerDTF() {
+  const date=document.getElementById('dtf-date').value;
+  const design=document.getElementById('dtf-design').value.trim();
+  const cm2=parseInt(document.getElementById('dtf-cm2').value)||0;
+  const montant=parseFloat(document.getElementById('dtf-montant').value)||0;
+  const tracking=document.getElementById('dtf-tracking').value.trim();
+  if (!date||!design||montant<=0) { toast('Remplissez date, désignation et montant','error'); return; }
+  const d=new Date(date); d.setDate(d.getDate()+21);
+  const rec=d.toISOString().split('T')[0];
+  const dtf=getDTF();
+  dtf.push({id:`DTF-${Date.now().toString().slice(-6)}`,date_commande:date,designation:design,cm2,montant_usd:montant,tracking,date_reception_estimee:rec,statut:'en_transit'});
+  saveDTF(dtf); fermerModal('modal-dtf'); actualiserDTF(); toast(`Commande enregistrée — réception estimée ${fmtDate(rec)}`,'success');
+}
+
+function actualiserDTF() {
+  const dtf=getDTF();
+  document.getElementById('dtf-count').textContent=`${dtf.length} commande(s)`;
+  const tbody=document.getElementById('dtf-tbody');
+  if (!dtf.length) { tbody.innerHTML=`<tr><td colspan="10" class="text-center text-gray-600 py-12 text-sm">Aucune commande DTF</td></tr>`; majResumeDTF([]); return; }
+  const tries=[...dtf].sort((a,b)=>new Date(a.date_commande)-new Date(b.date_commande));
+  const grps={};
+  tries.forEach(c=>{ const s=semaineLabel(c.date_commande); if(!grps[s])grps[s]=[]; grps[s].push(c); });
+  let html='';
+  Object.entries(grps).forEach(([s,cmds])=>{
+    html+=`<tr><td colspan="10" class="week-group-header">Semaine du ${s} (${cmds.length} commande${cmds.length>1?'s':''})</td></tr>`;
+    cmds.forEach(c=>{
+      const alerte=estUrgent(c);
+      const statBadge=c.statut==='en_transit'?'<span class="badge badge-blue">En transit</span>':'<span class="badge badge-gray">Livré</span>';
+      const alertBadge=alerte?'<span class="badge badge-red urgent-pulse">URGENT</span>':c.statut==='en_transit'?'<span class="text-gray-600 text-xs">—</span>':'<span class="badge badge-green">OK</span>';
+      const trk=c.tracking?`<span class="font-mono text-xs text-blue-400">${esc(c.tracking.length>14?c.tracking.slice(0,14)+'…':c.tracking)}</span>`:`<button class="btn-secondary btn-sm" onclick="ouvrirTrack('${c.id}','')">+ Tracking</button>`;
+      html+=`<tr>
+        <td><span class="font-mono text-xs font-bold" style="color:#FF6B00">${esc(c.id)}</span></td>
+        <td class="text-sm text-gray-400">${fmtDate(c.date_commande)}</td>
+        <td class="text-sm text-white font-medium" style="max-width:180px" title="${esc(c.designation)}">${esc(c.designation.length>30?c.designation.slice(0,30)+'…':c.designation)}</td>
+        <td class="text-sm text-gray-400">${(c.cm2||0).toLocaleString('fr-FR')} cm²</td>
+        <td class="text-sm font-semibold text-white">$${parseFloat(c.montant_usd||0).toFixed(2)}</td>
+        <td>${trk}</td>
+        <td class="text-sm ${alerte?'text-red-400 font-semibold':'text-gray-400'}">${fmtDate(c.date_reception_estimee)}</td>
+        <td>${statBadge}</td>
+        <td>${alertBadge}</td>
+        <td><div class="flex gap-1 flex-wrap">
+          ${c.statut==='en_transit'?`<button class="btn-success btn-sm" onclick="marquerLivre('${c.id}')">Livré</button>`:''}
+          <button class="btn-danger btn-sm" onclick="supprimerDTF('${c.id}')">Suppr.</button>
+        </div></td>
+      </tr>`;
+    });
+  });
+  tbody.innerHTML=html; majResumeDTF(dtf);
+}
+
+function estUrgent(c) { if (c.statut!=='en_transit') return false; return (new Date(c.date_reception_estimee)-new Date())/(1000*60*60*24)<=3; }
+
+function majResumeDTF(dtf) {
+  const transit=dtf.filter(c=>c.statut==='en_transit');
+  const usd=transit.reduce((s,c)=>s+(parseFloat(c.montant_usd)||0),0);
+  const dates=transit.map(c=>c.date_reception_estimee).filter(Boolean).sort();
+  document.getElementById('dtf-total-transit').textContent=`${transit.length} commande(s)`;
+  document.getElementById('dtf-total-usd').textContent=`$${usd.toFixed(2)}`;
+  document.getElementById('dtf-prochain').textContent=dates.length?fmtDate(dates[0]):'—';
+}
+
+function marquerLivre(id) { const d=getDTF(); const i=d.findIndex(c=>c.id===id); if(i!==-1){d[i].statut='livre';saveDTF(d);actualiserDTF();toast('Commande marquée livrée','success');} }
+function supprimerDTF(id) { if(!confirm('Supprimer cette commande DTF ?'))return; saveDTF(getDTF().filter(c=>c.id!==id)); actualiserDTF(); toast('Commande supprimée','info'); }
+function ouvrirTrack(id,val) { document.getElementById('tracking-id').value=id; document.getElementById('tracking-val').value=val||''; document.getElementById('modal-tracking').classList.remove('hidden'); document.getElementById('tracking-val').focus(); }
+function sauvegarderTracking() { const id=document.getElementById('tracking-id').value; const val=document.getElementById('tracking-val').value.trim(); const d=getDTF(); const i=d.findIndex(c=>c.id===id); if(i!==-1){d[i].tracking=val;saveDTF(d);fermerModal('modal-tracking');actualiserDTF();toast('Tracking mis à jour','success');} }
+
+/* ============================================================
+   EXPORT JSON — Agent 5
+   ============================================================ */
+function exporterJSON() {
+  const res=getRes(), dtf=getDTF();
+  const data={
+    export_date: today(),
+    reservations: res.map(r=>({id:r.id,devis_odoo:r.devis_odoo,client:r.client,article:r.article,quantite:r.quantite,fournisseur:r.fournisseur,statut:r.statut,date_besoin:r.date_besoin})),
+    dtf_transit:  dtf.filter(d=>d.statut==='en_transit').map(d=>({id:d.id,date_commande:d.date_commande,description:d.designation,cm2:d.cm2,montant_usd:d.montant_usd,tracking:d.tracking||null,date_reception_estimee:d.date_reception_estimee,alerte_urgente:estUrgent(d)})),
+    statistiques:{ total_reservations:res.length, en_attente:res.filter(r=>r.statut==='en_attente').length, dtf_en_transit:dtf.filter(d=>d.statut==='en_transit').length, alertes:dtf.filter(d=>estUrgent(d)).length }
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=`hcs-stock-export-${today()}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast(`Export généré : ${data.reservations.length} réservations, ${data.dtf_transit.length} DTF`,'success');
+}
+
+/* ============================================================
+   UTILITAIRES
+   ============================================================ */
+function fermerModal(id) { document.getElementById(id).classList.add('hidden'); }
+function fermerSiBackdrop(e,id) { if(e.target===document.getElementById(id)) fermerModal(id); }
+function esc(s) { if(!s)return''; const d=document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
+function fmtDate(v) { if(!v)return'—'; try{ const d=new Date(v+'T12:00:00'); return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); } catch{return String(v);} }
+function fmtPrix(v) { return Math.round(parseFloat(v)||0).toLocaleString('fr-FR'); }
+function badgeRes(s) { const m={en_attente:'<span class="badge badge-yellow">En attente</span>',confirmee:'<span class="badge badge-green">Confirmée</span>',livree:'<span class="badge badge-gray">Livrée</span>'}; return m[s]||`<span class="badge badge-gray">${esc(s)}</span>`; }
+function semaineLabel(d) {
+  const dt=new Date(d+'T12:00:00');
+  const lun=new Date(dt); lun.setDate(dt.getDate()+(dt.getDay()===0?-6:1-dt.getDay()));
+  const ven=new Date(lun); ven.setDate(lun.getDate()+4);
+  const o={day:'2-digit',month:'short'};
+  return `${lun.toLocaleDateString('fr-FR',o)} au ${ven.toLocaleDateString('fr-FR',o)}`;
+}
+
+/* ============================================================
+   VALIDATION RÉSERVATION — AGENT IA
+   ============================================================ */
+let validationResId = null;
+
+function ouvrirModalValidation(id) {
+  validationResId = id;
+  const res = getRes().find(r => r.id === id);
+  if (!res) return;
+
+  // Calcul urgence
+  const today_ts = new Date().setHours(0,0,0,0);
+  const besoin_ts = new Date(res.date_besoin + 'T00:00:00').getTime();
+  const jours = Math.ceil((besoin_ts - today_ts) / (1000*60*60*24));
+
+  let niveau, couleurBg, couleurTxt, icone, titreUrg, descUrg;
+  if (jours <= 0) {
+    niveau='critique'; couleurBg='rgba(239,68,68,0.12)'; couleurTxt='#ef4444';
+    icone='🚨'; titreUrg='CRITIQUE — Date dépassée ou aujourd\'hui !';
+    descUrg='Commande à traiter immédiatement. Appel + email requis.';
+  } else if (jours <= 3) {
+    niveau='urgent'; couleurBg='rgba(239,68,68,0.08)'; couleurTxt='#f87171';
+    icone='🔴'; titreUrg=`URGENT — ${jours} jour(s) restant(s)`;
+    descUrg='Délai critique. Appel téléphonique + email recommandés.';
+  } else if (jours <= 7) {
+    niveau='normal'; couleurBg='rgba(251,191,36,0.08)'; couleurTxt='#fbbf24';
+    icone='🟡'; titreUrg=`NORMAL — ${jours} jours restants`;
+    descUrg='Délai raisonnable. Un email de confirmation suffit.';
+  } else {
+    niveau='ok'; couleurBg='rgba(34,197,94,0.08)'; couleurTxt='#22c55e';
+    icone='🟢'; titreUrg=`OK — ${jours} jours restants`;
+    descUrg='Délai confortable. Confirmation par email optionnelle.';
+  }
+
+  // Bandeau urgence
+  const banner = document.getElementById('val-urgence-banner');
+  banner.style.background = couleurBg;
+  banner.style.border = `1px solid ${couleurTxt}40`;
+  document.getElementById('val-urgence-icon').textContent = icone;
+  document.getElementById('val-urgence-titre').textContent = titreUrg;
+  document.getElementById('val-urgence-titre').style.color = couleurTxt;
+  document.getElementById('val-urgence-desc').textContent = descUrg;
+
+  // Détails réservation
+  document.getElementById('val-devis').textContent   = res.devis_odoo;
+  document.getElementById('val-client').textContent  = res.client;
+  document.getElementById('val-article').textContent = res.article + (res.reference ? ` (${res.reference})` : '');
+  document.getElementById('val-qte').textContent     = `${res.quantite} pcs`;
+  document.getElementById('val-fourn').textContent   = res.fournisseur;
+  const dateEl = document.getElementById('val-date');
+  dateEl.textContent = fmtDate(res.date_besoin);
+  dateEl.style.color  = couleurTxt;
+
+  // Chercher contact fournisseur dans la liste
+  const fournisseurs = getFournisseurs();
+  const fContact = fournisseurs.find(f => f.nom.toLowerCase().includes(res.fournisseur.toLowerCase().split(' ')[0]) || res.fournisseur.toLowerCase().includes(f.nom.toLowerCase().split(' ')[0]));
+  const secContact = document.getElementById('val-contact-section');
+  if (fContact && (fContact.tel || fContact.email)) {
+    secContact.classList.remove('hidden');
+    document.getElementById('val-contact-nom').textContent = fContact.nom + (fContact.contact ? ` — ${fContact.contact}` : '');
+    document.getElementById('val-contact-info').textContent = [fContact.tel, fContact.email].filter(Boolean).join(' | ');
+    const btnTel = document.getElementById('val-btn-tel');
+    const btnMail = document.getElementById('val-btn-mail');
+    if (fContact.tel) {
+      btnTel.href = `tel:${fContact.tel}`;
+      btnTel.classList.remove('hidden');
+    } else { btnTel.style.display = 'none'; }
+    if (fContact.email) {
+      const sujet = encodeURIComponent(`Commande ${res.id} — ${res.article} × ${res.quantite}`);
+      const corps = encodeURIComponent(`Bonjour,\n\nNous souhaitons confirmer notre commande :\n\n• Devis : ${res.devis_odoo}\n• Article : ${res.article}\n• Référence : ${res.reference || '—'}\n• Quantité : ${res.quantite} pcs\n• Date besoin : ${fmtDate(res.date_besoin)}\n\nMerci de confirmer la disponibilité.\n\nCordialement,\nHigh Coffee Shirt — Papeete`);
+      btnMail.href = `mailto:${fContact.email}?subject=${sujet}&body=${corps}`;
+      btnMail.style.display = 'inline-flex';
+    } else { btnMail.style.display = 'none'; }
+  } else {
+    secContact.classList.add('hidden');
+  }
+
+  // Boutons agent selon urgence
+  const btnCall = document.getElementById('val-btn-agent-call');
+  const btnMail2 = document.getElementById('val-btn-agent-mail');
+  const btnBoth = document.getElementById('val-btn-agent-both');
+  const actionRec = document.getElementById('val-action-recommandee');
+  const webhookNote = document.getElementById('val-webhook-note');
+
+  btnCall.classList.add('hidden'); btnBoth.classList.add('hidden');
+  btnMail2.classList.remove('hidden');
+
+  if (niveau === 'critique' || niveau === 'urgent') {
+    btnBoth.classList.remove('hidden');
+    btnCall.classList.remove('hidden');
+    actionRec.innerHTML = `<span style="color:#ef4444;font-weight:600;">⚡ Action immédiate requise</span> — Déclencher appel téléphonique automatique <strong>ET</strong> email au fournisseur via l'agent n8n.`;
+  } else if (niveau === 'normal') {
+    actionRec.innerHTML = `<span style="color:#fbbf24;font-weight:600;">📧 Email de confirmation</span> — Envoyer un email de confirmation au fournisseur via l'agent n8n.`;
+  } else {
+    actionRec.innerHTML = `<span style="color:#22c55e;font-weight:600;">✓ Situation normale</span> — Email optionnel pour anticiper la commande.`;
+  }
+
+  webhookNote.textContent = CONFIG.N8N_WEBHOOK_URL ? '✓ Webhook n8n configuré' : '⚠ N8N_WEBHOOK_URL non configuré dans CONFIG — les boutons agent enverront via mailto.';
+
+  document.getElementById('modal-validation').classList.remove('hidden');
+}
+
+async function declencherAgent(type) {
+  const res = getRes().find(r => r.id === validationResId);
+  if (!res) return;
+
+  const spMap = { call:'val-agent-call-sp', mail:'val-agent-mail-sp', both:'val-agent-both-sp' };
+  const btnMap = { call:'val-btn-agent-call', mail:'val-btn-agent-mail', both:'val-btn-agent-both' };
+  const sp = document.getElementById(spMap[type]);
+  const btn = document.getElementById(btnMap[type]);
+  sp.classList.remove('hidden'); btn.disabled = true;
+
+  const payload = {
+    action: type,
+    reservation: {
+      id: res.id, devis_odoo: res.devis_odoo, client: res.client,
+      article: res.article, reference: res.reference, quantite: res.quantite,
+      fournisseur: res.fournisseur, date_besoin: res.date_besoin, date_creation: res.date_creation
+    },
+    urgence: calcUrgenceNiveau(res.date_besoin),
+    timestamp: new Date().toISOString()
+  };
+
+  if (CONFIG.N8N_WEBHOOK_URL) {
+    try {
+      const rep = await fetch(CONFIG.N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (rep.ok) {
+        toast(`Agent déclenché (${type === 'call' ? 'appel' : type === 'mail' ? 'email' : 'appel+email'}) ✓`, 'success', 6000);
+        changerStatut(validationResId, 'confirmee');
+        fermerModal('modal-validation');
+      } else {
+        toast(`Erreur webhook n8n : HTTP ${rep.status}`, 'error');
+      }
+    } catch(e) {
+      toast(`Webhook inaccessible : ${e.message}`, 'error');
+    }
+  } else {
+    // Fallback : mailto si pas de webhook
+    const fournisseurs = getFournisseurs();
+    const fContact = fournisseurs.find(f => f.nom.toLowerCase().includes(res.fournisseur.toLowerCase().split(' ')[0]));
+    if (fContact?.email && (type === 'mail' || type === 'both')) {
+      const sujet = encodeURIComponent(`[VALIDATION] Commande ${res.id} — ${res.article} × ${res.quantite}`);
+      const corps = encodeURIComponent(`Bonjour,\n\nVeuillez confirmer la disponibilité pour :\n\n• Devis : ${res.devis_odoo}\n• Article : ${res.article} (${res.reference || '—'})\n• Quantité : ${res.quantite} pcs\n• Date besoin : ${fmtDate(res.date_besoin)}\n\nMerci,\nHigh Coffee Shirt — Papeete`);
+      window.open(`mailto:${fContact.email}?subject=${sujet}&body=${corps}`, '_blank');
+    }
+    toast('Webhook n8n non configuré — email ouvert en fallback', 'warning', 5000);
+    changerStatut(validationResId, 'confirmee');
+    fermerModal('modal-validation');
+  }
+  sp.classList.add('hidden'); btn.disabled = false;
+}
+
+function confirmerValidation() {
+  changerStatut(validationResId, 'confirmee');
+  fermerModal('modal-validation');
+  toast('Réservation confirmée', 'success');
+}
+
+function calcUrgenceNiveau(date_besoin) {
+  const j = Math.ceil((new Date(date_besoin+'T00:00:00') - new Date().setHours(0,0,0,0)) / (1000*60*60*24));
+  if (j <= 0) return 'critique';
+  if (j <= 3) return 'urgent';
+  if (j <= 7) return 'normal';
+  return 'ok';
+}
+
+/* ============================================================
+   FOURNISSEURS
+   ============================================================ */
+function getFournisseurs() { try { return JSON.parse(localStorage.getItem('hcs_fournisseurs')||'[]'); } catch { return []; } }
+function saveFournisseurs(d) { localStorage.setItem('hcs_fournisseurs', JSON.stringify(d)); }
+
+function ouvrirModalFournisseur(id) {
+  document.getElementById('fourn-edit-id').value = id || '';
+  document.getElementById('modal-fourn-titre').textContent = id ? 'Modifier fournisseur' : 'Nouveau fournisseur';
+  const fields = ['fourn-nom','fourn-contact','fourn-tel','fourn-email','fourn-web','fourn-pays','fourn-notes'];
+  if (id) {
+    const f = getFournisseurs().find(x => x.id === id);
+    if (f) {
+      document.getElementById('fourn-nom').value     = f.nom || '';
+      document.getElementById('fourn-type').value    = f.type || 'Textile';
+      document.getElementById('fourn-contact').value = f.contact || '';
+      document.getElementById('fourn-tel').value     = f.tel || '';
+      document.getElementById('fourn-email').value   = f.email || '';
+      document.getElementById('fourn-web').value     = f.web || '';
+      document.getElementById('fourn-pays').value    = f.pays || '';
+      document.getElementById('fourn-statut').value  = f.statut || 'actif';
+      document.getElementById('fourn-notes').value   = f.notes || '';
+    }
+  } else {
+    fields.forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fourn-type').value   = 'Textile';
+    document.getElementById('fourn-statut').value = 'actif';
+  }
+  document.getElementById('modal-fournisseur').classList.remove('hidden');
+  document.getElementById('fourn-nom').focus();
+}
+
+function enregistrerFournisseur() {
+  const nom = document.getElementById('fourn-nom').value.trim();
+  if (!nom) { toast('Nom du fournisseur requis','error'); return; }
+  const data = getFournisseurs();
+  const editId = document.getElementById('fourn-edit-id').value;
+  const fourn = {
+    id:      editId || `FOURN-${Date.now().toString().slice(-6)}`,
+    nom,
+    type:    document.getElementById('fourn-type').value,
+    contact: document.getElementById('fourn-contact').value.trim(),
+    tel:     document.getElementById('fourn-tel').value.trim(),
+    email:   document.getElementById('fourn-email').value.trim(),
+    web:     document.getElementById('fourn-web').value.trim(),
+    pays:    document.getElementById('fourn-pays').value.trim(),
+    statut:  document.getElementById('fourn-statut').value,
+    notes:   document.getElementById('fourn-notes').value.trim(),
+    date_creation: editId ? (data.find(x=>x.id===editId)?.date_creation || today()) : today()
+  };
+  if (editId) {
+    const i = data.findIndex(x => x.id === editId);
+    if (i !== -1) data[i] = fourn; else data.push(fourn);
+  } else {
+    data.push(fourn);
+  }
+  saveFournisseurs(data);
+  fermerModal('modal-fournisseur');
+  afficherFournisseurs(data);
+  toast(editId ? 'Fournisseur mis à jour' : 'Fournisseur créé', 'success');
+}
+
+function supprimerFournisseur(id) {
+  if (!confirm('Supprimer ce fournisseur ?')) return;
+  saveFournisseurs(getFournisseurs().filter(f => f.id !== id));
+  afficherFournisseurs(getFournisseurs());
+  toast('Fournisseur supprimé', 'info');
+}
+
+function filtrerFournisseurs() {
+  const q     = (document.getElementById('fourn-search').value || '').toLowerCase();
+  const type  = document.getElementById('fourn-type-filter').value;
+  let data = getFournisseurs();
+  if (q)    data = data.filter(f => (f.nom+f.contact+f.pays+f.email).toLowerCase().includes(q));
+  if (type) data = data.filter(f => f.type === type);
+  afficherFournisseurs(data);
+}
+
+function afficherFournisseurs(data) {
+  const tbody = document.getElementById('fourn-tbody');
+  document.getElementById('fourn-count').textContent = `${data.length} fournisseur(s)`;
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-600 py-12 text-sm">Aucun fournisseur trouvé</td></tr>';
+    return;
+  }
+  const typeBadge = { Textile:'badge-blue', DTF:'badge-yellow', Accessoires:'badge-green', Autre:'badge-gray' };
+  const statutBadge = { actif:'badge-green', inactif:'badge-gray', prospect:'badge-yellow' };
+  tbody.innerHTML = data.map(f => `<tr>
+    <td><div class="font-semibold text-white text-sm">${esc(f.nom)}</div><div class="text-xs text-gray-600">${esc(f.id)}</div></td>
+    <td><span class="badge ${typeBadge[f.type]||'badge-gray'}">${esc(f.type)}</span></td>
+    <td class="text-sm text-gray-300">${esc(f.contact||'—')}</td>
+    <td class="text-sm text-gray-300">${f.tel?`<a href="tel:${esc(f.tel)}" style="color:#60a5fa">${esc(f.tel)}</a>`:'—'}</td>
+    <td class="text-sm text-gray-300">${f.email?`<a href="mailto:${esc(f.email)}" style="color:#60a5fa">${esc(f.email)}</a>`:'—'}</td>
+    <td class="text-sm text-gray-400">${esc(f.pays||'—')}</td>
+    <td><span class="badge ${statutBadge[f.statut]||'badge-gray'}">${esc(f.statut)}</span></td>
+    <td><div class="flex gap-1">
+      <button class="btn-secondary btn-sm" onclick="ouvrirModalFournisseur('${f.id}')">✏ Éditer</button>
+      <button class="btn-danger btn-sm" onclick="supprimerFournisseur('${f.id}')">Suppr.</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+/* Toast */
+const toastStyle=document.createElement('style');
+toastStyle.textContent='@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}';
+document.head.appendChild(toastStyle);
+function toast(msg, type='info') {
+  const c={'success':{border:'rgba(34,197,94,0.4)',icon:'✓',color:'#22c55e'},'error':{border:'rgba(239,68,68,0.4)',icon:'✗',color:'#ef4444'},'warning':{border:'rgba(251,191,36,0.4)',icon:'⚠',color:'#fbbf24'},'info':{border:'rgba(96,165,250,0.4)',icon:'ℹ',color:'#60a5fa'}};
+  const s=c[type]||c.info;
+  const el=document.createElement('div');
+  el.style.cssText=`background:#111;border:1px solid ${s.border};border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;min-width:260px;max-width:360px;animation:slideIn 0.3s ease;box-shadow:0 4px 24px rgba(0,0,0,0.5);`;
+  el.innerHTML=`<span style="color:${s.color};font-size:14px;flex-shrink:0">${s.icon}</span><span style="font-size:13px;color:#e5e7eb;line-height:1.4">${esc(msg)}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>{el.style.animation='slideOut 0.3s ease';setTimeout(()=>{if(el.parentNode)el.parentNode.removeChild(el);},300);},4000);
+}
+
+/* ============================================================
+   IMPORT BON DE LIVRAISON ODOO
+   ============================================================ */
+let blMatches = [];
+
+function importerBonLivraison(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    parseBonLivraison(text);
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseBonLivraison(text) {
+  // Parse CSV générique — détecte le séparateur (, ou ;)
+  const sep = text.indexOf(';') > text.indexOf(',') ? ';' : ',';
+  const lines = text.trim().split('\n').map(l => l.split(sep).map(c => c.trim().replace(/^"|"$/g,'')));
+  if (lines.length < 2) { alert('CSV vide ou invalide.'); return; }
+
+  const headers = lines[0].map(h => h.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''));
+
+  // Colonnes candidates
+  const colRef    = trouverCol(headers, ['source','origine','origin','order','commande','devis','reference source']);
+  const colArt    = trouverCol(headers, ['article','product','produit','designation','libelle']);
+  const colQte    = trouverCol(headers, ['quantite','qty','qte','quantite fait','done quantity']);
+  const colBl     = trouverCol(headers, ['reference','transfert','bon livraison','picking','bl']);
+
+  const rows = lines.slice(1).filter(r => r.some(c => c.length > 0));
+  const reservations = getRes();
+
+  blMatches = [];
+  const rawItems = [];
+
+  rows.forEach(row => {
+    const refSource = colRef >= 0 ? row[colRef] : '';
+    const article   = colArt >= 0 ? row[colArt] : '';
+    const qte       = colQte >= 0 ? row[colQte] : '';
+    const blRef     = colBl  >= 0 ? row[colBl]  : '';
+    rawItems.push({ ref: blRef||refSource, article, qte });
+
+    // Matcher sur N° devis Odoo (format S00xxx) ou sur nom article
+    reservations.forEach(res => {
+      const devisMatch = refSource && res.devis_odoo &&
+        (refSource.toUpperCase().includes(res.devis_odoo.toUpperCase()) ||
+         res.devis_odoo.toUpperCase().includes(refSource.toUpperCase()));
+      const artMatch = article && res.article &&
+        res.article.toLowerCase().includes(article.toLowerCase().slice(0, 12));
+
+      if ((devisMatch || artMatch) && !blMatches.find(m => m.id === res.id)) {
+        blMatches.push({ ...res, bl_ref: blRef||refSource, bl_article: article, bl_qte: qte });
+      }
+    });
+  });
+
+  // Afficher modal
+  const info = document.getElementById('bl-parse-info');
+  info.style.display = 'block';
+  info.textContent = `CSV analysé : ${rows.length} ligne(s) — ${blMatches.length} réservation(s) correspondante(s) trouvée(s).`;
+
+  if (blMatches.length > 0) {
+    document.getElementById('bl-matches-section').style.display = 'block';
+    document.getElementById('bl-no-match').style.display = 'none';
+    document.getElementById('bl-matches-list').innerHTML = blMatches.map((m, i) => `
+      <label style="display:flex;align-items:center;gap:10px;background:#0e0e1c;border:1px solid #1e1e30;border-radius:8px;padding:10px 14px;cursor:pointer;">
+        <input type="checkbox" id="bl-check-${i}" checked style="width:16px;height:16px;accent-color:#FF6B00;">
+        <div style="flex:1;">
+          <div style="font-size:.88rem;font-weight:600;color:#e0e0e0;">${m.client} — ${m.article}</div>
+          <div style="font-size:.72rem;color:#888;">Devis ${m.devis_odoo} · Qté réservée ${m.quantite} · BL réf: ${m.bl_ref||'—'}</div>
+        </div>
+        <span class="badge-${m.statut==='en_attente'?'pending':'paid'}" style="background:${m.statut==='en_attente'?'#7c2d12':'#14532d'};color:${m.statut==='en_attente'?'#fdba74':'#86efac'};padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;">
+          ${m.statut}
+        </span>
+      </label>
+    `).join('');
+  } else {
+    document.getElementById('bl-matches-section').style.display = 'none';
+    document.getElementById('bl-no-match').style.display = 'block';
+  }
+
+  // Raw data
+  document.getElementById('bl-raw-section').style.display = 'block';
+  document.getElementById('bl-raw-list').innerHTML = rawItems.slice(0,10).map(r =>
+    `<div style="padding:3px 0;border-bottom:1px solid #111;">Réf: ${r.ref||'—'} | Art: ${r.article||'—'} | Qté: ${r.qte||'—'}</div>`
+  ).join('') + (rawItems.length > 10 ? `<div style="color:#555;padding:3px 0;">...et ${rawItems.length-10} autre(s)</div>` : '');
+
+  document.getElementById('modal-bl').classList.remove('hidden');
+}
+
+function trouverCol(headers, candidates) {
+  for (const c of candidates) {
+    const idx = headers.findIndex(h => h.includes(c));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function confirmerBL(nouveauStatut) {
+  const reservations = getRes();
+  let count = 0;
+  blMatches.forEach((m, i) => {
+    const cb = document.getElementById(`bl-check-${i}`);
+    if (cb && cb.checked) {
+      const idx = reservations.findIndex(r => r.id === m.id);
+      if (idx >= 0) {
+        reservations[idx].statut = nouveauStatut;
+        reservations[idx].date_livraison = today();
+        count++;
+      }
+    }
+  });
+  localStorage.setItem('hcs_reservations', JSON.stringify(reservations));
+  fermerModal('modal-bl');
+  actualiserRecap();
+  toast(`${count} réservation(s) marquée(s) "${nouveauStatut}" ✅`, 'success');
+}
+
+/* Rafraîchissement alertes toutes les 5 min */
+setInterval(()=>{ const ac=document.querySelector('.tab-content.active'); if(ac){if(ac.id==='tab-dtfusa')actualiserDTF();if(ac.id==='tab-recapitulatif')actualiserRecap();} },5*60*1000);
+</script>
+</body>
+</html>

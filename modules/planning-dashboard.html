@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 5 — Planning Production | HCS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --orange: #FF6B00;
+    --orange-dim: rgba(255,107,0,0.15);
+    --text: #f0f0f0;
+    --text-muted: #666;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* HEADER */
+  .header {
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+  }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .logo { font-size:18px; font-weight:700; color:var(--orange); }
+  .subtitle { font-size:13px; color:var(--text-muted); }
+  .live-clock { font-size:13px; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+  .btn {
+    padding:8px 16px; border-radius:8px; border:none; cursor:pointer;
+    font-size:13px; font-weight:500; font-family:'Inter',sans-serif;
+    transition:all 0.2s;
+  }
+  .btn-orange { background:var(--orange); color:#fff; }
+  .btn-orange:hover { background:#e05e00; }
+  .btn-ghost { background:transparent; color:var(--text-muted); border:1px solid var(--border); }
+  .btn-ghost:hover { border-color:var(--orange); color:var(--orange); }
+
+  /* STATS BAR */
+  .stats-bar {
+    display:grid; grid-template-columns:repeat(5,1fr); gap:12px;
+    padding:16px 24px;
+  }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:14px 16px;
+  }
+  .stat-label { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+  .stat-value { font-size:22px; font-weight:700; }
+  .stat-value.orange { color:var(--orange); }
+  .stat-value.green { color:var(--green); }
+  .stat-value.yellow { color:var(--yellow); }
+  .stat-value.red { color:var(--red); }
+
+  /* MAIN LAYOUT */
+  .main { display:grid; grid-template-columns:1fr 320px; gap:16px; padding:0 24px 24px; }
+
+  /* KANBAN */
+  .kanban { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .kanban-col { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .col-header {
+    padding:12px 14px; font-size:12px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.06em; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border);
+  }
+  .col-badge {
+    background:var(--surface2); color:var(--text-muted);
+    font-size:11px; padding:2px 7px; border-radius:999px; font-weight:600;
+  }
+  .col-body { padding:10px; display:flex; flex-direction:column; gap:8px; min-height:300px; }
+
+  /* COMMANDE CARD */
+  .cmd-card {
+    background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px; cursor:grab; transition:all 0.2s;
+    position:relative;
+  }
+  .cmd-card:hover { border-color:var(--orange); transform:translateY(-1px); }
+  .cmd-card.dragging { opacity:0.4; }
+  .cmd-card.urgent { border-left:3px solid var(--red); }
+  .cmd-card.warning { border-left:3px solid var(--yellow); }
+  .cmd-card.ok { border-left:3px solid var(--green); }
+  .cmd-ref { font-size:12px; font-weight:700; color:var(--orange); margin-bottom:4px; }
+  .cmd-client { font-size:13px; font-weight:500; margin-bottom:4px; }
+  .cmd-detail { font-size:11px; color:var(--text-muted); margin-bottom:6px; line-height:1.5; }
+  .cmd-footer { display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap; }
+  .cmd-machine {
+    font-size:10px; padding:2px 7px; border-radius:999px; font-weight:600;
+    background:var(--orange-dim); color:var(--orange);
+  }
+  .cmd-deadline { font-size:10px; color:var(--text-muted); }
+  .cmd-deadline.late { color:var(--red); font-weight:600; }
+  .cmd-actions { display:flex; gap:4px; margin-top:8px; }
+  .cmd-btn {
+    flex:1; padding:4px 0; border-radius:6px; border:none; cursor:pointer;
+    font-size:10px; font-weight:600; font-family:'Inter',sans-serif; transition:all 0.2s;
+  }
+  .cmd-btn-next { background:var(--orange-dim); color:var(--orange); }
+  .cmd-btn-next:hover { background:var(--orange); color:#fff; }
+  .cmd-btn-del { background:rgba(239,68,68,.1); color:var(--red); }
+  .cmd-btn-del:hover { background:var(--red); color:#fff; }
+
+  /* COL COLORS */
+  .col-header.attendre { color:#a855f7; }
+  .col-header.matiere { color:var(--yellow); }
+  .col-header.prod { color:var(--orange); }
+  .col-header.qualite { color:var(--blue); }
+  .col-header.pret { color:var(--green); }
+
+  /* SIDEBAR */
+  .sidebar { display:flex; flex-direction:column; gap:12px; }
+
+  .side-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:16px;
+  }
+  .side-title { font-size:13px; font-weight:600; margin-bottom:12px; color:var(--text); }
+
+  /* MACHINES */
+  .machine-row {
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+  }
+  .machine-icon { font-size:18px; }
+  .machine-info { flex:1; }
+  .machine-name { font-size:12px; font-weight:600; margin-bottom:3px; }
+  .machine-bar-bg { height:6px; background:var(--border); border-radius:999px; overflow:hidden; }
+  .machine-bar { height:100%; border-radius:999px; transition:width .5s; }
+  .machine-bar.green { background:var(--green); }
+  .machine-bar.yellow { background:var(--yellow); }
+  .machine-bar.red { background:var(--red); }
+  .machine-load { font-size:10px; color:var(--text-muted); margin-top:2px; }
+
+  /* ALERTES */
+  .alert-item {
+    display:flex; gap:10px; align-items:flex-start;
+    padding:8px 10px; border-radius:8px; margin-bottom:6px; font-size:12px;
+  }
+  .alert-item.urgent { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.2); }
+  .alert-item.warning { background:rgba(234,179,8,.1); border:1px solid rgba(234,179,8,.2); }
+  .alert-item.info { background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.2); }
+  .alert-icon { font-size:14px; flex-shrink:0; }
+  .alert-text { line-height:1.5; }
+  .alert-text strong { font-weight:600; }
+
+  /* FORM MODAL */
+  .modal-bg {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.8); z-index:200;
+    align-items:center; justify-content:center;
+  }
+  .modal-bg.open { display:flex; }
+  .modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:24px; width:480px; max-width:95vw; max-height:90vh; overflow-y:auto;
+  }
+  .modal-title { font-size:16px; font-weight:700; margin-bottom:18px; }
+  .form-row { margin-bottom:14px; }
+  .form-label { font-size:12px; color:var(--text-muted); margin-bottom:6px; display:block; }
+  .form-input, .form-select, .form-textarea {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; color:var(--text);
+    font-size:13px; font-family:'Inter',sans-serif; outline:none;
+    transition:border .2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--orange); }
+  .form-textarea { resize:vertical; min-height:70px; }
+  .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+
+  /* TAG */
+  .tag {
+    display:inline-block; font-size:10px; font-weight:600; padding:2px 8px;
+    border-radius:999px; text-transform:uppercase; letter-spacing:.04em;
+  }
+  .tag-dtf { background:rgba(168,85,247,.15); color:#a855f7; }
+  .tag-vinyle { background:rgba(59,130,246,.15); color:var(--blue); }
+  .tag-casquette { background:rgba(234,179,8,.15); color:var(--yellow); }
+  .tag-broderie { background:rgba(34,197,94,.15); color:var(--green); }
+  .tag-multi { background:var(--orange-dim); color:var(--orange); }
+
+  /* TIMELINE MINI */
+  .timeline { font-size:11px; color:var(--text-muted); margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .timeline-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+  /* EMPTY STATE */
+  .empty { text-align:center; padding:24px 12px; color:var(--text-muted); font-size:12px; }
+
+  /* DROP ZONE */
+  .col-body.dragover { background:var(--orange-dim); border-radius:8px; }
+
+  @media(max-width:1400px) { .kanban { grid-template-columns:repeat(3,1fr); } }
+  @media(max-width:900px) {
+    .main { grid-template-columns:1fr; }
+    .kanban { grid-template-columns:1fr 1fr; }
+    .stats-bar { grid-template-columns:repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <span class="logo">⚙️ Agent 5</span>
+    <span class="subtitle">Planning Production — High Coffee Shirt</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <span class="live-clock" id="clock"></span>
+    <button class="btn btn-ghost" onclick="exportPlanning()">Export CSV</button>
+    <button class="btn btn-orange" onclick="openAddModal()">+ Nouvelle commande</button>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-card">
+    <div class="stat-label">En attente</div>
+    <div class="stat-value orange" id="stat-attente">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">En production</div>
+    <div class="stat-value yellow" id="stat-prod">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Prêtes</div>
+    <div class="stat-value green" id="stat-pret">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">En retard</div>
+    <div class="stat-value red" id="stat-retard">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Livrées aujourd'hui</div>
+    <div class="stat-value" id="stat-livre">0</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- KANBAN -->
+  <div class="kanban">
+    <!-- Col 1 -->
+    <div class="kanban-col">
+      <div class="col-header attendre">
+        <span>À planifier</span>
+        <span class="col-badge" id="cnt-attente">0</span>
+      </div>
+      <div class="col-body" id="col-attente" data-col="attente"
+           ondragover="dragOver(event)" ondrop="drop(event)"></div>
+    </div>
+    <!-- Col 2 -->
+    <div class="kanban-col">
+      <div class="col-header matiere">
+        <span>Attente matière</span>
+        <span class="col-badge" id="cnt-matiere">0</span>
+      </div>
+      <div class="col-body" id="col-matiere" data-col="matiere"
+           ondragover="dragOver(event)" ondrop="drop(event)"></div>
+    </div>
+    <!-- Col 3 -->
+    <div class="kanban-col">
+      <div class="col-header prod">
+        <span>En production</span>
+        <span class="col-badge" id="cnt-prod">0</span>
+      </div>
+      <div class="col-body" id="col-prod" data-col="prod"
+           ondragover="dragOver(event)" ondrop="drop(event)"></div>
+    </div>
+    <!-- Col 4 -->
+    <div class="kanban-col">
+      <div class="col-header qualite">
+        <span>Contrôle qualité</span>
+        <span class="col-badge" id="cnt-qualite">0</span>
+      </div>
+      <div class="col-body" id="col-qualite" data-col="qualite"
+           ondragover="dragOver(event)" ondrop="drop(event)"></div>
+    </div>
+    <!-- Col 5 -->
+    <div class="kanban-col">
+      <div class="col-header pret">
+        <span>Prêt / Livré</span>
+        <span class="col-badge" id="cnt-pret">0</span>
+      </div>
+      <div class="col-body" id="col-pret" data-col="pret"
+           ondragover="dragOver(event)" ondrop="drop(event)"></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- MACHINES -->
+    <div class="side-card">
+      <div class="side-title">🏭 État des machines</div>
+      <div id="machines-list"></div>
+    </div>
+
+    <!-- ALERTES -->
+    <div class="side-card">
+      <div class="side-title">🔔 Alertes</div>
+      <div id="alerts-list"></div>
+    </div>
+
+    <!-- STATS JOUR -->
+    <div class="side-card">
+      <div class="side-title">📊 Aujourd'hui</div>
+      <div id="stats-today"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL AJOUT COMMANDE -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <div class="modal-title">+ Nouvelle commande</div>
+    <div class="form-row">
+      <label class="form-label">Client *</label>
+      <input class="form-input" id="f-client" placeholder="Nom du client">
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">N° Devis / Commande</label>
+        <input class="form-input" id="f-ref" placeholder="ex: DEV-2026-042">
+      </div>
+      <div>
+        <label class="form-label">Canal</label>
+        <select class="form-select" id="f-canal">
+          <option value="Messenger">Messenger</option>
+          <option value="Gmail">Gmail</option>
+          <option value="WhatsApp">WhatsApp</option>
+          <option value="Instagram">Instagram</option>
+          <option value="WooCommerce">WooCommerce</option>
+          <option value="Boutique">Boutique</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Description de la commande *</label>
+      <textarea class="form-textarea" id="f-desc" placeholder="ex: 20 t-shirts blanc DTF logo entreprise, 5 casquettes broderie"></textarea>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Type de production</label>
+        <select class="form-select" id="f-type">
+          <option value="dtf">DTF transfert</option>
+          <option value="vinyle">Vinyle (plotter)</option>
+          <option value="casquette">Casquette</option>
+          <option value="multi">Multi-technique</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Machine assignée</label>
+        <select class="form-select" id="f-machine">
+          <option value="Presse T-shirt 1">Presse T-shirt 1</option>
+          <option value="Presse T-shirt 2">Presse T-shirt 2</option>
+          <option value="Presse Casquette 1">Presse Casquette 1</option>
+          <option value="Presse Casquette 2">Presse Casquette 2</option>
+          <option value="Plotter Vinyle 1">Plotter Vinyle 1</option>
+          <option value="Plotter Vinyle 2">Plotter Vinyle 2</option>
+          <option value="Plotter Vinyle 3">Plotter Vinyle 3</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Quantité</label>
+        <input class="form-input" id="f-qty" type="number" min="1" value="1" placeholder="1">
+      </div>
+      <div>
+        <label class="form-label">Deadline livraison</label>
+        <input class="form-input" id="f-deadline" type="datetime-local">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Priorité</label>
+      <select class="form-select" id="f-priority">
+        <option value="normal">Normal (48h)</option>
+        <option value="urgent">Urgent (24h)</option>
+        <option value="express">Express (même jour)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">Notes internes</label>
+      <textarea class="form-textarea" id="f-notes" placeholder="Matière disponible, instructions spéciales..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Annuler</button>
+      <button class="btn btn-orange" onclick="saveCommande()">Ajouter à la file</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DÉTAIL -->
+<div class="modal-bg" id="detailModal">
+  <div class="modal">
+    <div class="modal-title" id="detail-title">Commande</div>
+    <div id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeDetailModal()">Fermer</button>
+      <button class="btn btn-orange" id="detail-next-btn">Étape suivante →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───
+const MACHINES = [
+  { id: 'presse-t1', name: 'Presse T-shirt 1', icon: '👕' },
+  { id: 'presse-t2', name: 'Presse T-shirt 2', icon: '👕' },
+  { id: 'presse-c1', name: 'Presse Casquette 1', icon: '🧢' },
+  { id: 'presse-c2', name: 'Presse Casquette 2', icon: '🧢' },
+  { id: 'plotter-1', name: 'Plotter Vinyle 1', icon: '✂️' },
+  { id: 'plotter-2', name: 'Plotter Vinyle 2', icon: '✂️' },
+  { id: 'plotter-3', name: 'Plotter Vinyle 3', icon: '✂️' },
+];
+
+const COLS = ['attente', 'matiere', 'prod', 'qualite', 'pret'];
+const COL_LABELS = {
+  attente: 'À planifier',
+  matiere: 'Attente matière',
+  prod: 'En production',
+  qualite: 'Contrôle qualité',
+  pret: 'Prêt / Livré'
+};
+const NEXT_COL = { attente:'matiere', matiere:'prod', prod:'qualite', qualite:'pret', pret:null };
+
+let commandes = JSON.parse(localStorage.getItem('hcs_planning') || '[]');
+let dragId = null;
+let currentDetailId = null;
+
+// ─── CLOCK ───
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short'})
+    + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── INIT DEADLINE ───
+window.addEventListener('load', () => {
+  const d = new Date(Date.now() + 48*3600*1000);
+  d.setMinutes(0);
+  document.getElementById('f-deadline').value = d.toISOString().slice(0,16);
+  loadDemoData();
+  render();
+});
+
+// ─── DEMO DATA ───
+function loadDemoData() {
+  if (commandes.length > 0) return;
+  const now = Date.now();
+  commandes = [
+    {
+      id: 'cmd-1', client: 'Mairie de Papeete', ref: 'DEV-2026-038',
+      canal: 'Gmail', desc: '50 t-shirts blanc polyester DTF logo mairie',
+      type: 'dtf', machine: 'Presse T-shirt 1', qty: 50,
+      deadline: new Date(now + 12*3600*1000).toISOString(),
+      priority: 'urgent', notes: 'Transferts reçus de HT4You', col: 'prod',
+      createdAt: new Date(now - 24*3600*1000).toISOString()
+    },
+    {
+      id: 'cmd-2', client: 'Tahiti Pearl Resort', ref: 'DEV-2026-039',
+      canal: 'Messenger', desc: '30 polos broderie logo + 10 casquettes',
+      type: 'casquette', machine: 'Presse Casquette 1', qty: 40,
+      deadline: new Date(now + 36*3600*1000).toISOString(),
+      priority: 'normal', notes: 'Attente livraison Anémone (casquettes blanc)', col: 'matiere',
+      createdAt: new Date(now - 12*3600*1000).toISOString()
+    },
+    {
+      id: 'cmd-3', client: 'Air Tahiti Nui', ref: 'DEV-2026-040',
+      canal: 'Gmail', desc: '5 m² vinyl décoration vitrine',
+      type: 'vinyle', machine: 'Plotter Vinyle 1', qty: 1,
+      deadline: new Date(now + 72*3600*1000).toISOString(),
+      priority: 'normal', notes: '', col: 'attente',
+      createdAt: new Date(now - 2*3600*1000).toISOString()
+    },
+    {
+      id: 'cmd-4', client: 'Festival Heiva', ref: 'DEV-2026-037',
+      canal: 'Instagram', desc: '100 t-shirts événement Festival Heiva',
+      type: 'dtf', machine: 'Presse T-shirt 2', qty: 100,
+      deadline: new Date(now - 2*3600*1000).toISOString(),
+      priority: 'express', notes: 'EN RETARD — attente validation couleurs', col: 'qualite',
+      createdAt: new Date(now - 48*3600*1000).toISOString()
+    },
+    {
+      id: 'cmd-5', client: 'Carrefour Faa\'a', ref: 'DEV-2026-036',
+      canal: 'WooCommerce', desc: '20 tabliers personnalisés vinyle',
+      type: 'vinyle', machine: 'Plotter Vinyle 2', qty: 20,
+      deadline: new Date(now + 6*3600*1000).toISOString(),
+      priority: 'urgent', notes: 'Prêt à livrer', col: 'pret',
+      createdAt: new Date(now - 60*3600*1000).toISOString()
+    }
+  ];
+  save();
+}
+
+// ─── SAVE ───
+function save() {
+  localStorage.setItem('hcs_planning', JSON.stringify(commandes));
+}
+
+// ─── RENDER ───
+function render() {
+  COLS.forEach(col => {
+    const el = document.getElementById('col-' + col);
+    const cnt = document.getElementById('cnt-' + col);
+    const items = commandes.filter(c => c.col === col);
+    cnt.textContent = items.length;
+    if (items.length === 0) {
+      el.innerHTML = '<div class="empty">Glisser une commande ici</div>';
+    } else {
+      el.innerHTML = items.map(c => renderCard(c)).join('');
+    }
+  });
+  renderStats();
+  renderMachines();
+  renderAlerts();
+  renderStatsToday();
+}
+
+function urgencyClass(cmd) {
+  const now = Date.now();
+  const dl = new Date(cmd.deadline).getTime();
+  const diff = dl - now;
+  if (diff < 0) return 'urgent';
+  if (diff < 6*3600*1000) return 'urgent';
+  if (diff < 24*3600*1000) return 'warning';
+  return 'ok';
+}
+
+function formatDeadline(iso) {
+  const d = new Date(iso);
+  const now = Date.now();
+  const diff = d.getTime() - now;
+  const abs = Math.abs(diff);
+  const h = Math.floor(abs / 3600000);
+  const m = Math.floor((abs % 3600000) / 60000);
+  if (diff < 0) return `<span class="cmd-deadline late">EN RETARD ${h}h${m}m</span>`;
+  if (h < 24) return `<span class="cmd-deadline ${h<6?'late':''}">${h}h${m}m restantes</span>`;
+  return `<span class="cmd-deadline">${d.toLocaleDateString('fr-FR', {day:'numeric',month:'short'})} ${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>`;
+}
+
+function typeTag(type) {
+  const map = { dtf:'tag-dtf', vinyle:'tag-vinyle', casquette:'tag-casquette', multi:'tag-multi' };
+  const labels = { dtf:'DTF', vinyle:'Vinyle', casquette:'Casquette', multi:'Multi' };
+  return `<span class="tag ${map[type]||'tag-dtf'}">${labels[type]||type}</span>`;
+}
+
+function renderCard(c) {
+  const urg = urgencyClass(c);
+  const nextCol = NEXT_COL[c.col];
+  const nextLabel = nextCol ? COL_LABELS[nextCol] : null;
+  return `<div class="cmd-card ${urg}" draggable="true" id="card-${c.id}"
+    ondragstart="dragStart('${c.id}')"
+    ondragend="dragEnd()">
+    <div class="cmd-ref">${c.ref || 'CMD'} ${c.priority==='urgent'?'🔴':c.priority==='express'?'⚡':''}${typeTag(c.type)}</div>
+    <div class="cmd-client">${c.client}</div>
+    <div class="cmd-detail">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}<br>Qté: ${c.qty} · ${c.machine}</div>
+    <div class="cmd-footer">
+      ${formatDeadline(c.deadline)}
+    </div>
+    <div class="cmd-actions">
+      ${nextLabel ? `<button class="cmd-btn cmd-btn-next" onclick="advanceCmd('${c.id}')">→ ${nextLabel}</button>` : '<button class="cmd-btn cmd-btn-next" style="opacity:.4" disabled>✅ Terminé</button>'}
+      <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
+    </div>
+  </div>`;
+}
+
+// ─── STATS ───
+function renderStats() {
+  const now = Date.now();
+  document.getElementById('stat-attente').textContent = commandes.filter(c => c.col === 'attente').length;
+  document.getElementById('stat-prod').textContent = commandes.filter(c => c.col === 'prod').length;
+  document.getElementById('stat-pret').textContent = commandes.filter(c => c.col === 'pret').length;
+  document.getElementById('stat-retard').textContent = commandes.filter(c => c.col !== 'pret' && new Date(c.deadline).getTime() < now).length;
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  document.getElementById('stat-livre').textContent = commandes.filter(c =>
+    c.col === 'pret' && new Date(c.createdAt).getTime() > todayStart.getTime()
+  ).length;
+}
+
+// ─── MACHINES ───
+function renderMachines() {
+  const el = document.getElementById('machines-list');
+  const loads = {};
+  MACHINES.forEach(m => { loads[m.name] = 0; });
+  commandes.filter(c => c.col === 'prod' || c.col === 'qualite').forEach(c => {
+    if (loads[c.machine] !== undefined) loads[c.machine]++;
+  });
+  el.innerHTML = MACHINES.map(m => {
+    const load = loads[m.name] || 0;
+    const pct = Math.min(load * 30, 100);
+    const cls = pct < 40 ? 'green' : pct < 70 ? 'yellow' : 'red';
+    return `<div class="machine-row">
+      <span class="machine-icon">${m.icon}</span>
+      <div class="machine-info">
+        <div class="machine-name">${m.name}</div>
+        <div class="machine-bar-bg"><div class="machine-bar ${cls}" style="width:${pct}%"></div></div>
+        <div class="machine-load">${load} commande${load>1?'s':''} en cours</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── ALERTES ───
+function renderAlerts() {
+  const el = document.getElementById('alerts-list');
+  const now = Date.now();
+  const alerts = [];
+  commandes.forEach(c => {
+    if (c.col === 'pret') return;
+    const dl = new Date(c.deadline).getTime();
+    const diff = dl - now;
+    if (diff < 0) alerts.push({ type:'urgent', text:`<strong>${c.client}</strong> — EN RETARD ${Math.round(-diff/3600000)}h (${c.ref})` });
+    else if (diff < 6*3600*1000) alerts.push({ type:'urgent', text:`<strong>${c.client}</strong> — Deadline dans ${Math.round(diff/3600000)}h (${c.ref})` });
+    else if (diff < 24*3600*1000) alerts.push({ type:'warning', text:`<strong>${c.client}</strong> — Deadline demain (${c.ref})` });
+  });
+  if (alerts.length === 0) alerts.push({ type:'info', text:'Aucune alerte urgente — production dans les délais ✓' });
+  el.innerHTML = alerts.map(a => `<div class="alert-item ${a.type}">
+    <span class="alert-icon">${a.type==='urgent'?'🔴':a.type==='warning'?'🟡':'🟢'}</span>
+    <span class="alert-text">${a.text}</span>
+  </div>`).join('');
+}
+
+// ─── STATS TODAY ───
+function renderStatsToday() {
+  const el = document.getElementById('stats-today');
+  const now = Date.now();
+  const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+  const dueToday = commandes.filter(c => c.col !== 'pret' && new Date(c.deadline) <= todayEnd).length;
+  const inProd = commandes.filter(c => c.col === 'prod').length;
+  const qtyInProd = commandes.filter(c => c.col === 'prod').reduce((s,c) => s + parseInt(c.qty||0), 0);
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;">
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted)">À livrer aujourd'hui</span><span style="font-weight:700;color:${dueToday>0?'var(--yellow)':'var(--green)'}">${dueToday}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted)">Commandes en prod</span><span style="font-weight:700;color:var(--orange)">${inProd}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted)">Pièces en cours</span><span style="font-weight:700;">${qtyInProd}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted)">Total commandes</span><span style="font-weight:700;">${commandes.length}</span></div>
+    </div>`;
+}
+
+// ─── DRAG & DROP ───
+function dragStart(id) {
+  dragId = id;
+  const el = document.getElementById('card-' + id);
+  if (el) el.classList.add('dragging');
+}
+function dragEnd() {
+  if (dragId) {
+    const el = document.getElementById('card-' + dragId);
+    if (el) el.classList.remove('dragging');
+  }
+  document.querySelectorAll('.col-body').forEach(c => c.classList.remove('dragover'));
+}
+function dragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('dragover');
+}
+function drop(e) {
+  e.preventDefault();
+  const col = e.currentTarget.dataset.col;
+  e.currentTarget.classList.remove('dragover');
+  if (!dragId) return;
+  const cmd = commandes.find(c => c.id === dragId);
+  if (cmd) { cmd.col = col; save(); render(); }
+  dragId = null;
+}
+
+// ─── ADVANCE ───
+function advanceCmd(id) {
+  const cmd = commandes.find(c => c.id === id);
+  if (!cmd) return;
+  const next = NEXT_COL[cmd.col];
+  if (next) { cmd.col = next; save(); render(); }
+}
+
+// ─── DELETE ───
+function deleteCmd(id) {
+  if (!confirm('Supprimer cette commande du planning ?')) return;
+  commandes = commandes.filter(c => c.id !== id);
+  save(); render();
+}
+
+// ─── ADD MODAL ───
+function openAddModal() {
+  document.getElementById('addModal').classList.add('open');
+}
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('open');
+}
+
+function saveCommande() {
+  const client = document.getElementById('f-client').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+  if (!client || !desc) { alert('Client et description obligatoires.'); return; }
+  const now = new Date();
+  const priority = document.getElementById('f-priority').value;
+  let deadlineDefault = document.getElementById('f-deadline').value;
+  if (!deadlineDefault) {
+    const d = new Date(Date.now() + (priority==='express'?8:priority==='urgent'?24:48)*3600*1000);
+    deadlineDefault = d.toISOString().slice(0,16);
+  }
+  const cmd = {
+    id: 'cmd-' + Date.now(),
+    client,
+    ref: document.getElementById('f-ref').value.trim() || ('CMD-' + Date.now().toString().slice(-6)),
+    canal: document.getElementById('f-canal').value,
+    desc,
+    type: document.getElementById('f-type').value,
+    machine: document.getElementById('f-machine').value,
+    qty: parseInt(document.getElementById('f-qty').value) || 1,
+    deadline: deadlineDefault,
+    priority,
+    notes: document.getElementById('f-notes').value.trim(),
+    col: 'attente',
+    createdAt: now.toISOString()
+  };
+  commandes.unshift(cmd);
+  save(); render(); closeAddModal();
+  // reset
+  ['f-client','f-ref','f-desc','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-qty').value = '1';
+  const dl = new Date(Date.now() + 48*3600*1000); dl.setMinutes(0);
+  document.getElementById('f-deadline').value = dl.toISOString().slice(0,16);
+}
+
+// ─── DETAIL MODAL ───
+function closeDetailModal() { document.getElementById('detailModal').classList.remove('open'); }
+
+// ─── EXPORT ───
+function exportPlanning() {
+  const header = 'Ref,Client,Canal,Description,Type,Machine,Qté,Deadline,Priorité,Statut,Notes';
+  const rows = commandes.map(c =>
+    [c.ref,c.client,c.canal,'"'+c.desc.replace(/"/g,'""')+'"',c.type,c.machine,c.qty,c.deadline,c.priority,COL_LABELS[c.col]||c.col,'"'+(c.notes||'').replace(/"/g,'""')+'"'].join(',')
+  );
+  const csv = [header,...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'planning_hcs_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── CLOSE MODAL ON BG CLICK ───
+document.getElementById('addModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAddModal();
+});
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDetailModal();
+});
+
+// ─── AUTO REFRESH ALERTES ───
+setInterval(() => { renderAlerts(); renderStats(); }, 60000);
+</script>
+</body>
+</html>

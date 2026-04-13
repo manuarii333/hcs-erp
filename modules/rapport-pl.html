@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCS — Rapport P&L Mensuel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0a0a0a; color: #e5e5e5; }
+    .card { background: #111111; border: 1px solid #222222; border-radius: 12px; }
+    .accent { color: #FF6B00; }
+    .btn-primary { background: #FF6B00; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: #e05a00; }
+    .btn-ghost { background: #1a1a1a; color: #aaa; border: 1px solid #333; border-radius: 8px; padding: 9px 18px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-ghost:hover { border-color: #FF6B00; color: #FF6B00; }
+    input, select { background: #1a1a1a; border: 1px solid #333; color: #e5e5e5; border-radius: 8px; padding: 7px 12px; outline: none; }
+    input:focus, select:focus { border-color: #FF6B00; }
+    .pl-section { border-left: 3px solid #333; padding-left: 16px; margin-bottom: 16px; }
+    .pl-section.revenus { border-color: #22c55e; }
+    .pl-section.charges-var { border-color: #f59e0b; }
+    .pl-section.charges-fix { border-color: #ef4444; }
+    .pl-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a1a; }
+    .pl-row:last-child { border-bottom: none; }
+    .pl-row .label { color: #9ca3af; font-size: 14px; }
+    .pl-row .value { font-weight: 600; font-size: 14px; }
+    .pl-total { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 2px solid #333; margin-top: 4px; }
+    .pl-net { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 10px; margin-top: 16px; }
+    .pl-net.positif { background: #0d2210; border: 1px solid #14532d; }
+    .pl-net.negatif { background: #200d0d; border: 1px solid #7f1d1d; }
+    .nav-link { color: #888; text-decoration: none; font-size: 13px; }
+    .nav-link:hover { color: #FF6B00; }
+    .input-pl { background: #1a1a1a; border: 1px solid #2a2a2a; color: #e5e5e5; border-radius: 6px; padding: 5px 10px; width: 140px; text-align: right; font-size: 14px; }
+    .input-pl:focus { border-color: #FF6B00; outline: none; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; color: #000; }
+      .card { background: #fff; border: 1px solid #ddd; }
+      .btn-primary, .btn-ghost { display: none; }
+      .nav-link { display: none; }
+      h1 { color: #000; }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+
+<!-- ===== SECTION CONFIG ===== -->
+<script>
+const CONFIG = {
+  GMAIL_RECIPIENT: 'highcoffeeshirt@gmail.com'
+};
+</script>
+<!-- ===== FIN CONFIG ===== -->
+
+<!-- Navigation -->
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3 no-print">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#FF6B00">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-white">Rapport P&L Mensuel</h1>
+      <p class="text-xs text-gray-500">High Coffee Shirt — Agent 9</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 flex-wrap">
+    <a href="finance-dashboard.html" class="nav-link">💰 Finance</a>
+    <a href="ocr-scanner.html" class="nav-link">📄 Scanner</a>
+    <a href="routine-dashboard.html" class="nav-link">✅ Routines</a>
+  </div>
+</div>
+
+<!-- Sélecteur de mois + import -->
+<div class="card p-4 mb-5 no-print">
+  <div class="flex flex-wrap items-center gap-4">
+    <div>
+      <label class="text-xs text-gray-500 mb-1 block">Mois du rapport</label>
+      <input type="month" id="mois-rapport" class="text-sm" onchange="chargerDonnees()">
+    </div>
+    <div class="flex gap-3 mt-4">
+      <button onclick="importerLocalStorage()" class="btn-ghost text-sm">📥 Importer depuis Finance Dashboard</button>
+      <button onclick="reinitialiserSaisie()" class="btn-ghost text-sm">🔄 Réinitialiser</button>
+    </div>
+    <div id="import-status" class="text-xs text-gray-500 mt-4 hidden"></div>
+  </div>
+</div>
+
+<!-- En-tête du rapport -->
+<div class="card p-5 mb-5">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h2 class="text-2xl font-bold text-white" id="rapport-titre">Rapport P&L — <span class="accent" id="titre-mois">Février 2026</span></h2>
+      <p class="text-sm text-gray-500 mt-1">High Coffee Shirt · Papeete, Polynésie Française</p>
+      <p class="text-xs text-gray-600" id="rapport-date">Généré le : <span id="date-generation"></span></p>
+    </div>
+    <div class="flex gap-3 no-print">
+      <button onclick="exportPDF()" class="btn-primary text-sm">🖨 Exporter PDF</button>
+      <button onclick="exportCSV()" class="btn-ghost text-sm">⬇ Export CSV</button>
+      <button onclick="envoyerGmail()" class="btn-ghost text-sm">✉ Gmail</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tableau P&L Principal -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+
+  <!-- Colonne P&L -->
+  <div class="lg:col-span-2 card p-5">
+    <h3 class="text-base font-semibold text-white mb-5">📋 Compte de Résultat</h3>
+
+    <!-- REVENUS -->
+    <div class="pl-section revenus">
+      <h4 class="text-sm font-bold text-green-400 mb-3">REVENUS</h4>
+      <div id="rows-revenus">
+        <div class="pl-row">
+          <span class="label">Ventes boutique physique (cash)</span>
+          <input class="input-pl" type="number" id="rev-cash" value="0" oninput="recalculer()">
+        </div>
+        <div class="pl-row">
+          <span class="label">Ventes WooCommerce</span>
+          <input class="input-pl" type="number" id="rev-woo" value="0" oninput="recalculer()">
+        </div>
+        <div class="pl-row">
+          <span class="label">Ventes réseaux sociaux</span>
+          <input class="input-pl" type="number" id="rev-social" value="0" oninput="recalculer()">
+        </div>
+        <div class="pl-row">
+          <span class="label">Ventes Odoo (commandes)</span>
+          <input class="input-pl" type="number" id="rev-odoo" value="0" oninput="recalculer()">
+        </div>
+      </div>
+      <div class="pl-total">
+        <span class="font-bold text-white">TOTAL REVENUS</span>
+        <span class="font-bold text-green-400 text-base" id="total-rev">0 XPF</span>
+      </div>
+    </div>
+
+    <!-- CHARGES VARIABLES -->
+    <div class="pl-section charges-var">
+      <h4 class="text-sm font-bold text-yellow-400 mb-3">CHARGES VARIABLES</h4>
+      <div class="pl-row">
+        <span class="label">Achats T-shirts / Polos (Taaroa Stock)</span>
+        <input class="input-pl" type="number" id="chg-taaroa" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Achats casquettes (Anémone)</span>
+        <input class="input-pl" type="number" id="chg-anemone" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Transferts DTF (Heat Transfer 4 You)</span>
+        <input class="input-pl" type="number" id="chg-dtf" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Vinyle, encre &amp; consommables</span>
+        <input class="input-pl" type="number" id="chg-consommables" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-total">
+        <span class="font-bold text-white">TOTAL CHARGES VARIABLES</span>
+        <span class="font-bold text-yellow-400 text-base" id="total-chg-var">0 XPF</span>
+      </div>
+    </div>
+
+    <!-- CHARGES FIXES -->
+    <div class="pl-section charges-fix">
+      <h4 class="text-sm font-bold text-red-400 mb-3">CHARGES FIXES</h4>
+      <div class="pl-row">
+        <span class="label">Loyer</span>
+        <input class="input-pl" type="number" id="chg-loyer" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Électricité</span>
+        <input class="input-pl" type="number" id="chg-elec" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Abonnements logiciels</span>
+        <input class="input-pl" type="number" id="chg-abo" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Investissement matériel</span>
+        <input class="input-pl" type="number" id="chg-invest" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-row">
+        <span class="label">Autres charges</span>
+        <input class="input-pl" type="number" id="chg-autres" value="0" oninput="recalculer()">
+      </div>
+      <div class="pl-total">
+        <span class="font-bold text-white">TOTAL CHARGES FIXES</span>
+        <span class="font-bold text-red-400 text-base" id="total-chg-fix">0 XPF</span>
+      </div>
+    </div>
+
+    <!-- RÉSULTAT NET -->
+    <div id="pl-net-box" class="pl-net negatif mt-4">
+      <div>
+        <p class="text-sm text-gray-400">RÉSULTAT NET</p>
+        <p class="text-3xl font-bold mt-1" id="resultat-net">0 XPF</p>
+      </div>
+      <div class="text-right">
+        <p class="text-sm text-gray-400">MARGE NETTE</p>
+        <p class="text-3xl font-bold mt-1" id="marge-nette">0%</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne KPI + Répartition -->
+  <div class="space-y-4">
+
+    <!-- KPI Cards -->
+    <div class="card p-4">
+      <h4 class="text-sm font-semibold text-gray-400 mb-3">📊 Indicateurs clés</h4>
+      <div class="space-y-3">
+        <div>
+          <p class="text-xs text-gray-500">Chiffre d'affaires</p>
+          <p class="text-xl font-bold text-green-400" id="kpi-ca">0 XPF</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Marge brute</p>
+          <p class="text-xl font-bold accent" id="kpi-marge-brute">0%</p>
+          <div class="w-full bg-gray-800 rounded-full h-1.5 mt-1">
+            <div id="bar-marge" class="h-1.5 rounded-full" style="background:#FF6B00;width:0%"></div>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Charges totales</p>
+          <p class="text-xl font-bold text-red-400" id="kpi-charges">0 XPF</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Résultat net</p>
+          <p class="text-xl font-bold" id="kpi-net">0 XPF</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphique répartition charges -->
+    <div class="card p-4">
+      <h4 class="text-sm font-semibold text-gray-400 mb-3">🥧 Répartition des charges</h4>
+      <canvas id="chart-pie" style="max-height:200px"></canvas>
+    </div>
+
+    <!-- Comparaison N vs N-1 -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-semibold text-gray-400">📈 vs Mois précédent</h4>
+      </div>
+      <div id="comparaison-mn1" class="space-y-2">
+        <p class="text-xs text-gray-500">Entrez les données du mois précédent :</p>
+        <div>
+          <label class="text-xs text-gray-600">CA mois N-1 (XPF)</label>
+          <input type="number" id="n1-ca" value="0" oninput="recalculer()" class="text-sm mt-1" style="width:100%">
+        </div>
+        <div id="delta-ca" class="text-sm hidden"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Graphique évolution 12 mois -->
+<div class="card p-5 mb-5">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <h3 class="text-base font-semibold text-white">📈 Évolution CA sur 12 mois</h3>
+    <p class="text-xs text-gray-500 no-print">Renseignez les CA mensuels ci-dessous</p>
+  </div>
+  <div class="grid grid-cols-6 md:grid-cols-12 gap-2 mb-4 no-print">
+    <div id="inputs-12mois" class="contents"></div>
+  </div>
+  <canvas id="chart-line" style="max-height:250px"></canvas>
+</div>
+
+<script>
+// ===== DONNÉES =====
+const MOIS_NOMS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MOIS_COURTS = ['Jan','Fév','Mar','Avr','Mai','Juin','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+let chartPie = null;
+let chartLine = null;
+
+// ===== FORMAT =====
+function fmtXPF(n) {
+  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' XPF';
+}
+
+// ===== DATE =====
+function today() { return new Date().toISOString().split('T')[0]; }
+function thisMonth() { return today().substring(0,7); }
+function getMoisLabel(ym) {
+  const [y, m] = ym.split('-');
+  return MOIS_NOMS[+m - 1] + ' ' + y;
+}
+function getMonth(d) { return d ? d.substring(0,7) : ''; }
+
+// ===== IMPORT DEPUIS LOCALSTORAGE =====
+function importerLocalStorage() {
+  const mois = document.getElementById('mois-rapport').value || thisMonth();
+  const transactions = JSON.parse(localStorage.getItem('hcs_transactions') || '[]');
+  const charges = JSON.parse(localStorage.getItem('hcs_charges') || '[]');
+
+  const tMois = transactions.filter(r => getMonth(r.date) === mois);
+  const cMois = charges.filter(r => getMonth(r.date) === mois);
+
+  // Revenus par canal
+  const cash = tMois.filter(r => r.canal === 'cash').reduce((s,r) => s + (+r.montant), 0);
+  const woo = tMois.filter(r => r.canal === 'woocommerce').reduce((s,r) => s + (+r.montant), 0);
+  const social = tMois.filter(r => ['messenger','instagram','tiktok'].includes(r.canal)).reduce((s,r) => s + (+r.montant), 0);
+  const odoo = tMois.filter(r => r.canal === 'odoo').reduce((s,r) => s + (+r.montant), 0);
+
+  document.getElementById('rev-cash').value = cash;
+  document.getElementById('rev-woo').value = woo;
+  document.getElementById('rev-social').value = social;
+  document.getElementById('rev-odoo').value = odoo;
+
+  // Charges par catégorie
+  const taaroa = cMois.filter(r => r.categorie === 'fournisseur_textile').reduce((s,r) => s + (+r.montant), 0);
+  const dtf = cMois.filter(r => r.categorie === 'fournisseur_dtf').reduce((s,r) => s + (+r.montant), 0);
+  const conso = cMois.filter(r => r.categorie === 'consommables').reduce((s,r) => s + (+r.montant), 0);
+  const fixes = cMois.filter(r => r.categorie === 'charges_fixes').reduce((s,r) => s + (+r.montant), 0);
+  const invest = cMois.filter(r => r.categorie === 'investissement').reduce((s,r) => s + (+r.montant), 0);
+
+  document.getElementById('chg-taaroa').value = taaroa;
+  document.getElementById('chg-dtf').value = dtf;
+  document.getElementById('chg-consommables').value = conso;
+  document.getElementById('chg-loyer').value = 0;
+  document.getElementById('chg-elec').value = 0;
+  document.getElementById('chg-abo').value = 0;
+  document.getElementById('chg-invest').value = invest;
+  // Répartir charges fixes
+  if (fixes > 0) {
+    document.getElementById('chg-loyer').value = Math.round(fixes * 0.7);
+    document.getElementById('chg-abo').value = Math.round(fixes * 0.15);
+    document.getElementById('chg-elec').value = Math.round(fixes * 0.15);
+  }
+
+  const statusEl = document.getElementById('import-status');
+  const nb = tMois.length + cMois.length;
+  statusEl.textContent = `✅ ${nb} opérations importées depuis Finance Dashboard (${tMois.length} revenus, ${cMois.length} charges)`;
+  statusEl.classList.remove('hidden');
+  recalculer();
+}
+
+function reinitialiserSaisie() {
+  ['rev-cash','rev-woo','rev-social','rev-odoo',
+   'chg-taaroa','chg-anemone','chg-dtf','chg-consommables',
+   'chg-loyer','chg-elec','chg-abo','chg-invest','chg-autres'].forEach(id => {
+    document.getElementById(id).value = 0;
+  });
+  recalculer();
+}
+
+// ===== RECALCUL =====
+function recalculer() {
+  const revCash = +document.getElementById('rev-cash').value;
+  const revWoo = +document.getElementById('rev-woo').value;
+  const revSocial = +document.getElementById('rev-social').value;
+  const revOdoo = +document.getElementById('rev-odoo').value;
+  const totalRev = revCash + revWoo + revSocial + revOdoo;
+
+  const chgTaaroa = +document.getElementById('chg-taaroa').value;
+  const chgAnemone = +document.getElementById('chg-anemone').value;
+  const chgDtf = +document.getElementById('chg-dtf').value;
+  const chgConso = +document.getElementById('chg-consommables').value;
+  const totalChgVar = chgTaaroa + chgAnemone + chgDtf + chgConso;
+
+  const chgLoyer = +document.getElementById('chg-loyer').value;
+  const chgElec = +document.getElementById('chg-elec').value;
+  const chgAbo = +document.getElementById('chg-abo').value;
+  const chgInvest = +document.getElementById('chg-invest').value;
+  const chgAutres = +document.getElementById('chg-autres').value;
+  const totalChgFix = chgLoyer + chgElec + chgAbo + chgInvest + chgAutres;
+
+  const totalChg = totalChgVar + totalChgFix;
+  const margeB = totalRev > 0 ? ((totalRev - totalChgVar) / totalRev * 100) : 0;
+  const resultat = totalRev - totalChg;
+  const margeN = totalRev > 0 ? (resultat / totalRev * 100) : 0;
+
+  // Textes
+  document.getElementById('total-rev').textContent = fmtXPF(totalRev);
+  document.getElementById('total-chg-var').textContent = fmtXPF(totalChgVar);
+  document.getElementById('total-chg-fix').textContent = fmtXPF(totalChgFix);
+  document.getElementById('resultat-net').textContent = fmtXPF(resultat);
+  document.getElementById('marge-nette').textContent = margeN.toFixed(1) + '%';
+
+  const netBox = document.getElementById('pl-net-box');
+  const netEl = document.getElementById('resultat-net');
+  const margeNEl = document.getElementById('marge-nette');
+  if (resultat >= 0) {
+    netBox.className = 'pl-net positif mt-4';
+    netEl.style.color = '#22c55e';
+    margeNEl.style.color = '#22c55e';
+  } else {
+    netBox.className = 'pl-net negatif mt-4';
+    netEl.style.color = '#ef4444';
+    margeNEl.style.color = '#ef4444';
+  }
+
+  // KPI
+  document.getElementById('kpi-ca').textContent = fmtXPF(totalRev);
+  document.getElementById('kpi-marge-brute').textContent = margeB.toFixed(1) + '%';
+  document.getElementById('kpi-charges').textContent = fmtXPF(totalChg);
+  const kpiNet = document.getElementById('kpi-net');
+  kpiNet.textContent = fmtXPF(resultat);
+  kpiNet.style.color = resultat >= 0 ? '#22c55e' : '#ef4444';
+  document.getElementById('bar-marge').style.width = Math.min(margeB, 100) + '%';
+  document.getElementById('bar-marge').style.background = margeB >= 40 ? '#22c55e' : '#ef4444';
+
+  // Comparaison N-1
+  const n1ca = +document.getElementById('n1-ca').value;
+  const deltaEl = document.getElementById('delta-ca');
+  if (n1ca > 0 && totalRev > 0) {
+    const delta = ((totalRev - n1ca) / n1ca * 100);
+    deltaEl.textContent = (delta >= 0 ? '▲ +' : '▼ ') + delta.toFixed(1) + '% vs mois précédent';
+    deltaEl.style.color = delta >= 0 ? '#22c55e' : '#ef4444';
+    deltaEl.classList.remove('hidden');
+  } else {
+    deltaEl.classList.add('hidden');
+  }
+
+  // Graphique camembert
+  mettreAJourPie([chgTaaroa, chgAnemone, chgDtf, chgConso, chgLoyer + chgElec + chgAbo, chgInvest + chgAutres]);
+}
+
+// ===== GRAPHIQUE CAMEMBERT =====
+function mettreAJourPie(vals) {
+  const total = vals.reduce((a,b) => a+b, 0);
+  if (total === 0) return;
+  const ctx = document.getElementById('chart-pie').getContext('2d');
+  if (chartPie) chartPie.destroy();
+  chartPie = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Taaroa Stock', 'Anémone', 'DTF USA', 'Consommables', 'Charges fixes', 'Invest./Autres'],
+      datasets: [{
+        data: vals,
+        backgroundColor: ['#FF6B00','#f59e0b','#ef4444','#8b5cf6','#3b82f6','#14b8a6'],
+        borderColor: '#111',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#9ca3af', font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ctx.label + ' : ' + fmtXPF(ctx.raw) } }
+      }
+    }
+  });
+}
+
+// ===== GRAPHIQUE LIGNE 12 MOIS =====
+function initialiserInputs12Mois() {
+  const container = document.getElementById('inputs-12mois');
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = MOIS_COURTS[d.getMonth()];
+    const div = document.createElement('div');
+    div.className = 'text-center';
+    div.innerHTML = `
+      <label class="text-xs text-gray-600 block mb-1">${label}</label>
+      <input type="number" id="m12-${11-i}" value="0" oninput="mettreAJourLine()"
+        class="w-full text-center text-xs" style="background:#1a1a1a;border:1px solid #2a2a2a;color:#e5e5e5;border-radius:4px;padding:4px;outline:none;">
+    `;
+    container.appendChild(div);
+  }
+  // Pré-remplir le mois courant depuis P&L
+  mettreAJourLine();
+}
+
+function mettreAJourLine() {
+  const vals = [];
+  for (let i = 0; i < 12; i++) {
+    vals.push(+(document.getElementById('m12-' + i)?.value || 0));
+  }
+  const labels = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    labels.push(MOIS_COURTS[d.getMonth()] + ' ' + d.getFullYear().toString().slice(2));
+  }
+  const ctx = document.getElementById('chart-line').getContext('2d');
+  if (chartLine) chartLine.destroy();
+  chartLine = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'CA mensuel (XPF)',
+        data: vals,
+        borderColor: '#FF6B00',
+        backgroundColor: 'rgba(255,107,0,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#FF6B00',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#9ca3af' } },
+        tooltip: { callbacks: { label: ctx => fmtXPF(ctx.raw) } }
+      },
+      scales: {
+        x: { grid: { color: '#1a1a1a' }, ticks: { color: '#666' } },
+        y: { grid: { color: '#1a1a1a' }, ticks: { color: '#666', callback: v => (v/1000).toFixed(0) + 'k' } }
+      }
+    }
+  });
+}
+
+// ===== CHARGER DONNÉES (changement de mois) =====
+function chargerDonnees() {
+  const mois = document.getElementById('mois-rapport').value;
+  if (mois) {
+    document.getElementById('titre-mois').textContent = getMoisLabel(mois);
+  }
+  importerLocalStorage();
+}
+
+// ===== EXPORTS =====
+function exportPDF() { window.print(); }
+
+function exportCSV() {
+  const mois = document.getElementById('mois-rapport').value || thisMonth();
+  const totalRev = (+document.getElementById('rev-cash').value) + (+document.getElementById('rev-woo').value) + (+document.getElementById('rev-social').value) + (+document.getElementById('rev-odoo').value);
+  const totalChgVar = (+document.getElementById('chg-taaroa').value) + (+document.getElementById('chg-anemone').value) + (+document.getElementById('chg-dtf').value) + (+document.getElementById('chg-consommables').value);
+  const totalChgFix = (+document.getElementById('chg-loyer').value) + (+document.getElementById('chg-elec').value) + (+document.getElementById('chg-abo').value) + (+document.getElementById('chg-invest').value) + (+document.getElementById('chg-autres').value);
+  const resultat = totalRev - totalChgVar - totalChgFix;
+
+  let csv = `Rapport P&L High Coffee Shirt — ${getMoisLabel(mois)}\n\n`;
+  csv += `Catégorie,Poste,Montant XPF\n`;
+  csv += `REVENUS,Ventes boutique cash,${document.getElementById('rev-cash').value}\n`;
+  csv += `REVENUS,Ventes WooCommerce,${document.getElementById('rev-woo').value}\n`;
+  csv += `REVENUS,Ventes réseaux sociaux,${document.getElementById('rev-social').value}\n`;
+  csv += `REVENUS,Ventes Odoo,${document.getElementById('rev-odoo').value}\n`;
+  csv += `REVENUS,TOTAL REVENUS,${totalRev}\n`;
+  csv += `CHARGES VAR.,Taaroa Stock,${document.getElementById('chg-taaroa').value}\n`;
+  csv += `CHARGES VAR.,Anémone,${document.getElementById('chg-anemone').value}\n`;
+  csv += `CHARGES VAR.,DTF USA,${document.getElementById('chg-dtf').value}\n`;
+  csv += `CHARGES VAR.,Consommables,${document.getElementById('chg-consommables').value}\n`;
+  csv += `CHARGES VAR.,TOTAL CHARGES VAR.,${totalChgVar}\n`;
+  csv += `CHARGES FIXES,Loyer,${document.getElementById('chg-loyer').value}\n`;
+  csv += `CHARGES FIXES,Électricité,${document.getElementById('chg-elec').value}\n`;
+  csv += `CHARGES FIXES,Abonnements,${document.getElementById('chg-abo').value}\n`;
+  csv += `CHARGES FIXES,Investissement,${document.getElementById('chg-invest').value}\n`;
+  csv += `CHARGES FIXES,Autres,${document.getElementById('chg-autres').value}\n`;
+  csv += `CHARGES FIXES,TOTAL CHARGES FIXES,${totalChgFix}\n`;
+  csv += `RÉSULTAT,RÉSULTAT NET,${resultat}\n`;
+
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `HCS_PL_${mois}.csv`; a.click();
+}
+
+function envoyerGmail() {
+  const mois = document.getElementById('mois-rapport').value || thisMonth();
+  const totalRev = (+document.getElementById('rev-cash').value) + (+document.getElementById('rev-woo').value) + (+document.getElementById('rev-social').value) + (+document.getElementById('rev-odoo').value);
+  const totalChg = (+document.getElementById('chg-taaroa').value) + (+document.getElementById('chg-anemone').value) + (+document.getElementById('chg-dtf').value) + (+document.getElementById('chg-consommables').value) + (+document.getElementById('chg-loyer').value) + (+document.getElementById('chg-elec').value) + (+document.getElementById('chg-abo').value) + (+document.getElementById('chg-invest').value) + (+document.getElementById('chg-autres').value);
+  const resultat = totalRev - totalChg;
+  const marge = totalRev > 0 ? (resultat / totalRev * 100).toFixed(1) : '0';
+
+  const sujet = encodeURIComponent(`Rapport P&L HCS — ${getMoisLabel(mois)}`);
+  const corps = encodeURIComponent(
+    `Rapport P&L High Coffee Shirt\n${getMoisLabel(mois)}\n\n` +
+    `CA Total : ${fmtXPF(totalRev)}\n` +
+    `Charges totales : ${fmtXPF(totalChg)}\n` +
+    `Résultat net : ${fmtXPF(resultat)}\n` +
+    `Marge nette : ${marge}%\n\n` +
+    `Généré le ${new Date().toLocaleDateString('fr-FR')}`
+  );
+  window.location.href = `mailto:${CONFIG.GMAIL_RECIPIENT}?subject=${sujet}&body=${corps}`;
+}
+
+// ===== INITIALISATION =====
+document.getElementById('mois-rapport').value = thisMonth();
+document.getElementById('titre-mois').textContent = getMoisLabel(thisMonth());
+document.getElementById('date-generation').textContent = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+initialiserInputs12Mois();
+importerLocalStorage();
+</script>
+</body>
+</html>

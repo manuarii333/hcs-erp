@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Photos Produits — HCS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#0a0a0a; --surface:#111; --surface2:#1a1a1a; --border:#222;
+    --orange:#FF6B00; --orange-dim:rgba(255,107,0,0.12); --orange-border:rgba(255,107,0,0.35);
+    --text:#e5e7eb; --muted:#6b7280; --green:#22c55e; --red:#ef4444; --blue:#60a5fa;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
+
+  /* HEADER */
+  .header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:40; }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .header-logo { font-size:20px; }
+  .header-title { font-size:15px; font-weight:700; color:var(--text); }
+  .header-title span { color:var(--orange); }
+  .header-badge { background:var(--orange-dim); color:var(--orange); border:1px solid var(--orange-border); padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; }
+
+  /* TABS */
+  .tabs { display:flex; border-bottom:1px solid var(--border); background:var(--surface); padding:0 24px; position:sticky; top:57px; z-index:30; }
+  .tab-btn { padding:12px 20px; border:none; background:none; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer; border-bottom:2px solid transparent; font-family:'Inter',sans-serif; transition:all 0.2s; white-space:nowrap; }
+  .tab-btn:hover { color:var(--text); }
+  .tab-btn.active { color:var(--orange); border-bottom-color:var(--orange); }
+  .tab-pane { display:none; } .tab-pane.active { display:block; }
+
+  /* LAYOUT */
+  .main { max-width:1280px; margin:0 auto; padding:24px; }
+
+  /* PRODUCT SELECTOR */
+  .product-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px; }
+  .prod-tab { padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; font-family:'Inter',sans-serif; }
+  .prod-tab:hover { border-color:var(--orange); color:var(--text); }
+  .prod-tab.active { background:var(--orange-dim); border-color:var(--orange); color:var(--orange); font-weight:700; }
+
+  /* PANEL */
+  .panel { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:20px; }
+  .panel-header { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .panel-title { font-size:13px; font-weight:600; color:var(--text); }
+  .panel-body { padding:20px; }
+
+  /* COLOR PHOTO GRID */
+  .color-photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
+  .color-photo-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; overflow:hidden; transition:border-color 0.2s; }
+  .color-photo-card:hover { border-color:#444; }
+  .color-photo-card.has-photo { border-color:var(--green); }
+  .color-photo-header { padding:8px 10px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--border); }
+  .color-swatch-mini { width:20px; height:20px; border-radius:5px; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); }
+  .color-name-label { font-size:12px; font-weight:600; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .color-photo-body { padding:10px; text-align:center; }
+  .color-photo-preview { width:100%; aspect-ratio:1; object-fit:contain; border-radius:6px; background:#0d0d0d; display:none; }
+  .color-photo-preview.show { display:block; margin-bottom:8px; }
+  .upload-placeholder { width:100%; aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0d0d0d; border-radius:6px; color:var(--muted); font-size:11px; cursor:pointer; transition:all 0.2s; gap:6px; border:1.5px dashed var(--border); }
+  .upload-placeholder:hover { border-color:var(--orange); color:var(--orange); background:var(--orange-dim); }
+  .upload-placeholder.show { display:none; }
+  .upload-placeholder-icon { font-size:24px; }
+  .color-actions { display:flex; gap:6px; margin-top:8px; }
+  .btn-upload-color { flex:1; padding:5px 8px; background:var(--orange-dim); color:var(--orange); border:1px solid var(--orange-border); border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; }
+  .btn-upload-color:hover { background:rgba(255,107,0,0.2); }
+  .btn-delete-color { padding:5px 8px; background:rgba(239,68,68,0.1); color:var(--red); border:1px solid rgba(239,68,68,0.3); border-radius:6px; font-size:11px; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; }
+  .btn-delete-color:hover { background:rgba(239,68,68,0.2); }
+  .badge-ok { background:rgba(34,197,94,0.12); color:var(--green); border:1px solid rgba(34,197,94,0.3); padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; }
+  .badge-missing { background:rgba(107,114,128,0.12); color:var(--muted); border:1px solid rgba(107,114,128,0.2); padding:2px 8px; border-radius:999px; font-size:10px; }
+
+  /* ZONES D'IMPRESSION */
+  .zones-layout { display:grid; grid-template-columns:1fr 340px; gap:24px; align-items:start; }
+  @media(max-width:900px) { .zones-layout { grid-template-columns:1fr; } }
+  .zone-canvas-wrap { position:relative; display:inline-block; }
+  #zone-preview-canvas { border-radius:10px; border:1px solid var(--border); display:block; }
+  .zone-controls { display:flex; flex-direction:column; gap:14px; }
+  .zone-slider-group { }
+  .zone-slider-label { font-size:12px; color:var(--muted); margin-bottom:6px; display:flex; justify-content:space-between; }
+  .zone-slider-label span { color:var(--orange); font-weight:700; }
+  input[type=range] { width:100%; accent-color:var(--orange); cursor:pointer; }
+  .zone-info { background:var(--orange-dim); border:1px solid var(--orange-border); border-radius:8px; padding:10px 14px; font-size:12px; color:#d97706; margin-top:6px; }
+
+  /* EXPORT/IMPORT */
+  .procedure-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:16px 20px; margin-bottom:16px; }
+  .procedure-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .procedure-step { display:flex; gap:10px; margin-bottom:8px; font-size:13px; line-height:1.6; }
+  .step-num { width:22px; height:22px; border-radius:50%; background:var(--orange); color:#fff; font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .btn-primary { background:var(--orange); color:#fff; border:none; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-primary:hover { background:#e05e00; }
+  .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); padding:10px 20px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-secondary:hover { border-color:var(--orange); color:var(--orange); }
+  .btn-danger { background:rgba(239,68,68,0.1); color:var(--red); border:1px solid rgba(239,68,68,0.3); padding:10px 20px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; }
+  .btn-danger:hover { background:rgba(239,68,68,0.2); }
+  .storage-bar { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; }
+  .storage-bar-fill { height:6px; border-radius:3px; background:var(--orange); transition:width 0.4s; }
+  .storage-bar-bg { flex:1; height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin:0 12px; }
+
+  /* TOAST */
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#111; border:1px solid #333; border-radius:10px; padding:12px 20px; font-size:13px; color:var(--text); box-shadow:0 4px 20px rgba(0,0,0,0.5); display:none; z-index:999; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <span class="header-logo">🖼️</span>
+    <div>
+      <div class="header-title">Admin Photos Produits <span>HCS</span></div>
+      <div style="font-size:11px;color:var(--muted)">Bibliothèque photos contractuelles + Zones d'impression</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="header-badge" id="photos-count-badge">0 photos</span>
+    <a href="boutique-assistant.html" style="text-decoration:none;">
+      <button class="btn-secondary" style="padding:7px 14px;font-size:12px;">← Boutique</button>
+    </a>
+    <a href="../../hcs-hub.html" style="text-decoration:none;">
+      <button class="btn-secondary" style="padding:7px 14px;font-size:12px;">🏠 Hub</button>
+    </a>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('bibliotheque',this)">📸 Bibliothèque photos</button>
+  <button class="tab-btn" onclick="switchTab('zones',this)">🎯 Zones d'impression</button>
+  <button class="tab-btn" onclick="switchTab('export',this)">💾 Export / Import & Procédure</button>
+</div>
+
+<div class="main">
+
+  <!-- ══ TAB 1 : BIBLIOTHÈQUE ══ -->
+  <div class="tab-pane active" id="tab-bibliotheque">
+
+    <div class="product-tabs" id="lib-product-tabs"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title" id="lib-panel-title">Photos par couleur</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="badge-ok" id="lib-complete-badge" style="display:none;">✓ Complet</span>
+          <span class="text-xs" style="font-size:11px;color:var(--muted);" id="lib-stats">0 / 0 couleurs avec photo</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="color-photo-grid" id="color-photo-grid"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">💡 Conseils qualité photos</div></div>
+      <div class="panel-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;line-height:1.7;">
+            <div style="font-weight:700;margin-bottom:6px;color:var(--orange);">Format recommandé</div>
+            PNG 24 bits avec fond transparent (canal alpha). Résolution minimale : <strong>800×800 px</strong>. Fond blanc accepté pour les articles clairs.
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;line-height:1.7;">
+            <div style="font-weight:700;margin-bottom:6px;color:var(--orange);">Découpe (détourage)</div>
+            Article photographié à plat ou sur mannequin. Détouré proprement — pas de halo blanc. Prise de vue standardisée (même angle pour chaque couleur).
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;line-height:1.7;">
+            <div style="font-weight:700;margin-bottom:6px;color:var(--orange);">Nommage des fichiers</div>
+            Convention : <code style="background:#0d0d0d;padding:1px 5px;border-radius:3px;">tshirt-coton_blanc.png</code><br>
+            Format : <code>[id-produit]_[couleur].png</code>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:12px;line-height:1.7;">
+            <div style="font-weight:700;margin-bottom:6px;color:var(--orange);">Stockage</div>
+            Photos compressées automatiquement à max <strong>800px</strong> avant stockage. Limite localStorage ≈ 4-5 MB. Privilégiez l'export JSON pour sauvegarde.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 2 : ZONES D'IMPRESSION ══ -->
+  <div class="tab-pane" id="tab-zones">
+
+    <div class="product-tabs" id="zone-product-tabs"></div>
+
+    <div class="zones-layout">
+      <!-- Canvas preview -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title" id="zone-panel-title">Aperçu zone d'impression</div>
+          <div style="font-size:11px;color:var(--muted);">Faites glisser les curseurs pour ajuster</div>
+        </div>
+        <div class="panel-body" style="text-align:center;">
+          <div class="zone-canvas-wrap">
+            <canvas id="zone-preview-canvas" width="360" height="400"></canvas>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px;">Zone en orange = zone d'impression. Ajustez à droite.</div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div>
+        <div class="panel" style="margin-bottom:16px;">
+          <div class="panel-header"><div class="panel-title">🎯 Paramètres zone d'impression</div></div>
+          <div class="panel-body">
+            <div class="zone-controls">
+              <div class="zone-slider-group">
+                <div class="zone-slider-label">Position X (gauche ↔ droite) <span id="zone-x-val">115</span>px</div>
+                <input type="range" id="zone-x" min="0" max="300" value="115" oninput="majZoneCanvas()" />
+              </div>
+              <div class="zone-slider-group">
+                <div class="zone-slider-label">Position Y (haut ↕ bas) <span id="zone-y-val">145</span>px</div>
+                <input type="range" id="zone-y" min="0" max="350" value="145" oninput="majZoneCanvas()" />
+              </div>
+              <div class="zone-slider-group">
+                <div class="zone-slider-label">Largeur zone <span id="zone-w-val">130</span>px</div>
+                <input type="range" id="zone-w" min="20" max="320" value="130" oninput="majZoneCanvas()" />
+              </div>
+              <div class="zone-slider-group">
+                <div class="zone-slider-label">Hauteur zone <span id="zone-h-val">100</span>px</div>
+                <input type="range" id="zone-h" min="20" max="360" value="100" oninput="majZoneCanvas()" />
+              </div>
+              <div class="zone-info">
+                Zone active : <strong id="zone-coords-display">x=115, y=145, w=130, h=100</strong>
+              </div>
+              <button class="btn-primary" onclick="sauvegarderZone()">💾 Sauvegarder cette zone</button>
+              <button class="btn-secondary" onclick="reinitialiserZone()">↺ Réinitialiser défaut</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">📋 Zones configurées</div></div>
+          <div class="panel-body">
+            <div id="zones-list" style="font-size:12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 3 : EXPORT / IMPORT ══ -->
+  <div class="tab-pane" id="tab-export">
+
+    <!-- Stockage -->
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><div class="panel-title">📊 Utilisation localStorage</div></div>
+      <div class="panel-body">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="font-size:24px;font-weight:800;color:var(--orange);" id="storage-used">0 KB</div>
+          <div style="flex:1;">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px;" id="storage-label">Estimé / ~5 MB disponibles</div>
+            <div class="storage-bar-bg"><div class="storage-bar-fill" id="storage-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);" id="storage-detail"></div>
+      </div>
+    </div>
+
+    <!-- Actions export -->
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><div class="panel-title">💾 Sauvegarde & Restauration</div></div>
+      <div class="panel-body">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <button class="btn-primary" onclick="exporterTout()">⬇ Exporter tout (JSON)</button>
+          <label class="btn-secondary" style="cursor:pointer;">
+            ⬆ Importer JSON <input type="file" accept=".json" style="display:none;" onchange="importerJSON(event)">
+          </label>
+          <button class="btn-danger" onclick="toutEffacer()">🗑 Effacer toutes les photos</button>
+        </div>
+        <div class="procedure-card" style="background:rgba(255,107,0,0.05);border-color:var(--orange-border);">
+          <div style="font-size:12px;color:#d97706;line-height:1.7;">
+            ⚠ <strong>Important :</strong> Les photos sont stockées dans le localStorage du navigateur. Exportez régulièrement en JSON pour éviter de perdre vos données lors d'un effacement du cache.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Procédure -->
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">📋 Procédure de chargement des photos produits</div></div>
+      <div class="panel-body">
+
+        <div class="procedure-card">
+          <div class="procedure-title">🖼️ Phase 1 — Préparation des photos</div>
+          <div class="procedure-step"><div class="step-num">1</div><div>Photographiez chaque produit (T-shirt, Polo, Casquette, Tote bag, Tablier) <strong>à plat sur fond blanc ou transparent</strong>, prise de vue de face.</div></div>
+          <div class="procedure-step"><div class="step-num">2</div><div>Pour chaque article : <strong>une photo par couleur</strong> disponible (blanc, noir, marine, rouge, etc.).</div></div>
+          <div class="procedure-step"><div class="step-num">3</div><div>Détourez chaque photo avec Photoshop, remove.bg ou tout outil de détourage. Format cible : <strong>PNG 800×800px fond transparent</strong>.</div></div>
+          <div class="procedure-step"><div class="step-num">4</div><div>Nommez les fichiers selon la convention : <code style="background:#0d0d0d;padding:1px 5px;border-radius:3px;font-size:11px;">tshirt-coton_blanc.png</code>, <code style="background:#0d0d0d;padding:1px 5px;border-radius:3px;font-size:11px;">polo_noir.png</code>, etc.</div></div>
+          <div class="procedure-step"><div class="step-num">5</div><div>Archivez dans un dossier structuré : <code style="background:#0d0d0d;padding:1px 5px;border-radius:3px;font-size:11px;">HCS/Photos-Produits/[produit]/[couleur].png</code></div></div>
+        </div>
+
+        <div class="procedure-card">
+          <div class="procedure-title">📤 Phase 2 — Chargement dans l'interface</div>
+          <div class="procedure-step"><div class="step-num">1</div><div>Allez dans l'onglet <strong>"📸 Bibliothèque photos"</strong>. Sélectionnez le produit en haut.</div></div>
+          <div class="procedure-step"><div class="step-num">2</div><div>Pour chaque couleur, cliquez sur la case colorée ou le bouton <strong>"+ Photo"</strong>. Sélectionnez le fichier PNG détouré correspondant.</div></div>
+          <div class="procedure-step"><div class="step-num">3</div><div>La photo est redimensionnée automatiquement à <strong>800px max</strong> et sauvegardée. Un badge vert ✓ confirme le chargement.</div></div>
+          <div class="procedure-step"><div class="step-num">4</div><div>Recommencez pour tous les produits et toutes les couleurs disponibles.</div></div>
+          <div class="procedure-step"><div class="step-num">5</div><div><strong>Exportez en JSON</strong> (bouton ci-dessus) pour sauvegarder votre bibliothèque. Conservez ce fichier dans Dropbox.</div></div>
+        </div>
+
+        <div class="procedure-card">
+          <div class="procedure-title">🎯 Phase 3 — Configuration des zones d'impression</div>
+          <div class="procedure-step"><div class="step-num">1</div><div>Allez dans l'onglet <strong>"🎯 Zones d'impression"</strong>. Sélectionnez un produit.</div></div>
+          <div class="procedure-step"><div class="step-num">2</div><div>La photo du produit (blanc ou première couleur disponible) s'affiche en aperçu avec un cadre orange = zone d'impression.</div></div>
+          <div class="procedure-step"><div class="step-num">3</div><div>Ajustez les curseurs <strong>X, Y, Largeur, Hauteur</strong> pour que le cadre orange corresponde exactement à la zone imprimable de l'article.</div></div>
+          <div class="procedure-step"><div class="step-num">4</div><div>Cliquez <strong>"Sauvegarder cette zone"</strong>. La zone sera utilisée automatiquement dans la Boutique pour positionner le logo client.</div></div>
+        </div>
+
+        <div class="procedure-card">
+          <div class="procedure-title">✅ Phase 4 — Validation dans la Boutique</div>
+          <div class="procedure-step"><div class="step-num">1</div><div>Ouvrez <strong>boutique-assistant.html</strong> en mode Vendeur.</div></div>
+          <div class="procedure-step"><div class="step-num">2</div><div>Sélectionnez un produit → les couleurs affichent maintenant les <strong>vraies photos</strong> comme miniatures.</div></div>
+          <div class="procedure-step"><div class="step-num">3</div><div>Uploadez un logo → l'aperçu mockup utilise la vraie photo produit + logo positionné dans la zone configurée.</div></div>
+          <div class="procedure-step"><div class="step-num">4</div><div>Utilisez le bouton <strong>"🎨 Ouvrir dans MockupForge"</strong> pour un rendu encore plus précis et téléchargeable.</div></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   DONNÉES PRODUITS & COULEURS (synchronisées avec boutique-assistant)
+   ============================================================ */
+const PRODUCTS = [
+  { id:'tshirt-coton',  name:'T-shirt Coton',       icon:'👕', desc:'100% coton, toutes tailles' },
+  { id:'tshirt-poly',   name:'T-shirt Polyester',    icon:'👕', desc:'Polyester léger' },
+  { id:'polo',          name:'Polo',                 icon:'👔', desc:'Polo coton piqué' },
+  { id:'casquette',     name:'Casquette',             icon:'🧢', desc:'Coton ou polyester' },
+  { id:'tote-bag',      name:'Tote Bag',              icon:'👜', desc:'Coton naturel' },
+  { id:'tablier',       name:'Tablier',               icon:'🥼', desc:'Coton résistant' },
+];
+
+const COLORS = [
+  { name:'Blanc',        hex:'#ffffff', border:'#ccc' },
+  { name:'Noir',         hex:'#111111' },
+  { name:'Marine',       hex:'#1a2744' },
+  { name:'Rouge',        hex:'#cc2020' },
+  { name:'Vert bouteille',hex:'#1a4a2e' },
+  { name:'Gris',         hex:'#888888' },
+  { name:'Jaune',        hex:'#f5d020' },
+  { name:'Orange',       hex:'#FF6B00' },
+  { name:'Rose',         hex:'#e8749a' },
+  { name:'Bordeaux',     hex:'#7c2e3b' },
+  { name:'Bleu ciel',    hex:'#5ba8d8' },
+  { name:'Beige',        hex:'#d4c5a9' },
+];
+
+/* Zones d'impression par défaut (canvas 360×400) */
+const DEFAULT_ZONES = {
+  'tshirt-coton':  { x:115, y:148, w:130, h:100, label:'Poitrine avant' },
+  'tshirt-poly':   { x:115, y:148, w:130, h:100, label:'Poitrine avant' },
+  'polo':          { x:120, y:148, w:120, h:90,  label:'Poitrine' },
+  'casquette':     { x:110, y:125, w:140, h:105, label:'Panneau avant' },
+  'tote-bag':      { x:85,  y:95,  w:190, h:210, label:'Recto centre' },
+  'tablier':       { x:108, y:130, w:144, h:160, label:'Devant centre' },
+};
+
+/* ============================================================
+   STORAGE HELPERS
+   ============================================================ */
+function getPhotos() { try { return JSON.parse(localStorage.getItem('hcs_photos_produits')||'{}'); } catch { return {}; } }
+function savePhotos(d) { localStorage.setItem('hcs_photos_produits', JSON.stringify(d)); }
+function getZones() { try { return JSON.parse(localStorage.getItem('hcs_print_zones')||'{}'); } catch { return {}; } }
+function saveZones(d) { localStorage.setItem('hcs_print_zones', JSON.stringify(d)); }
+
+function getZone(pid) {
+  const z = getZones(); return z[pid] || DEFAULT_ZONES[pid] || { x:110, y:140, w:140, h:110, label:'Zone' };
+}
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'zones') { initZoneTabs(); updateStorageBar(); }
+  if (name === 'export') updateStorageBar();
+}
+
+/* ============================================================
+   TAB 1 — BIBLIOTHÈQUE
+   ============================================================ */
+let libActiveProd = PRODUCTS[0].id;
+
+function initLibTab() {
+  const tabs = document.getElementById('lib-product-tabs');
+  tabs.innerHTML = PRODUCTS.map(p =>
+    `<button class="prod-tab${p.id===libActiveProd?' active':''}" onclick="setLibProd('${p.id}',this)">${p.icon} ${p.name}</button>`
+  ).join('');
+  renderLibGrid();
+  updatePhotoBadge();
+}
+
+function setLibProd(id, btn) {
+  libActiveProd = id;
+  document.querySelectorAll('#lib-product-tabs .prod-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLibGrid();
+}
+
+function renderLibGrid() {
+  const prod = PRODUCTS.find(p => p.id === libActiveProd);
+  const photos = getPhotos();
+  const prodPhotos = photos[libActiveProd] || {};
+  let withPhoto = 0;
+  document.getElementById('lib-panel-title').textContent = `${prod.icon} ${prod.name} — Photos par couleur`;
+  const grid = document.getElementById('color-photo-grid');
+  grid.innerHTML = COLORS.map(c => {
+    const cKey = c.name;
+    const hasPh = !!prodPhotos[cKey];
+    if (hasPh) withPhoto++;
+    return `<div class="color-photo-card${hasPh?' has-photo':''}" id="card-${libActiveProd}-${cKey.replace(/\s/g,'_')}">
+      <div class="color-photo-header">
+        <div class="color-swatch-mini" style="background:${c.hex};${c.border?'border-color:'+c.border+';':''}"></div>
+        <div class="color-name-label">${c.name}</div>
+        ${hasPh ? '<span class="badge-ok">✓</span>' : '<span class="badge-missing">—</span>'}
+      </div>
+      <div class="color-photo-body">
+        ${hasPh ? `<img class="color-photo-preview show" src="${prodPhotos[cKey]}" alt="${c.name}" />` : ''}
+        <div class="upload-placeholder${hasPh?' show':''}" onclick="triggerUpload('${libActiveProd}','${cKey}')">
+          <div class="upload-placeholder-icon">📷</div>
+          <div>Cliquer pour uploader</div>
+        </div>
+        <div class="color-actions">
+          <button class="btn-upload-color" onclick="triggerUpload('${libActiveProd}','${cKey}')">+ Photo</button>
+          ${hasPh ? `<button class="btn-delete-color" onclick="supprimerPhoto('${libActiveProd}','${cKey}')">✕</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  const total = COLORS.length;
+  document.getElementById('lib-stats').textContent = `${withPhoto} / ${total} couleurs avec photo`;
+  const badge = document.getElementById('lib-complete-badge');
+  badge.style.display = withPhoto === total ? 'inline' : 'none';
+}
+
+function triggerUpload(pid, colorName) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp';
+  inp.onchange = (e) => chargerPhoto(e.target.files[0], pid, colorName);
+  inp.click();
+}
+
+function chargerPhoto(file, pid, colorName) {
+  if (!file) return;
+  if (file.size > 8*1024*1024) { toast('Fichier trop lourd (max 8 MB)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Redimensionner à max 800px
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else       { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/png', 0.9);
+      const photos = getPhotos();
+      if (!photos[pid]) photos[pid] = {};
+      photos[pid][colorName] = dataUrl;
+      try {
+        savePhotos(photos);
+        renderLibGrid();
+        updatePhotoBadge();
+        // Rafraîchir aperçu zone si actif
+        if (document.getElementById('tab-zones').classList.contains('active') && zoneActiveProd === pid) {
+          drawZoneCanvas();
+        }
+        toast(`Photo "${colorName}" chargée (${w}×${h}px)`, 'success');
+      } catch(err) {
+        toast('Erreur stockage : localStorage plein. Exportez et libérez de l\'espace.', 'error');
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function supprimerPhoto(pid, colorName) {
+  if (!confirm(`Supprimer la photo "${colorName}" pour ${pid} ?`)) return;
+  const photos = getPhotos();
+  if (photos[pid]) { delete photos[pid][colorName]; savePhotos(photos); }
+  renderLibGrid(); updatePhotoBadge();
+  toast(`Photo "${colorName}" supprimée`, 'info');
+}
+
+function updatePhotoBadge() {
+  const photos = getPhotos();
+  let total = 0;
+  Object.values(photos).forEach(p => { total += Object.keys(p).length; });
+  document.getElementById('photos-count-badge').textContent = `${total} photo${total>1?'s':''}`;
+}
+
+/* ============================================================
+   TAB 2 — ZONES D'IMPRESSION
+   ============================================================ */
+let zoneActiveProd = PRODUCTS[0].id;
+
+function initZoneTabs() {
+  const tabs = document.getElementById('zone-product-tabs');
+  tabs.innerHTML = PRODUCTS.map(p =>
+    `<button class="prod-tab${p.id===zoneActiveProd?' active':''}" onclick="setZoneProd('${p.id}',this)">${p.icon} ${p.name}</button>`
+  ).join('');
+  loadZoneControls(zoneActiveProd);
+  drawZoneCanvas();
+  renderZonesList();
+}
+
+function setZoneProd(id, btn) {
+  zoneActiveProd = id;
+  document.querySelectorAll('#zone-product-tabs .prod-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadZoneControls(id);
+  drawZoneCanvas();
+}
+
+function loadZoneControls(pid) {
+  const z = getZone(pid);
+  document.getElementById('zone-x').value = z.x;
+  document.getElementById('zone-y').value = z.y;
+  document.getElementById('zone-w').value = z.w;
+  document.getElementById('zone-h').value = z.h;
+  document.getElementById('zone-x-val').textContent = z.x;
+  document.getElementById('zone-y-val').textContent = z.y;
+  document.getElementById('zone-w-val').textContent = z.w;
+  document.getElementById('zone-h-val').textContent = z.h;
+  const prod = PRODUCTS.find(p => p.id === pid);
+  document.getElementById('zone-panel-title').textContent = `${prod.icon} ${prod.name} — Aperçu zone d'impression`;
+  majZoneDisplay();
+}
+
+function majZoneCanvas() {
+  const ids = ['zone-x','zone-y','zone-w','zone-h'];
+  ids.forEach(id => {
+    document.getElementById(id+'-val').textContent = document.getElementById(id).value;
+  });
+  majZoneDisplay();
+  drawZoneCanvas();
+}
+
+function majZoneDisplay() {
+  const x = document.getElementById('zone-x').value;
+  const y = document.getElementById('zone-y').value;
+  const w = document.getElementById('zone-w').value;
+  const h = document.getElementById('zone-h').value;
+  document.getElementById('zone-coords-display').textContent = `x=${x}, y=${y}, w=${w}, h=${h}`;
+}
+
+function drawZoneCanvas() {
+  const canvas = document.getElementById('zone-preview-canvas');
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  ctx.clearRect(0, 0, cw, ch);
+  // Fond
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.roundRect(0, 0, cw, ch, 12); ctx.fill();
+
+  const photos = getPhotos();
+  const prodPhotos = photos[zoneActiveProd] || {};
+  // Chercher première photo disponible (blanc en priorité)
+  const firstColor = ['Blanc','Noir','Marine','Gris','Rouge','Bleu ciel'].find(c => prodPhotos[c]);
+  const src = firstColor ? prodPhotos[firstColor] : null;
+
+  const drawZoneOverlay = () => {
+    const x = parseInt(document.getElementById('zone-x').value);
+    const y = parseInt(document.getElementById('zone-y').value);
+    const w = parseInt(document.getElementById('zone-w').value);
+    const h = parseInt(document.getElementById('zone-h').value);
+    // Zone d'impression
+    ctx.strokeStyle = '#FF6B00';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
+    // Fill semi-transparent
+    ctx.fillStyle = 'rgba(255,107,0,0.12)';
+    ctx.fillRect(x, y, w, h);
+    // Label
+    ctx.fillStyle = '#FF6B00';
+    ctx.font = 'bold 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('ZONE IMPRESSION', x + w/2, y + h/2 - 6);
+    ctx.font = '10px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(255,107,0,0.7)';
+    ctx.fillText(`${w}×${h}px`, x + w/2, y + h/2 + 10);
+  };
+
+  if (src) {
+    const img = new Image();
+    img.onload = () => {
+      // Fit photo dans le canvas
+      const scale = Math.min(cw / img.width, ch / img.height);
+      const dw = img.width * scale, dh = img.height * scale;
+      const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+      drawZoneOverlay();
+    };
+    img.src = src;
+  } else {
+    // Dessiner silhouette produit générique
+    const p = PRODUCTS.find(pr => pr.id === zoneActiveProd);
+    ctx.fillStyle = '#2a2a2a';
+    ctx.beginPath(); ctx.roundRect(80, 80, 200, 240, 10); ctx.fill();
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.roundRect(30, 80, 60, 90, 8); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(270, 80, 60, 90, 8); ctx.fill();
+    ctx.fillStyle = '#555'; ctx.font = '12px Inter'; ctx.textAlign = 'center';
+    ctx.fillText('Aucune photo — uploadez via Bibliothèque', 180, 380);
+    ctx.fillText(p ? p.icon + ' ' + p.name : '', 180, 50);
+    drawZoneOverlay();
+  }
+}
+
+function sauvegarderZone() {
+  const zones = getZones();
+  zones[zoneActiveProd] = {
+    x: parseInt(document.getElementById('zone-x').value),
+    y: parseInt(document.getElementById('zone-y').value),
+    w: parseInt(document.getElementById('zone-w').value),
+    h: parseInt(document.getElementById('zone-h').value),
+    label: DEFAULT_ZONES[zoneActiveProd]?.label || 'Zone impression'
+  };
+  saveZones(zones);
+  renderZonesList();
+  toast('Zone sauvegardée ✓', 'success');
+}
+
+function reinitialiserZone() {
+  const def = DEFAULT_ZONES[zoneActiveProd];
+  if (!def) return;
+  document.getElementById('zone-x').value = def.x;
+  document.getElementById('zone-y').value = def.y;
+  document.getElementById('zone-w').value = def.w;
+  document.getElementById('zone-h').value = def.h;
+  ['zone-x','zone-y','zone-w','zone-h'].forEach(id => {
+    document.getElementById(id+'-val').textContent = document.getElementById(id).value;
+  });
+  majZoneDisplay();
+  drawZoneCanvas();
+}
+
+function renderZonesList() {
+  const zones = getZones();
+  const el = document.getElementById('zones-list');
+  el.innerHTML = PRODUCTS.map(p => {
+    const z = zones[p.id];
+    const hasCustom = !!z;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span>${p.icon} ${p.name}</span>
+      <span style="color:${hasCustom?'var(--green)':'var(--muted)'};">${hasCustom ? `✓ ${z.label} (${z.w}×${z.h}px)` : 'Défaut'}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   TAB 3 — EXPORT / IMPORT
+   ============================================================ */
+function updateStorageBar() {
+  const photos = getPhotos(); const zones = getZones();
+  const phStr = JSON.stringify(photos); const zStr = JSON.stringify(zones);
+  const kb = Math.round((phStr.length + zStr.length) / 1024);
+  const maxKB = 5000;
+  const pct = Math.min(100, Math.round(kb / maxKB * 100));
+  document.getElementById('storage-used').textContent = kb < 1000 ? kb + ' KB' : (kb/1024).toFixed(1) + ' MB';
+  document.getElementById('storage-label').textContent = `Utilisé / ~5 MB disponibles (${pct}%)`;
+  document.getElementById('storage-bar').style.width = pct + '%';
+  document.getElementById('storage-bar').style.background = pct > 80 ? 'var(--red)' : pct > 60 ? '#fbbf24' : 'var(--orange)';
+  let detail = [];
+  Object.entries(photos).forEach(([pid,cols]) => {
+    const n = Object.keys(cols).length;
+    if (n) detail.push(`${pid}: ${n} photo(s)`);
+  });
+  document.getElementById('storage-detail').textContent = detail.join(' · ') || 'Aucune photo chargée';
+}
+
+function exporterTout() {
+  const data = {
+    version: '1.0',
+    export_date: new Date().toISOString(),
+    photos: getPhotos(),
+    print_zones: getZones()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `hcs-photos-produits-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Export JSON téléchargé', 'success');
+}
+
+function importerJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.photos) savePhotos(data.photos);
+      if (data.print_zones) saveZones(data.print_zones);
+      updatePhotoBadge(); updateStorageBar();
+      initLibTab();
+      toast(`Import réussi — ${Object.values(data.photos||{}).reduce((s,p)=>s+Object.keys(p).length,0)} photo(s) chargée(s)`, 'success');
+    } catch { toast('Fichier JSON invalide', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function toutEffacer() {
+  if (!confirm('Effacer TOUTES les photos et zones ? Cette action est irréversible.')) return;
+  localStorage.removeItem('hcs_photos_produits');
+  localStorage.removeItem('hcs_print_zones');
+  updatePhotoBadge(); updateStorageBar(); initLibTab();
+  toast('Bibliothèque effacée', 'info');
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, type='info') {
+  const colors = { success:'#22c55e', error:'#ef4444', warning:'#fbbf24', info:'#60a5fa' };
+  const icons  = { success:'✓', error:'✗', warning:'⚠', info:'ℹ' };
+  const el = document.getElementById('toast');
+  el.style.color = colors[type] || colors.info;
+  el.textContent = (icons[type]||'') + '  ' + msg;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  initLibTab();
+  updatePhotoBadge();
+});
+</script>
+</body>
+</html>

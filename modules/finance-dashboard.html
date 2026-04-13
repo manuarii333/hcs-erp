@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCS — Dashboard Financier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0a0a0a; color: #e5e5e5; }
+    .card { background: #111111; border: 1px solid #222222; border-radius: 12px; }
+    .accent { color: #FF6B00; }
+    .btn-primary { background: #FF6B00; color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: #e05a00; }
+    .btn-ghost { background: #1a1a1a; color: #aaa; border: 1px solid #333; border-radius: 8px; padding: 8px 18px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-ghost:hover { border-color: #FF6B00; color: #FF6B00; }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; border: none; border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+    input, select, textarea { background: #1a1a1a; border: 1px solid #333; color: #e5e5e5; border-radius: 8px; padding: 8px 12px; width: 100%; outline: none; }
+    input:focus, select:focus { border-color: #FF6B00; }
+    .table-row:hover { background: #161616; }
+    .badge-paid { background: #14532d; color: #86efac; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .badge-pending { background: #7c2d12; color: #fdba74; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .badge-late { background: #7f1d1d; color: #fca5a5; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .alert-box { border-left: 3px solid #FF6B00; background: #1a1000; padding: 12px 16px; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+    .alert-box.danger { border-color: #ef4444; background: #1a0000; }
+    .tab-btn { padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; border: 1px solid transparent; transition: all 0.2s; }
+    .tab-btn.active { background: #FF6B00; color: #fff; }
+    .tab-btn:not(.active) { color: #888; }
+    .tab-btn:not(.active):hover { border-color: #FF6B00; color: #FF6B00; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 50; align-items: center; justify-content: center; }
+    .modal.open { display: flex; }
+    .nav-link { color: #888; text-decoration: none; font-size: 13px; }
+    .nav-link:hover { color: #FF6B00; }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+
+<!-- ===== SECTION CONFIG ===== -->
+<script>
+const CONFIG = {
+  // --- Clés API (à remplir avant utilisation) ---
+  ODOO_URL: 'https://VOTRE_ODOO.odoo.com',
+  ODOO_DB: 'VOTRE_DB',
+  ODOO_API_KEY: 'VOTRE_CLE_API_ODOO',
+  DROPBOX_ACCESS_TOKEN: 'VOTRE_TOKEN_DROPBOX',
+  N8N_WEBHOOK_URL: localStorage.getItem('hcs_n8n_webhook_url') || '',  // persisté via localStorage
+  // --- Objectifs financiers ---
+  OBJECTIF_CA_JOURNALIER: 50000,   // XPF
+  OBJECTIF_MARGE_MIN: 40,          // %
+  ALERTE_FACTURE_JOURS: 7          // jours avant alerte facture impayée
+};
+</script>
+<!-- ===== FIN CONFIG ===== -->
+
+<!-- BANNIÈRE CONFIG N8N -->
+<div id="n8n-banner" style="display:none;background:#1c1917;border:1px solid #78350f;border-radius:8px;padding:10px 16px;margin-bottom:16px;align-items:center;gap:12px;font-size:0.82rem;">
+  <span>⚙️</span>
+  <span style="color:#fb923c;font-weight:600">Webhook n8n non configuré.</span>
+  <span style="color:#a8a29e">La validation des factures utilisera Gmail en fallback.</span>
+  <input id="n8n-url-input" type="text" placeholder="https://hcstahiti.app.n8n.cloud/webhook/valider-facture" style="flex:1;background:#292524;border:1px solid #57534e;border-radius:6px;color:#fff;padding:5px 10px;font-size:0.82rem;">
+  <button onclick="saveN8nUrl()" style="background:#fb923c;color:#000;border:none;border-radius:6px;padding:6px 14px;font-weight:700;cursor:pointer;white-space:nowrap;">Enregistrer</button>
+  <button onclick="document.getElementById('n8n-banner').style.display='none'" style="background:none;border:none;color:#78716c;cursor:pointer;font-size:1rem;">✕</button>
+</div>
+<script>
+(function() {
+  if (!localStorage.getItem('hcs_n8n_webhook_url')) {
+    document.getElementById('n8n-banner').style.display = 'flex';
+  }
+})();
+function saveN8nUrl() {
+  const val = document.getElementById('n8n-url-input').value.trim();
+  if (!val) return;
+  localStorage.setItem('hcs_n8n_webhook_url', val);
+  CONFIG.N8N_WEBHOOK_URL = val;
+  document.getElementById('n8n-banner').style.display = 'none';
+}
+</script>
+
+<!-- Navigation -->
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#FF6B00">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-white">Dashboard Financier</h1>
+      <p class="text-xs text-gray-500">High Coffee Shirt — Agent 9</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 flex-wrap">
+    <a href="ocr-scanner.html" class="nav-link">📄 Scanner OCR</a>
+    <a href="rapport-pl.html" class="nav-link">📊 Rapport P&L</a>
+    <a href="routine-dashboard.html" class="nav-link">✅ Routines</a>
+    <button onclick="exportCSV()" class="btn-ghost text-sm">⬇ Exporter CSV</button>
+    <button onclick="openAddRevenu()" class="btn-primary text-sm">+ Revenu</button>
+    <button onclick="openAddCharge()" class="btn-ghost text-sm">+ Charge</button>
+  </div>
+</div>
+
+<!-- Résumé du jour — Cartes KPI -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4">
+    <p class="text-xs text-gray-500 mb-1">CA du jour</p>
+    <p class="text-2xl font-bold accent" id="kpi-ca-jour">0</p>
+    <p class="text-xs text-gray-600 mt-1">XPF</p>
+    <div id="sparkline-wrapper" class="mt-3" style="height:40px;"><canvas id="sparkline"></canvas></div>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-500 mb-1">Dépenses du jour</p>
+    <p class="text-2xl font-bold text-red-400" id="kpi-dep-jour">0</p>
+    <p class="text-xs text-gray-600 mt-1">XPF</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-500 mb-1">Solde net</p>
+    <p class="text-2xl font-bold" id="kpi-solde" style="color:#22c55e">0</p>
+    <p class="text-xs text-gray-600 mt-1">XPF</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-500 mb-1">Marge brute mois</p>
+    <p class="text-2xl font-bold" id="kpi-marge" style="color:#FF6B00">0%</p>
+    <div class="w-full bg-gray-800 rounded-full h-1.5 mt-2">
+      <div id="marge-bar" class="h-1.5 rounded-full" style="background:#FF6B00;width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Onglets -->
+<div class="flex gap-2 mb-5 flex-wrap">
+  <button class="tab-btn active" onclick="switchTab('revenus',this)">💰 Revenus</button>
+  <button class="tab-btn" onclick="switchTab('charges',this)">📤 Charges</button>
+  <button class="tab-btn" onclick="switchTab('alertes',this)">🔔 Alertes</button>
+</div>
+
+<!-- ONGLET REVENUS -->
+<div id="tab-revenus" class="card p-5">
+  <!-- Filtres période -->
+  <div class="flex items-center gap-3 mb-4 flex-wrap">
+    <select id="filtre-periode" onchange="filtrerRevenus()" class="w-auto text-sm">
+      <option value="jour">Aujourd'hui</option>
+      <option value="semaine">Cette semaine</option>
+      <option value="mois" selected>Ce mois</option>
+      <option value="tout">Tout</option>
+    </select>
+    <input type="month" id="filtre-mois" onchange="filtrerRevenus()" class="w-auto text-sm">
+    <span class="text-xs text-gray-500">Devise : XPF</span>
+  </div>
+
+  <!-- Tableau revenus par canal -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-800">
+          <th class="text-left pb-3 text-gray-400 font-medium">Canal</th>
+          <th class="text-right pb-3 text-gray-400 font-medium">Montant</th>
+          <th class="text-right pb-3 text-gray-400 font-medium">Nb commandes</th>
+          <th class="text-right pb-3 text-gray-400 font-medium">Ticket moyen</th>
+          <th class="pb-3"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-revenus"></tbody>
+      <tfoot>
+        <tr class="border-t border-orange-800 mt-2">
+          <td class="pt-3 font-bold text-white">TOTAL</td>
+          <td class="pt-3 text-right font-bold accent" id="total-revenus">0 XPF</td>
+          <td class="pt-3 text-right text-gray-400" id="total-commandes">0</td>
+          <td class="pt-3 text-right text-gray-400" id="total-ticket">—</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Liste des entrées brutes -->
+  <div class="mt-6">
+    <h3 class="text-sm font-semibold text-gray-400 mb-3">Détail des transactions</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-800">
+            <th class="text-left pb-2 text-gray-500 font-medium">Date</th>
+            <th class="text-left pb-2 text-gray-500 font-medium">Canal</th>
+            <th class="text-left pb-2 text-gray-500 font-medium">Description</th>
+            <th class="text-right pb-2 text-gray-500 font-medium">Montant</th>
+            <th class="pb-2"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody-transactions"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ONGLET CHARGES -->
+<div id="tab-charges" class="card p-5 hidden">
+  <div class="flex items-center gap-3 mb-4 flex-wrap">
+    <select id="filtre-categorie-charge" onchange="filtrerCharges()" class="w-auto text-sm">
+      <option value="">Toutes catégories</option>
+      <option value="fournisseur_textile">Fournisseur textile</option>
+      <option value="fournisseur_dtf">Fournisseur DTF</option>
+      <option value="consommables">Consommables</option>
+      <option value="charges_fixes">Charges fixes</option>
+      <option value="investissement">Investissement</option>
+    </select>
+    <input type="month" id="filtre-mois-charge" onchange="filtrerCharges()" class="w-auto text-sm">
+    <select id="filtre-statut-charge" onchange="filtrerCharges()" class="w-auto text-sm">
+      <option value="">Tous statuts</option>
+      <option value="paye">Payé</option>
+      <option value="en_attente">En attente</option>
+    </select>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-800">
+          <th class="text-left pb-3 text-gray-400 font-medium">Date</th>
+          <th class="text-left pb-3 text-gray-400 font-medium">Fournisseur</th>
+          <th class="text-left pb-3 text-gray-400 font-medium">Catégorie</th>
+          <th class="text-right pb-3 text-gray-400 font-medium">Montant</th>
+          <th class="text-left pb-3 text-gray-400 font-medium">N° Facture</th>
+          <th class="text-left pb-3 text-gray-400 font-medium">Statut</th>
+          <th class="pb-3"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-charges"></tbody>
+      <tfoot>
+        <tr class="border-t border-red-900 mt-2">
+          <td colspan="3" class="pt-3 font-bold text-white">TOTAL CHARGES</td>
+          <td class="pt-3 text-right font-bold text-red-400" id="total-charges">0 XPF</td>
+          <td colspan="3"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3" id="charges-par-cat"></div>
+</div>
+
+<!-- ONGLET ALERTES -->
+<div id="tab-alertes" class="card p-5 hidden">
+  <h3 class="text-base font-semibold text-white mb-4">🔔 Alertes financières actives</h3>
+  <div id="alertes-container">
+    <p class="text-gray-500 text-sm">Calcul des alertes en cours...</p>
+  </div>
+  <div class="mt-6 card p-4" style="background:#0d0d0d">
+    <h4 class="text-sm font-semibold text-gray-400 mb-3">⚙️ Configuration des alertes</h4>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Objectif CA journalier (XPF)</label>
+        <input type="number" id="cfg-ca" placeholder="50000" value="50000" class="text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Marge brute minimum (%)</label>
+        <input type="number" id="cfg-marge" placeholder="40" value="40" class="text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Alerte facture impayée après (jours)</label>
+        <input type="number" id="cfg-jours" placeholder="7" value="7" class="text-sm">
+      </div>
+    </div>
+    <button onclick="sauvegarderConfig()" class="btn-primary text-sm mt-3">Enregistrer la configuration</button>
+  </div>
+</div>
+
+<!-- MODAL Ajouter Revenu -->
+<div id="modal-revenu" class="modal" onclick="if(event.target===this)fermerModal('modal-revenu')">
+  <div class="card w-full max-w-md p-6 mx-4">
+    <h2 class="text-lg font-bold text-white mb-4">+ Ajouter un revenu</h2>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Date</label>
+        <input type="date" id="rev-date" class="text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Canal</label>
+        <select id="rev-canal" class="text-sm">
+          <option value="woocommerce">WooCommerce</option>
+          <option value="odoo">Odoo / Boutique</option>
+          <option value="cash">Cash boutique</option>
+          <option value="messenger">Facebook Messenger</option>
+          <option value="instagram">Instagram</option>
+          <option value="tiktok">TikTok</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Description</label>
+        <input type="text" id="rev-desc" placeholder="Ex: 3 T-shirts DTF Mairie" class="text-sm">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Montant (XPF)</label>
+          <input type="number" id="rev-montant" placeholder="0" class="text-sm">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Nb commandes</label>
+          <input type="number" id="rev-nb" placeholder="1" value="1" class="text-sm">
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="ajouterRevenu()" class="btn-primary flex-1">Enregistrer</button>
+      <button onclick="fermerModal('modal-revenu')" class="btn-ghost flex-1">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL Ajouter Charge -->
+<div id="modal-charge" class="modal" onclick="if(event.target===this)fermerModal('modal-charge')">
+  <div class="card w-full max-w-md p-6 mx-4">
+    <h2 class="text-lg font-bold text-white mb-4">+ Ajouter une charge</h2>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Date</label>
+        <input type="date" id="chg-date" class="text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Fournisseur</label>
+        <input type="text" id="chg-fournisseur" placeholder="Ex: Taaroa Stock" class="text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Catégorie</label>
+        <select id="chg-cat" class="text-sm">
+          <option value="fournisseur_textile">Fournisseur textile</option>
+          <option value="fournisseur_dtf">Fournisseur DTF</option>
+          <option value="consommables">Consommables</option>
+          <option value="charges_fixes">Charges fixes</option>
+          <option value="investissement">Investissement</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">Montant (XPF)</label>
+          <input type="number" id="chg-montant" placeholder="0" class="text-sm">
+        </div>
+        <div>
+          <label class="text-xs text-gray-500 mb-1 block">N° Facture</label>
+          <input type="text" id="chg-facture" placeholder="FAC-001" class="text-sm">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Statut</label>
+        <select id="chg-statut" class="text-sm">
+          <option value="paye">Payé</option>
+          <option value="en_attente">En attente</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="ajouterCharge()" class="btn-primary flex-1">Enregistrer</button>
+      <button onclick="fermerModal('modal-charge')" class="btn-ghost flex-1">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pied de page -->
+<div class="mt-6 text-center text-xs text-gray-700">
+  High Coffee Shirt — Agent 9 Finance v1.0 — Toutes données en XPF (Francs Pacifique)
+</div>
+
+<script>
+// ===== DONNÉES =====
+// Canaux de vente disponibles
+const CANAUX = [
+  { id: 'woocommerce', label: 'WooCommerce', icon: '🛒' },
+  { id: 'odoo',        label: 'Odoo / Boutique', icon: '🏪' },
+  { id: 'cash',        label: 'Cash boutique', icon: '💵' },
+  { id: 'messenger',   label: 'Facebook Messenger', icon: '💬' },
+  { id: 'instagram',   label: 'Instagram', icon: '📸' },
+  { id: 'tiktok',      label: 'TikTok', icon: '🎵' }
+];
+
+const CAT_LABELS = {
+  fournisseur_textile: 'Fournisseur textile',
+  fournisseur_dtf: 'Fournisseur DTF',
+  consommables: 'Consommables',
+  charges_fixes: 'Charges fixes',
+  investissement: 'Investissement'
+};
+
+// Charger les données depuis localStorage
+function getData(key) {
+  try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+}
+function setData(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+// ===== FORMAT MONÉTAIRE =====
+function fmtXPF(n) {
+  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' XPF';
+}
+
+// ===== DATE UTILITAIRES =====
+function today() { return new Date().toISOString().split('T')[0]; }
+function getMonth(d) { return d ? d.substring(0,7) : ''; }
+function thisMonth() { return today().substring(0,7); }
+function thisWeekDates() {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const mon = new Date(now); mon.setDate(now.getDate() - day + 1);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return { from: mon.toISOString().split('T')[0], to: sun.toISOString().split('T')[0] };
+}
+
+// ===== CALCUL KPI =====
+function calculerKPI() {
+  const transactions = getData('hcs_transactions');
+  const charges = getData('hcs_charges');
+  const t = today();
+  const m = thisMonth();
+
+  const caJour = transactions.filter(r => r.date === t).reduce((s,r) => s + (+r.montant), 0);
+  const depJour = charges.filter(r => r.date === t).reduce((s,r) => s + (+r.montant), 0);
+  const solde = caJour - depJour;
+
+  const revMois = transactions.filter(r => getMonth(r.date) === m).reduce((s,r) => s + (+r.montant), 0);
+  const chgMois = charges.filter(r => getMonth(r.date) === m).reduce((s,r) => s + (+r.montant), 0);
+  const marge = revMois > 0 ? ((revMois - chgMois) / revMois * 100) : 0;
+
+  document.getElementById('kpi-ca-jour').textContent = fmtXPF(caJour);
+  document.getElementById('kpi-dep-jour').textContent = fmtXPF(depJour);
+  const soldeEl = document.getElementById('kpi-solde');
+  soldeEl.textContent = fmtXPF(solde);
+  soldeEl.style.color = solde >= 0 ? '#22c55e' : '#ef4444';
+  document.getElementById('kpi-marge').textContent = marge.toFixed(1) + '%';
+  const margeBar = document.getElementById('marge-bar');
+  const margeMin = +(localStorage.getItem('hcs_cfg_marge') || CONFIG.OBJECTIF_MARGE_MIN);
+  margeBar.style.width = Math.min(marge, 100) + '%';
+  margeBar.style.background = marge >= margeMin ? '#22c55e' : '#ef4444';
+
+  dessinerSparkline(transactions);
+}
+
+// ===== SPARKLINE 7 JOURS =====
+let sparkChart = null;
+function dessinerSparkline(transactions) {
+  const labels = [];
+  const vals = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    labels.push(ds.slice(5));
+    vals.push(transactions.filter(r => r.date === ds).reduce((s,r) => s + (+r.montant), 0));
+  }
+  const ctx = document.getElementById('sparkline').getContext('2d');
+  if (sparkChart) sparkChart.destroy();
+  sparkChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: vals,
+        borderColor: '#FF6B00',
+        backgroundColor: 'rgba(255,107,0,0.15)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => fmtXPF(ctx.raw) }
+      }},
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
+}
+
+// ===== AFFICHER REVENUS =====
+function filtrerRevenus() {
+  const periode = document.getElementById('filtre-periode').value;
+  const moisSel = document.getElementById('filtre-mois').value;
+  const transactions = getData('hcs_transactions');
+
+  let filtres = transactions;
+  const t = today();
+  const m = thisMonth();
+  const semaine = thisWeekDates();
+
+  if (periode === 'jour') filtres = transactions.filter(r => r.date === t);
+  else if (periode === 'semaine') filtres = transactions.filter(r => r.date >= semaine.from && r.date <= semaine.to);
+  else if (periode === 'mois') filtres = transactions.filter(r => getMonth(r.date) === (moisSel || m));
+
+  // Grouper par canal
+  const byCanal = {};
+  CANAUX.forEach(c => { byCanal[c.id] = { montant: 0, nb: 0 }; });
+  filtres.forEach(r => {
+    if (!byCanal[r.canal]) byCanal[r.canal] = { montant: 0, nb: 0 };
+    byCanal[r.canal].montant += (+r.montant);
+    byCanal[r.canal].nb += (+r.nb || 1);
+  });
+
+  const tbody = document.getElementById('tbody-revenus');
+  tbody.innerHTML = '';
+  let totalMontant = 0, totalNb = 0;
+
+  CANAUX.forEach(c => {
+    const { montant, nb } = byCanal[c.id] || { montant: 0, nb: 0 };
+    totalMontant += montant;
+    totalNb += nb;
+    const ticket = nb > 0 ? montant / nb : 0;
+    const tr = document.createElement('tr');
+    tr.className = 'table-row border-b border-gray-900';
+    tr.innerHTML = `
+      <td class="py-2 text-gray-300">${c.icon} ${c.label}</td>
+      <td class="py-2 text-right font-semibold ${montant > 0 ? 'text-white' : 'text-gray-600'}">${fmtXPF(montant)}</td>
+      <td class="py-2 text-right text-gray-400">${nb}</td>
+      <td class="py-2 text-right text-gray-400">${nb > 0 ? fmtXPF(ticket) : '—'}</td>
+      <td></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('total-revenus').textContent = fmtXPF(totalMontant);
+  document.getElementById('total-commandes').textContent = totalNb;
+  document.getElementById('total-ticket').textContent = totalNb > 0 ? fmtXPF(totalMontant / totalNb) : '—';
+
+  // Détail transactions
+  const tbodyT = document.getElementById('tbody-transactions');
+  tbodyT.innerHTML = '';
+  [...filtres].sort((a,b) => b.date.localeCompare(a.date)).forEach(r => {
+    const c = CANAUX.find(x => x.id === r.canal) || { icon: '?', label: r.canal };
+    const tr = document.createElement('tr');
+    tr.className = 'table-row border-b border-gray-900 text-xs';
+    tr.innerHTML = `
+      <td class="py-1.5 text-gray-500">${r.date}</td>
+      <td class="py-1.5 text-gray-400">${c.icon} ${c.label}</td>
+      <td class="py-1.5 text-gray-300">${r.description || ''}</td>
+      <td class="py-1.5 text-right font-semibold text-green-400">${fmtXPF(+r.montant)}</td>
+      <td class="py-1.5 text-right"><button class="btn-danger text-xs py-0.5 px-2" onclick="supprimerRevenu('${r.id}')">✕</button></td>
+    `;
+    tbodyT.appendChild(tr);
+  });
+}
+
+// ===== AFFICHER CHARGES =====
+function filtrerCharges() {
+  const catF = document.getElementById('filtre-categorie-charge').value;
+  const moisF = document.getElementById('filtre-mois-charge').value || thisMonth();
+  const statutF = document.getElementById('filtre-statut-charge').value;
+  const charges = getData('hcs_charges');
+
+  let filtres = charges.filter(r => getMonth(r.date) === moisF);
+  if (catF) filtres = filtres.filter(r => r.categorie === catF);
+  if (statutF) filtres = filtres.filter(r => r.statut === statutF);
+
+  const tbody = document.getElementById('tbody-charges');
+  tbody.innerHTML = '';
+  let total = 0;
+
+  [...filtres].sort((a,b) => b.date.localeCompare(a.date)).forEach(r => {
+    total += (+r.montant);
+    const badge = r.statut === 'paye'
+      ? `<span class="badge-paid">Payé</span>`
+      : `<span class="badge-pending">En attente</span>`;
+    const tr = document.createElement('tr');
+    tr.className = 'table-row border-b border-gray-900 text-sm';
+    tr.innerHTML = `
+      <td class="py-2 text-gray-400">${r.date}</td>
+      <td class="py-2 text-gray-300">${r.fournisseur}</td>
+      <td class="py-2 text-gray-400">${CAT_LABELS[r.categorie] || r.categorie}</td>
+      <td class="py-2 text-right font-semibold text-red-400">${fmtXPF(+r.montant)}</td>
+      <td class="py-2 text-gray-500">${r.numero || ''}</td>
+      <td class="py-2">${badge}</td>
+      <td class="py-2 text-right" style="white-space:nowrap;">
+        ${r.statut === 'en_attente' ? `<button style="background:#332200;color:#fdba74;border:1px solid #7c2d12;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;" onclick="ouvrirValiderCharge('${r.id}')">🔔 Valider</button>` : ''}
+        <button class="btn-danger text-xs py-0.5 px-2" onclick="supprimerCharge('${r.id}')">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('total-charges').textContent = fmtXPF(total);
+
+  // Mini stats par catégorie
+  const bycat = {};
+  filtres.forEach(r => { bycat[r.categorie] = (bycat[r.categorie] || 0) + (+r.montant); });
+  const div = document.getElementById('charges-par-cat');
+  div.innerHTML = Object.entries(bycat).map(([k,v]) => `
+    <div class="card p-3" style="background:#0d0d0d">
+      <p class="text-xs text-gray-500">${CAT_LABELS[k] || k}</p>
+      <p class="font-bold text-red-400 mt-1">${fmtXPF(v)}</p>
+    </div>
+  `).join('') || '<p class="text-xs text-gray-500">Aucune charge ce mois</p>';
+}
+
+// ===== ALERTES =====
+function calculerAlertes() {
+  const transactions = getData('hcs_transactions');
+  const charges = getData('hcs_charges');
+  const alertes = [];
+  const cfg = {
+    ca: +(localStorage.getItem('hcs_cfg_ca') || CONFIG.OBJECTIF_CA_JOURNALIER),
+    marge: +(localStorage.getItem('hcs_cfg_marge') || CONFIG.OBJECTIF_MARGE_MIN),
+    jours: +(localStorage.getItem('hcs_cfg_jours') || CONFIG.ALERTE_FACTURE_JOURS)
+  };
+  const m = thisMonth();
+  const t = today();
+
+  // Alerte CA journalier
+  const caJour = transactions.filter(r => r.date === t).reduce((s,r) => s + (+r.montant), 0);
+  if (caJour < cfg.ca && new Date().getHours() >= 17) {
+    alertes.push({ type: 'danger', msg: `CA journalier (${fmtXPF(caJour)}) inférieur à l'objectif (${fmtXPF(cfg.ca)}).` });
+  }
+
+  // Alerte marge
+  const revMois = transactions.filter(r => getMonth(r.date) === m).reduce((s,r) => s + (+r.montant), 0);
+  const chgMois = charges.filter(r => getMonth(r.date) === m).reduce((s,r) => s + (+r.montant), 0);
+  const marge = revMois > 0 ? ((revMois - chgMois) / revMois * 100) : 0;
+  if (revMois > 0 && marge < cfg.marge) {
+    alertes.push({ type: 'danger', msg: `Marge brute ce mois : ${marge.toFixed(1)}% — inférieure au minimum de ${cfg.marge}%.` });
+  }
+
+  // Factures impayées > N jours
+  const now = new Date();
+  charges.filter(r => r.statut === 'en_attente').forEach(r => {
+    const jours = Math.floor((now - new Date(r.date)) / (1000*60*60*24));
+    if (jours > cfg.jours) {
+      alertes.push({ type: 'warning', msg: `Facture impayée depuis ${jours} jours — ${r.fournisseur} (${fmtXPF(+r.montant)}) — N° ${r.numero || '—'}.` });
+    }
+  });
+
+  const cont = document.getElementById('alertes-container');
+  if (alertes.length === 0) {
+    cont.innerHTML = '<div class="alert-box"><span class="text-green-400 font-semibold">✅ Aucune alerte active.</span> Toutes les métriques sont dans les objectifs.</div>';
+    return;
+  }
+  cont.innerHTML = alertes.map(a => `
+    <div class="alert-box ${a.type === 'danger' ? 'danger' : ''}">
+      <span class="font-semibold ${a.type === 'danger' ? 'text-red-400' : 'accent'}">${a.type === 'danger' ? '🚨' : '⚠️'}</span>
+      <span class="text-sm ml-2">${a.msg}</span>
+    </div>
+  `).join('');
+}
+
+// ===== SAUVEGARDER CONFIG =====
+function sauvegarderConfig() {
+  localStorage.setItem('hcs_cfg_ca', document.getElementById('cfg-ca').value);
+  localStorage.setItem('hcs_cfg_marge', document.getElementById('cfg-marge').value);
+  localStorage.setItem('hcs_cfg_jours', document.getElementById('cfg-jours').value);
+  calculerAlertes();
+  alert('✅ Configuration enregistrée');
+}
+
+// ===== AJOUTER REVENU =====
+function ajouterRevenu() {
+  const date = document.getElementById('rev-date').value || today();
+  const canal = document.getElementById('rev-canal').value;
+  const desc = document.getElementById('rev-desc').value;
+  const montant = +document.getElementById('rev-montant').value;
+  const nb = +document.getElementById('rev-nb').value || 1;
+  if (!montant) { alert('Veuillez saisir un montant.'); return; }
+  const transactions = getData('hcs_transactions');
+  transactions.push({ id: Date.now().toString(), date, canal, description: desc, montant, nb });
+  setData('hcs_transactions', transactions);
+  fermerModal('modal-revenu');
+  tout();
+}
+
+// ===== AJOUTER CHARGE =====
+function ajouterCharge() {
+  const date = document.getElementById('chg-date').value || today();
+  const fournisseur = document.getElementById('chg-fournisseur').value;
+  const categorie = document.getElementById('chg-cat').value;
+  const montant = +document.getElementById('chg-montant').value;
+  const numero = document.getElementById('chg-facture').value;
+  const statut = document.getElementById('chg-statut').value;
+  if (!fournisseur || !montant) { alert('Veuillez remplir fournisseur et montant.'); return; }
+  const charges = getData('hcs_charges');
+  charges.push({ id: Date.now().toString(), date, fournisseur, categorie, montant, numero, statut });
+  setData('hcs_charges', charges);
+  fermerModal('modal-charge');
+  tout();
+}
+
+// ===== SUPPRIMER =====
+function supprimerRevenu(id) {
+  if (!confirm('Supprimer cette transaction ?')) return;
+  setData('hcs_transactions', getData('hcs_transactions').filter(r => r.id !== id));
+  tout();
+}
+function supprimerCharge(id) {
+  if (!confirm('Supprimer cette charge ?')) return;
+  setData('hcs_charges', getData('hcs_charges').filter(r => r.id !== id));
+  tout();
+}
+
+// ===== EXPORT CSV =====
+function exportCSV() {
+  const m = thisMonth();
+  const transactions = getData('hcs_transactions').filter(r => getMonth(r.date) === m);
+  const charges = getData('hcs_charges').filter(r => getMonth(r.date) === m);
+  let csv = 'Type,Date,Canal/Fournisseur,Description/Catégorie,Montant XPF,Nb,Statut\n';
+  transactions.forEach(r => {
+    csv += `REVENU,${r.date},${r.canal},${r.description || ''},${r.montant},${r.nb || 1},\n`;
+  });
+  charges.forEach(r => {
+    csv += `CHARGE,${r.date},${r.fournisseur},${r.categorie},${r.montant},1,${r.statut}\n`;
+  });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `HCS_Finances_${m}.csv`; a.click();
+}
+
+// ===== NAVIGATION ONGLETS =====
+function switchTab(name, btn) {
+  ['revenus','charges','alertes'].forEach(t => {
+    document.getElementById('tab-' + t).classList.add('hidden');
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  btn.classList.add('active');
+  if (name === 'charges') filtrerCharges();
+  if (name === 'alertes') calculerAlertes();
+}
+
+// ===== MODALS =====
+function openAddRevenu() {
+  document.getElementById('rev-date').value = today();
+  document.getElementById('modal-revenu').classList.add('open');
+}
+function openAddCharge() {
+  document.getElementById('chg-date').value = today();
+  document.getElementById('modal-charge').classList.add('open');
+}
+function fermerModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ===== VALIDER CHARGE — LOGIQUE URGENCE + APPEL AGENT =====
+
+let chargeEnValidation = null;
+
+function ouvrirValiderCharge(id) {
+  const charges = getData('hcs_charges');
+  const c = charges.find(x => x.id === id);
+  if (!c) return;
+  chargeEnValidation = c;
+
+  // Calcul ancienneté facture
+  const jours = Math.floor((new Date() - new Date(c.date)) / 86400000);
+
+  // Niveau d'urgence selon ancienneté
+  let urgence, couleur, bg, emoji;
+  if (jours > 14) {
+    urgence = 'critique'; couleur = '#fca5a5'; bg = '#7f1d1d'; emoji = '🔴';
+  } else if (jours > 7) {
+    urgence = 'urgent'; couleur = '#fdba74'; bg = '#7c2d12'; emoji = '🟠';
+  } else if (jours > 3) {
+    urgence = 'normal'; couleur = '#fde68a'; bg = '#713f12'; emoji = '🟡';
+  } else {
+    urgence = 'ok'; couleur = '#86efac'; bg = '#14532d'; emoji = '🟢';
+  }
+
+  // Bannière
+  const banner = document.getElementById('valider-urgence-banner');
+  banner.style.background = bg;
+  banner.style.color = couleur;
+  banner.style.border = `1.5px solid ${couleur}44`;
+  banner.textContent = `${emoji} Urgence ${urgence.toUpperCase()} — facture vieille de ${jours} jour${jours > 1 ? 's' : ''}`;
+
+  // Détails
+  document.getElementById('valider-titre').textContent = `Valider — ${c.fournisseur}`;
+  document.getElementById('valider-sous-titre').textContent = `Facture ${c.numero || 'sans numéro'} · ${urgence.toUpperCase()}`;
+  document.getElementById('v-fournisseur').textContent = c.fournisseur;
+  document.getElementById('v-montant').textContent = fmtXPF(+c.montant);
+  document.getElementById('v-numero').textContent = c.numero || '—';
+  document.getElementById('v-date').textContent = c.date;
+  document.getElementById('v-cat').textContent = CAT_LABELS[c.categorie] || c.categorie;
+  document.getElementById('v-age').style.color = couleur;
+  document.getElementById('v-age').textContent = `${jours} jour${jours > 1 ? 's' : ''}`;
+
+  // Note webhook
+  const note = document.getElementById('v-webhook-note');
+  note.textContent = CONFIG.N8N_WEBHOOK_URL
+    ? '✓ Webhook n8n configuré — les actions déclencheront l\'agent automatiquement.'
+    : '⚠ N8N_WEBHOOK_URL non configuré — les boutons ouvriront un email Gmail en fallback.';
+
+  document.getElementById('modal-valider-charge').classList.add('open');
+}
+
+async function appellerAgentN8N(action) {
+  if (!chargeEnValidation) return;
+  const jours = Math.floor((new Date() - new Date(chargeEnValidation.date)) / 86400000);
+  const urgence = jours > 14 ? 'critique' : jours > 7 ? 'urgent' : jours > 3 ? 'normal' : 'ok';
+
+  if (CONFIG.N8N_WEBHOOK_URL) {
+    try {
+      await fetch(CONFIG.N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          charge: chargeEnValidation,
+          urgence,
+          jours_retard: jours,
+          timestamp: new Date().toISOString(),
+          source: 'finance-dashboard'
+        })
+      });
+      alert(`✅ Agent notifié (action: ${action})`);
+    } catch (e) {
+      alert('❌ Erreur webhook n8n — vérifiez l\'URL dans CONFIG.');
+    }
+  } else {
+    // Fallback mailto
+    const sujet = `[HCS ${urgence.toUpperCase()}] Facture à régler — ${chargeEnValidation.fournisseur}`;
+    const corps = `Facture: ${chargeEnValidation.numero || 'N/A'}\nFournisseur: ${chargeEnValidation.fournisseur}\nMontant: ${chargeEnValidation.montant} XPF\nDate: ${chargeEnValidation.date}\nÂge: ${jours} jours\nUrgence: ${urgence}\nAction demandée: ${action}`;
+    window.open(`mailto:highcoffeeshirt@gmail.com?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`);
+  }
+}
+
+function marquerChargePaye() {
+  if (!chargeEnValidation) return;
+  const charges = getData('hcs_charges');
+  const idx = charges.findIndex(x => x.id === chargeEnValidation.id);
+  if (idx >= 0) {
+    charges[idx].statut = 'paye';
+    setData('hcs_charges', charges);
+  }
+  fermerModal('modal-valider-charge');
+  chargeEnValidation = null;
+  tout();
+}
+
+// ===== INITIALISATION =====
+function tout() {
+  calculerKPI();
+  filtrerRevenus();
+  filtrerCharges();
+  calculerAlertes();
+}
+
+// Données de démonstration si localStorage vide
+function chargerDemo() {
+  const t = getData('hcs_transactions');
+  if (t.length > 0) return;
+  const m = thisMonth();
+  const demo_t = [
+    { id: 'd1', date: today(), canal: 'cash', description: 'T-shirts DTF x3 client walk-in', montant: 12500, nb: 1 },
+    { id: 'd2', date: today(), canal: 'messenger', description: 'Commande Logo entreprise', montant: 8000, nb: 1 },
+    { id: 'd3', date: m + '-20', canal: 'odoo', description: 'Commande Mairie Papeete', montant: 45000, nb: 1 },
+    { id: 'd4', date: m + '-18', canal: 'woocommerce', description: 'Commande WooCommerce #1042', montant: 6500, nb: 1 },
+    { id: 'd5', date: m + '-15', canal: 'instagram', description: 'Casquettes brodées x5', montant: 15000, nb: 5 },
+  ];
+  const demo_c = [
+    { id: 'c1', date: m + '-01', fournisseur: 'Taaroa Stock', categorie: 'fournisseur_textile', montant: 18000, numero: 'TS-2026-089', statut: 'paye' },
+    { id: 'c2', date: m + '-10', fournisseur: 'Heat Transfer 4 You', categorie: 'fournisseur_dtf', montant: 25000, numero: 'HT4Y-2026-041', statut: 'paye' },
+    { id: 'c3', date: m + '-05', fournisseur: 'Loyer boutique', categorie: 'charges_fixes', montant: 40000, numero: 'LOYER-FEV', statut: 'paye' },
+    { id: 'c4', date: today(), fournisseur: 'Anémone', categorie: 'fournisseur_textile', montant: 9000, numero: 'ANE-2026-012', statut: 'en_attente' },
+  ];
+  setData('hcs_transactions', demo_t);
+  setData('hcs_charges', demo_c);
+}
+
+// Lancement
+document.getElementById('filtre-mois').value = thisMonth();
+document.getElementById('filtre-mois-charge').value = thisMonth();
+chargerDemo();
+tout();
+</script>
+<!-- ===== MODAL VALIDER CHARGE ===== -->
+<div id="modal-valider-charge" class="modal" onclick="if(event.target===this)fermerModal('modal-valider-charge')">
+  <div class="card p-6 w-full max-w-md mx-4" style="max-height:90vh;overflow-y:auto;">
+
+    <!-- Bannière urgence -->
+    <div id="valider-urgence-banner" style="border-radius:8px;padding:10px 14px;margin-bottom:16px;font-weight:700;font-size:15px;text-align:center;"></div>
+
+    <h2 class="text-lg font-bold text-white mb-1" id="valider-titre">Valider facture fournisseur</h2>
+    <p class="text-xs text-gray-500 mb-4" id="valider-sous-titre"></p>
+
+    <!-- Détails charge -->
+    <div style="background:#0d0d0d;border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div><span class="text-gray-500">Fournisseur</span><br><span class="font-semibold text-white" id="v-fournisseur">—</span></div>
+        <div><span class="text-gray-500">Montant</span><br><span class="font-bold text-red-400 text-lg" id="v-montant">—</span></div>
+        <div><span class="text-gray-500">N° Facture</span><br><span class="text-gray-300" id="v-numero">—</span></div>
+        <div><span class="text-gray-500">Date facture</span><br><span class="text-gray-300" id="v-date">—</span></div>
+        <div><span class="text-gray-500">Catégorie</span><br><span class="text-gray-300" id="v-cat">—</span></div>
+        <div><span class="text-gray-500">Âge facture</span><br><span class="font-semibold" id="v-age">—</span></div>
+      </div>
+    </div>
+
+    <!-- Note webhook -->
+    <div id="v-webhook-note" style="font-size:11px;padding:6px 10px;border-radius:6px;margin-bottom:14px;background:#111;border:1px solid #222;color:#888;"></div>
+
+    <!-- Actions -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <button onclick="appellerAgentN8N('appel_agent')"
+        style="background:#1a3300;color:#86efac;border:1px solid #22c55e44;border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;">
+        📞 Appeler fournisseur
+      </button>
+      <button onclick="appellerAgentN8N('email_agent')"
+        style="background:#001833;color:#93c5fd;border:1px solid #3b82f644;border-radius:8px;padding:10px;font-weight:600;font-size:13px;cursor:pointer;">
+        ✉ Envoyer email
+      </button>
+    </div>
+    <button onclick="appellerAgentN8N('appel_email_urgent')"
+      style="width:100%;background:#3a0000;color:#fca5a5;border:1.5px solid #ef4444;border-radius:8px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:14px;">
+      🚨 Appel + Email (URGENT)
+    </button>
+
+    <hr style="border-color:#222;margin-bottom:14px;">
+
+    <!-- Marquer payée -->
+    <button onclick="marquerChargePaye()"
+      style="width:100%;background:#14532d;color:#86efac;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px;">
+      ✅ Marquer comme Payée
+    </button>
+    <button onclick="fermerModal('modal-valider-charge')"
+      class="btn-ghost w-full text-sm" style="width:100%;">
+      Fermer
+    </button>
+  </div>
+</div>
+<!-- ===== FIN MODAL VALIDER CHARGE ===== -->
+
+</body>
+</html>

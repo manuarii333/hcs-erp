@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 8 — Boutique HCS</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --orange: #FF6B00;
+    --orange-dim: rgba(255,107,0,0.15);
+    --text: #f0f0f0;
+    --muted: #888;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #3b82f6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+  /* ── MODE SELECTOR ── */
+  #mode-screen {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    min-height:100vh; padding:32px; text-align:center;
+    background: radial-gradient(ellipse at 50% 30%, rgba(255,107,0,.08) 0%, transparent 70%);
+  }
+  .mode-logo { font-size:48px; margin-bottom:8px; }
+  .mode-brand { font-size:28px; font-weight:800; color:var(--orange); margin-bottom:4px; }
+  .mode-sub { font-size:15px; color:var(--muted); margin-bottom:48px; }
+  .mode-cards { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+  .mode-card {
+    background:var(--surface); border:2px solid var(--border); border-radius:20px;
+    padding:32px 28px; width:280px; cursor:pointer; transition:all .25s;
+    text-align:left;
+  }
+  .mode-card:hover { border-color:var(--orange); transform:translateY(-4px); box-shadow:0 8px 40px rgba(255,107,0,.15); }
+  .mode-card-icon { font-size:40px; margin-bottom:16px; }
+  .mode-card-title { font-size:18px; font-weight:700; margin-bottom:8px; }
+  .mode-card-desc { font-size:13px; color:var(--muted); line-height:1.7; }
+  .mode-card-badge {
+    display:inline-block; margin-top:16px; padding:4px 10px; border-radius:999px;
+    font-size:11px; font-weight:600; background:var(--orange-dim); color:var(--orange);
+  }
+
+  /* ── MAIN APP ── */
+  #app { display:none; height:100vh; flex-direction:column; }
+
+  /* TOPBAR */
+  .topbar {
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:12px 20px; display:flex; align-items:center; justify-content:space-between;
+    flex-shrink:0;
+  }
+  .topbar-left { display:flex; align-items:center; gap:12px; }
+  .brand { font-size:16px; font-weight:700; color:var(--orange); }
+  .step-indicator { display:flex; gap:8px; align-items:center; }
+  .step-dot {
+    width:8px; height:8px; border-radius:50%; background:var(--border); transition:all .3s;
+  }
+  .step-dot.active { background:var(--orange); width:24px; border-radius:4px; }
+  .step-dot.done { background:var(--green); }
+  .mode-badge {
+    padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600;
+    background:var(--orange-dim); color:var(--orange);
+  }
+  .btn { padding:8px 16px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:500; font-family:'Inter',sans-serif; transition:all .2s; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:hover { border-color:var(--orange); color:var(--orange); }
+  .btn-orange { background:var(--orange); color:#fff; }
+  .btn-orange:hover { background:#e05e00; }
+  .btn-orange:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* CONTENT AREA */
+  .app-body { flex:1; display:flex; overflow:hidden; }
+  .flow-area { flex:1; overflow-y:auto; padding:24px; }
+  .assistant-panel {
+    width:340px; flex-shrink:0; background:var(--surface);
+    border-left:1px solid var(--border); display:flex; flex-direction:column;
+  }
+
+  /* STEPS */
+  .step { display:none; }
+  .step.active { display:block; }
+  .step-title { font-size:22px; font-weight:700; margin-bottom:6px; }
+  .step-sub { font-size:14px; color:var(--muted); margin-bottom:28px; line-height:1.6; }
+
+  /* PRODUCT GRID */
+  .product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
+  .product-card {
+    background:var(--surface); border:2px solid var(--border); border-radius:14px;
+    padding:20px 16px; cursor:pointer; transition:all .2s; text-align:center;
+  }
+  .product-card:hover, .product-card.selected {
+    border-color:var(--orange); background:var(--orange-dim);
+  }
+  .product-icon { font-size:36px; margin-bottom:10px; }
+  .product-name { font-size:14px; font-weight:600; margin-bottom:4px; }
+  .product-price { font-size:12px; color:var(--muted); }
+
+  /* COLOR PICKER */
+  .color-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px; }
+  .color-swatch {
+    width:44px; height:44px; border-radius:10px; cursor:pointer;
+    border:2px solid transparent; transition:all .2s; position:relative;
+  }
+  .color-swatch:hover, .color-swatch.selected {
+    border-color:var(--orange); transform:scale(1.15);
+  }
+  .color-swatch.selected::after {
+    content:'✓'; position:absolute; inset:0; display:flex; align-items:center;
+    justify-content:center; font-size:16px; font-weight:700; color:#fff;
+    text-shadow:0 1px 3px rgba(0,0,0,.6);
+  }
+
+  /* SIZE GRID */
+  .size-grid { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px; }
+  .size-btn {
+    padding:10px 18px; border-radius:10px; background:var(--surface2);
+    border:2px solid var(--border); cursor:pointer; font-size:14px; font-weight:600;
+    color:var(--text); transition:all .2s; font-family:'Inter',sans-serif;
+  }
+  .size-btn:hover, .size-btn.selected { border-color:var(--orange); color:var(--orange); background:var(--orange-dim); }
+
+  /* QTY */
+  .qty-row { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+  .qty-btn {
+    width:40px; height:40px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--text); font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-family:'Inter',sans-serif;
+    transition:all .2s;
+  }
+  .qty-btn:hover { border-color:var(--orange); color:var(--orange); }
+  .qty-display { font-size:28px; font-weight:700; min-width:50px; text-align:center; }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border:2px dashed var(--border); border-radius:14px; padding:40px;
+    text-align:center; cursor:pointer; transition:all .2s; margin-bottom:20px;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color:var(--orange); background:var(--orange-dim); }
+  .upload-icon { font-size:40px; margin-bottom:12px; }
+  .upload-text { font-size:14px; color:var(--muted); line-height:1.7; }
+  .upload-text strong { color:var(--text); }
+  #logo-preview { display:none; margin-top:16px; }
+  #logo-preview img { max-width:200px; max-height:200px; border-radius:10px; border:1px solid var(--border); }
+
+  /* MOCKUP PREVIEW */
+  .mockup-canvas-wrap { position:relative; display:inline-block; margin-bottom:20px; }
+  #mockup-canvas { border-radius:14px; border:1px solid var(--border); background:var(--surface); }
+  .mockup-hint { font-size:12px; color:var(--muted); margin-top:8px; text-align:center; }
+
+  /* SUMMARY */
+  .summary-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px;
+    margin-bottom:16px;
+  }
+  .summary-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px; }
+  .summary-row:last-child { border-bottom:none; }
+  .summary-row .label { color:var(--muted); }
+  .summary-row .value { font-weight:600; }
+  .summary-total { font-size:18px; font-weight:800; color:var(--orange); }
+
+  /* CUSTOMER FORM */
+  .form-row { margin-bottom:14px; }
+  .form-label { font-size:12px; color:var(--muted); margin-bottom:6px; display:block; }
+  .form-input, .form-select {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px;
+    font-family:'Inter',sans-serif; outline:none; transition:border .2s;
+  }
+  .form-input:focus, .form-select:focus { border-color:var(--orange); }
+
+  /* ── ASSISTANT PANEL ── */
+  .assistant-header {
+    padding:16px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .ai-avatar {
+    width:40px; height:40px; border-radius:50%; background:var(--orange);
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+    flex-shrink:0; position:relative;
+  }
+  .ai-avatar.speaking::after {
+    content:''; position:absolute; inset:-4px; border-radius:50%;
+    border:2px solid var(--orange); animation:pulse 1s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.15)} }
+  .ai-name { font-size:14px; font-weight:600; }
+  .ai-status { font-size:11px; color:var(--muted); }
+
+  .chat-body { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .msg { padding:10px 14px; border-radius:12px; font-size:13px; line-height:1.6; max-width:90%; }
+  .msg-ai { background:var(--surface2); align-self:flex-start; border-bottom-left-radius:4px; }
+  .msg-user { background:var(--orange); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+  .msg-time { font-size:10px; color:var(--muted); margin-top:2px; text-align:right; }
+
+  .voice-bar {
+    padding:14px; border-top:1px solid var(--border);
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .voice-controls { display:flex; gap:8px; }
+  .voice-btn {
+    flex:1; padding:10px; border-radius:10px; border:none; cursor:pointer;
+    font-size:13px; font-weight:600; font-family:'Inter',sans-serif; transition:all .2s;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .voice-btn-mic { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .voice-btn-mic.listening { background:rgba(239,68,68,.15); color:var(--red); border-color:var(--red); animation:mic-pulse 1.5s infinite; }
+  @keyframes mic-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .voice-btn-speak { background:var(--orange-dim); color:var(--orange); border:1px solid rgba(255,107,0,.3); }
+  .voice-btn-speak.speaking { background:var(--orange); color:#fff; }
+  .voice-input {
+    background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    padding:8px 12px; color:var(--text); font-size:13px; font-family:'Inter',sans-serif;
+    outline:none; width:100%; transition:border .2s;
+  }
+  .voice-input:focus { border-color:var(--orange); }
+
+  /* WAVEFORM */
+  .waveform { display:flex; align-items:center; gap:3px; height:24px; }
+  .wave-bar {
+    width:3px; border-radius:2px; background:var(--orange);
+    animation:wave 1s ease-in-out infinite;
+    display:none;
+  }
+  .wave-bar:nth-child(1){animation-delay:.0s;height:8px}
+  .wave-bar:nth-child(2){animation-delay:.1s;height:16px}
+  .wave-bar:nth-child(3){animation-delay:.2s;height:12px}
+  .wave-bar:nth-child(4){animation-delay:.3s;height:20px}
+  .wave-bar:nth-child(5){animation-delay:.4s;height:10px}
+  .wave-bar:nth-child(6){animation-delay:.3s;height:18px}
+  .wave-bar:nth-child(7){animation-delay:.2s;height:14px}
+  @keyframes wave { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
+  .waveform.active .wave-bar { display:block; }
+
+  /* NAV BUTTONS */
+  .step-nav { display:flex; justify-content:space-between; margin-top:24px; }
+
+  /* SUCCESS */
+  .success-screen {
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    min-height:60vh; text-align:center; padding:32px;
+  }
+  .success-screen.show { display:flex; }
+  .success-icon { font-size:80px; margin-bottom:20px; animation:pop .5s cubic-bezier(.36,1.5,.6,1) }
+  @keyframes pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+  .success-title { font-size:26px; font-weight:800; margin-bottom:8px; }
+  .success-sub { font-size:15px; color:var(--muted); margin-bottom:32px; line-height:1.7; }
+
+  /* VARIANT GALLERY (Step 1) */
+  .variant-card {
+    width: 88px; border-radius: 10px; cursor: pointer;
+    border: 2px solid var(--border); transition: all .2s;
+    background: var(--surface2); overflow: hidden;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .variant-card:hover { border-color: var(--orange); transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,107,0,.2); }
+  .variant-card.selected { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,107,0,.2); }
+  .variant-card img { width: 100%; height: 72px; object-fit: contain; padding: 6px; background: var(--surface2); }
+  .variant-card .v-label {
+    font-size: 9px; padding: 3px 4px 4px; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    width: 100%; color: var(--muted); background: var(--surface);
+  }
+  .variant-card.selected .v-label { color: var(--orange); font-weight: 700; }
+
+  /* PHOTO SWATCHES */
+  .color-grid-photos { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:24px; }
+  .color-swatch-photo {
+    width:72px; border-radius:10px; cursor:pointer;
+    border:2px solid var(--border); transition:all .2s;
+    overflow:hidden; display:flex; flex-direction:column; align-items:center;
+    background:var(--surface2);
+  }
+  .color-swatch-photo img {
+    width:100%; height:60px; object-fit:contain; padding:4px; background:var(--surface2);
+  }
+  .color-swatch-photo .swatch-label {
+    font-size:9px; padding:3px 2px; text-align:center; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; width:100%; color:var(--muted);
+  }
+  .color-swatch-photo:hover, .color-swatch-photo.selected {
+    border-color:var(--orange); transform:scale(1.06);
+  }
+  .color-swatch-photo.selected .swatch-label { color:var(--orange); font-weight:600; }
+  .color-swatch-photo.selected::after {
+    display:none;
+  }
+
+  /* MOCKUP FORGE BUTTON */
+  .btn-mockupforge {
+    background:transparent; color:var(--orange); border:1.5px solid var(--orange);
+    padding:9px 18px; border-radius:10px; font-size:13px; font-weight:600;
+    font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn-mockupforge:hover { background:var(--orange-dim); }
+
+  /* ADMIN LINK */
+  .admin-photos-link {
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; color:var(--muted); text-decoration:none;
+    padding:4px 10px; border-radius:6px; border:1px solid var(--border);
+    transition:all .2s;
+  }
+  .admin-photos-link:hover { border-color:var(--orange); color:var(--orange); }
+
+  /* MOCKUP INFO BADGE */
+  .photo-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; color:var(--green); background:rgba(34,197,94,.1);
+    padding:4px 10px; border-radius:6px; margin-bottom:12px;
+  }
+  .no-photo-badge {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11px; color:var(--muted); background:var(--surface2);
+    padding:4px 10px; border-radius:6px; margin-bottom:12px;
+  }
+
+  @media(max-width:768px) {
+    .assistant-panel { display:none; }
+    .product-grid { grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── MODE SELECTOR ── -->
+<div id="mode-screen">
+  <div class="mode-logo">☕</div>
+  <div class="mode-brand">High Coffee Shirt</div>
+  <div class="mode-sub">Créez votre vêtement personnalisé</div>
+  <div class="mode-cards">
+    <div class="mode-card" onclick="startMode('vendeur')">
+      <div class="mode-card-icon">🤝</div>
+      <div class="mode-card-title">Mode Vendeur</div>
+      <div class="mode-card-desc">Vous assistez le client en boutique. Interface complète avec accès à toutes les options et paramètres.</div>
+      <span class="mode-card-badge">Pour vous</span>
+    </div>
+    <div class="mode-card" onclick="startMode('client')">
+      <div class="mode-card-icon">🎙️</div>
+      <div class="mode-card-title">Mode Client Autonome</div>
+      <div class="mode-card-desc">Le client crée son design seul, guidé par l'assistant IA vocal. Parlez, l'assistant répond dans votre casque.</div>
+      <span class="mode-card-badge">IA Vocal activé</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="brand">☕ HCS Boutique</span>
+      <div class="step-indicator" id="step-indicator"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="mode-badge" id="mode-label"></span>
+      <a href="../agent8_boutique/admin-photos-produits.html" target="_blank" class="admin-photos-link" title="Gérer les photos produits">⚙ Photos</a>
+      <button class="btn btn-ghost" onclick="backToModes()">← Quitter</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="app-body">
+    <!-- FLOW -->
+    <div class="flow-area" id="flow-area">
+
+      <!-- STEP 1 : Produit -->
+      <div class="step" id="step-1">
+        <div class="step-title">Quel produit souhaitez-vous ?</div>
+        <div class="step-sub">Choisissez l'article sur lequel imprimer votre design.</div>
+        <div class="product-grid" id="product-grid"></div>
+
+        <!-- GALERIE VARIANTES -->
+        <div id="variants-gallery" style="display:none;margin-top:24px;">
+          <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;" id="variants-title">Variantes disponibles</div>
+          <div id="variants-grid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+          <div id="variants-empty" style="display:none;font-size:12px;color:var(--muted);padding:12px;background:var(--surface2);border-radius:8px;border:1px dashed var(--border);">
+            Aucune photo chargée — <a href="admin-photos-produits.html" target="_blank" style="color:var(--orange);text-decoration:none;">Ajouter dans Admin Photos ↗</a>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <div></div>
+          <button class="btn btn-orange" id="btn-next-1" onclick="goStep(2)" disabled>Suivant →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 : Couleur & Taille -->
+      <div class="step" id="step-2">
+        <div class="step-title">Couleur & Taille</div>
+        <div class="step-sub">Choisissez la couleur du vêtement et votre taille.</div>
+        <div style="margin-bottom:20px;">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Couleur</div>
+          <div class="color-grid" id="color-grid"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Taille</div>
+          <div class="size-grid" id="size-grid"></div>
+        </div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Quantité</div>
+          <div class="qty-row">
+            <button class="qty-btn" onclick="changeQty(-1)">−</button>
+            <span class="qty-display" id="qty-display">1</span>
+            <button class="qty-btn" onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+        <div class="step-nav">
+          <button class="btn btn-ghost" onclick="goStep(1)">← Retour</button>
+          <button class="btn btn-orange" id="btn-next-2" onclick="goStep(3)" disabled>Suivant →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 : Logo -->
+      <div class="step" id="step-3">
+        <div class="step-title">Votre logo / design</div>
+        <div class="step-sub">Importez votre logo ou image. Formats acceptés : PNG, JPG, SVG (fond blanc ou transparent idéal).</div>
+        <div class="upload-zone" id="upload-zone"
+             onclick="document.getElementById('logo-input').click()"
+             ondragover="e=>e.preventDefault()" ondrop="handleLogoDrop(event)">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-text"><strong>Cliquez ou glissez</strong> votre fichier ici<br>PNG · JPG · SVG — max 10 MB</div>
+        </div>
+        <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="handleLogoFile(event)">
+        <div id="logo-preview">
+          <img id="logo-img" src="" alt="Logo aperçu">
+          <br>
+          <button class="btn btn-ghost" style="margin-top:8px;" onclick="clearLogo()">✕ Changer de logo</button>
+        </div>
+        <div class="step-nav">
+          <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
+          <button class="btn btn-orange" id="btn-next-3" onclick="goStep(4)">Suivant →</button>
+        </div>
+      </div>
+
+      <!-- STEP 4 : Aperçu Mockup -->
+      <div class="step" id="step-4">
+        <div class="step-title">Aperçu de votre création</div>
+        <div class="step-sub">Voici un aperçu de votre article personnalisé.</div>
+        <div style="text-align:center;">
+          <div id="mockup-photo-badge" style="margin-bottom:10px;"></div>
+          <div class="mockup-canvas-wrap">
+            <canvas id="mockup-canvas" width="360" height="400"></canvas>
+          </div>
+          <div class="mockup-hint">Aperçu indicatif — le rendu final peut varier selon le support</div>
+          <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn-mockupforge" onclick="openMockupForge()">🎨 Ouvrir dans MockupForge</button>
+            <button class="btn btn-ghost" onclick="downloadMockup()" style="font-size:12px;">⬇ Télécharger aperçu</button>
+          </div>
+        </div>
+        <div class="step-nav" style="margin-top:20px;">
+          <button class="btn btn-ghost" onclick="goStep(3)">← Retour</button>
+          <button class="btn btn-orange" onclick="goStep(5)">Valider ce design →</button>
+        </div>
+      </div>
+
+      <!-- STEP 5 : Client & Récap -->
+      <div class="step" id="step-5">
+        <div class="step-title">Vos coordonnées & récapitulatif</div>
+        <div class="step-sub">Dernière étape — vérifiez votre commande et entrez vos informations.</div>
+        <div class="summary-card" id="summary-display"></div>
+        <div class="form-row">
+          <label class="form-label">Votre nom *</label>
+          <input class="form-input" id="c-nom" placeholder="Prénom et nom">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Email ou téléphone</label>
+          <input class="form-input" id="c-contact" placeholder="email@exemple.com ou +689 ...">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Retrait / Livraison</label>
+          <select class="form-select" id="c-livraison">
+            <option value="boutique">Retrait en boutique (48h)</option>
+            <option value="livraison">Livraison Papeete (+500 XPF)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Notes particulières</label>
+          <input class="form-input" id="c-notes" placeholder="Taille logo, emplacement impression, couleur texte...">
+        </div>
+        <div class="step-nav">
+          <button class="btn btn-ghost" onclick="goStep(4)">← Retour</button>
+          <button class="btn btn-orange" onclick="confirmOrder()">✅ Confirmer la commande</button>
+        </div>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="success-screen" id="success-screen">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Commande enregistrée !</div>
+        <div class="success-sub" id="success-text"></div>
+        <button class="btn btn-orange" onclick="newOrder()">Nouvelle commande</button>
+      </div>
+
+    </div>
+
+    <!-- ── ASSISTANT PANEL ── -->
+    <div class="assistant-panel">
+      <div class="assistant-header">
+        <div class="ai-avatar" id="ai-avatar">🤖</div>
+        <div>
+          <div class="ai-name">Kaina — Assistante HCS</div>
+          <div class="ai-status" id="ai-status">Prête à vous aider</div>
+        </div>
+        <div class="waveform" id="waveform">
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div><div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+      </div>
+      <div class="chat-body" id="chat-body"></div>
+      <div class="voice-bar">
+        <input class="voice-input" id="voice-input" placeholder="Écrivez ou utilisez le micro…" onkeydown="if(event.key==='Enter')sendUserMsg()">
+        <div class="voice-controls">
+          <button class="voice-btn voice-btn-mic" id="mic-btn" onclick="toggleMic()">🎙️ Parler</button>
+          <button class="voice-btn voice-btn-speak" id="speak-btn" onclick="replayLastAI()">🔊 Réécouter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────────
+// CONFIG
+// ────────────────────────────────────────────────
+const CONFIG = {
+  OPENAI_API_KEY: 'VOTRE_CLE_OPENAI',  // pour IA conversationnelle avancée (optionnel)
+  USE_OPENAI: false  // false = réponses scriptées locales, true = GPT-4o
+};
+
+// ────────────────────────────────────────────────
+// DONNÉES
+// ────────────────────────────────────────────────
+const PRODUCTS = [
+  { id:'tshirt-coton', name:'T-shirt Coton', icon:'👕', base:1500, desc:'100% coton, toutes tailles' },
+  { id:'tshirt-poly', name:'T-shirt Polyester', icon:'👕', base:1200, desc:'Polyester léger, séchage rapide' },
+  { id:'polo', name:'Polo', icon:'👔', base:2500, desc:'Polo classique coton piqué' },
+  { id:'casquette', name:'Casquette', icon:'🧢', base:1800, desc:'Coton ou polyester' },
+  { id:'tote-bag', name:'Tote Bag', icon:'👜', base:800, desc:'Coton naturel' },
+  { id:'tablier', name:'Tablier', icon:'🥼', base:2200, desc:'Coton résistant' },
+];
+
+const COLORS = [
+  { name:'Blanc', hex:'#ffffff', border:'#ccc' },
+  { name:'Noir', hex:'#111111' },
+  { name:'Marine', hex:'#1a2744' },
+  { name:'Rouge', hex:'#cc2020' },
+  { name:'Vert bouteille', hex:'#1a4a2e' },
+  { name:'Gris', hex:'#888888' },
+  { name:'Jaune', hex:'#f5d020' },
+  { name:'Orange', hex:'#FF6B00' },
+  { name:'Rose', hex:'#e8749a' },
+  { name:'Bordeaux', hex:'#7c2e3b' },
+  { name:'Bleu ciel', hex:'#5ba8d8' },
+  { name:'Beige', hex:'#d4c5a9' },
+];
+
+const SIZES = ['XS','S','M','L','XL','XXL','3XL'];
+
+const PRINT_PRICE = 800; // XPF par emplacement
+
+// ────────────────────────────────────────────────
+// HELPERS ADMIN PHOTOS
+// ────────────────────────────────────────────────
+function getAdminPhotos() {
+  try { return JSON.parse(localStorage.getItem('hcs_photos_produits') || '{}'); }
+  catch(e) { return {}; }
+}
+
+function getAdminZones() {
+  try { return JSON.parse(localStorage.getItem('hcs_print_zones') || '{}'); }
+  catch(e) { return {}; }
+}
+
+function getProductPhoto(productId, colorName) {
+  if (!productId || !colorName) return null;
+  const photos = getAdminPhotos();
+  return photos[productId + '_' + colorName] || null;
+}
+
+function getProductZone(productId) {
+  const zones = getAdminZones();
+  // zone stockée avec coordonnées pour canvas 360×400
+  return zones[productId] || { x: 130, y: 155, w: 100, h: 80 };
+}
+
+// ────────────────────────────────────────────────
+// STATE
+// ────────────────────────────────────────────────
+let mode = '';
+let currentStep = 1;
+let order = { product:null, color:null, size:null, qty:1, logoSrc:null, client:'', contact:'', livraison:'boutique', notes:'' };
+let recognition = null;
+let isListening = false;
+let isSpeaking = false;
+let lastAIMsg = '';
+const TOTAL_STEPS = 5;
+
+// ────────────────────────────────────────────────
+// MODE SELECT
+// ────────────────────────────────────────────────
+function startMode(m) {
+  mode = m;
+  document.getElementById('mode-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('mode-label').textContent = m === 'vendeur' ? '🤝 Mode Vendeur' : '🎙️ Mode Client Autonome';
+  initProducts();
+  initSizes();
+  buildStepIndicator();
+  goStep(1);
+  addAIMessage(m === 'client'
+    ? "Bonjour ! Je suis Kaina, votre assistante HCS. Je vais vous guider pour créer votre vêtement personnalisé. Commençons : quel type d'article souhaitez-vous ?"
+    : "Bonjour ! Interface vendeur active. Sélectionnez les options du client.");
+  if (m === 'client') initSpeechRecognition();
+}
+
+function backToModes() {
+  if (!confirm('Quitter et revenir au menu ?')) return;
+  stopListening();
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  document.getElementById('mode-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  resetOrder();
+}
+
+// ────────────────────────────────────────────────
+// STEP NAVIGATION
+// ────────────────────────────────────────────────
+function buildStepIndicator() {
+  const el = document.getElementById('step-indicator');
+  el.innerHTML = '';
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot';
+    d.id = 'dot-' + i;
+    el.appendChild(d);
+  }
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('success-screen').classList.remove('show');
+  const el = document.getElementById('step-' + n);
+  if (el) el.classList.add('active');
+  currentStep = n;
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.getElementById('dot-' + i);
+    if (!dot) continue;
+    dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  updateStepValidation(n);
+  if (n === 2) {
+    initColors();
+    // Re-apply pre-selected color from variant gallery
+    if (order.color) {
+      const idx = COLORS.findIndex(c => c.name === order.color.name);
+      if (idx >= 0) {
+        const el = document.getElementById('color-' + idx);
+        if (el) el.classList.add('selected');
+      }
+      checkStep2();
+    }
+  }
+  if (n === 4) drawMockup();
+  if (n === 5) buildSummary();
+  scrollToTop();
+  const stepMsgs = {
+    1: null,
+    2: "Super choix ! Maintenant sélectionnez la couleur et la taille souhaitées.",
+    3: "Parfait ! Importez maintenant votre logo ou image. PNG fond blanc ou transparent recommandé.",
+    4: "Voici un aperçu de votre création. Tout vous convient ?",
+    5: "Excellent ! Vérifiez le récapitulatif et entrez vos coordonnées pour finaliser."
+  };
+  if (stepMsgs[n]) addAIMessage(stepMsgs[n]);
+}
+
+function scrollToTop() {
+  document.getElementById('flow-area').scrollTo({top:0, behavior:'smooth'});
+}
+
+function updateStepValidation(step) {
+  if (step === 1) {
+    const btn = document.getElementById('btn-next-1');
+    if (btn) btn.disabled = !order.product;
+  }
+  if (step === 2) {
+    const btn = document.getElementById('btn-next-2');
+    if (btn) btn.disabled = !order.color || !order.size;
+  }
+}
+
+// ────────────────────────────────────────────────
+// PRODUCTS
+// ────────────────────────────────────────────────
+function initProducts() {
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = PRODUCTS.map(p => `
+    <div class="product-card" id="prod-${p.id}" onclick="selectProduct('${p.id}')">
+      <div class="product-icon">${p.icon}</div>
+      <div class="product-name">${p.name}</div>
+      <div class="product-price">${p.base.toLocaleString('fr-FR')} XPF + impression</div>
+    </div>`).join('');
+}
+
+function showProductVariants(productId) {
+  const photos = getAdminPhotos();
+  const gallery = document.getElementById('variants-gallery');
+  const grid = document.getElementById('variants-grid');
+  const empty = document.getElementById('variants-empty');
+  const titleEl = document.getElementById('variants-title');
+
+  // Collect all colors that have a photo for this product
+  const variants = COLORS.map((c, i) => {
+    const key = productId + '_' + c.name;
+    return photos[key] ? { colorIdx: i, color: c, src: photos[key] } : null;
+  }).filter(Boolean);
+
+  const prod = PRODUCTS.find(p => p.id === productId);
+  titleEl.textContent = variants.length
+    ? (prod ? prod.name + ' — ' : '') + variants.length + ' variante(s) disponible(s)'
+    : 'Variantes — aucune photo chargée';
+
+  if (variants.length === 0) {
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    grid.style.display = 'flex';
+    grid.innerHTML = variants.map(v => `
+      <div class="variant-card ${order.color && order.color.name === v.color.name ? 'selected' : ''}"
+           id="var-${v.colorIdx}"
+           onclick="selectVariantFromGallery(${v.colorIdx})"
+           title="${v.color.name}">
+        <img src="${v.src}" alt="${v.color.name}">
+        <div class="v-label">${v.color.name}</div>
+      </div>`).join('');
+  }
+  gallery.style.display = 'block';
+}
+
+function selectVariantFromGallery(colorIdx) {
+  // Pre-select color for step 2 and show visual feedback
+  order.color = COLORS[colorIdx];
+  document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
+  const el = document.getElementById('var-' + colorIdx);
+  if (el) el.classList.add('selected');
+  addAIMessage('Couleur ' + order.color.name + ' présélectionnée ! Cliquez sur "Suivant" pour confirmer et choisir votre taille.');
+}
+
+function selectProduct(id) {
+  order.product = PRODUCTS.find(p => p.id === id);
+  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('prod-' + id).classList.add('selected');
+  document.getElementById('btn-next-1').disabled = false;
+  showProductVariants(id);
+  addAIMessage(`${order.product.icon} ${order.product.name} — bon choix ! Cliquez sur "Suivant" pour choisir la couleur.`);
+}
+
+// ────────────────────────────────────────────────
+// COLORS & SIZES
+// ────────────────────────────────────────────────
+function initColors() {
+  const photos = getAdminPhotos();
+  const productId = order.product ? order.product.id : null;
+  const hasAnyPhoto = productId && COLORS.some(c => photos[productId + '_' + c.name]);
+
+  document.getElementById('color-grid').innerHTML = COLORS.map((c, i) => {
+    const photoSrc = hasAnyPhoto ? (photos[productId + '_' + c.name] || null) : null;
+    if (photoSrc) {
+      return `<div class="color-swatch-photo" id="color-${i}" onclick="selectColor(${i})" title="${c.name}">
+        <img src="${photoSrc}" alt="${c.name}">
+        <div class="swatch-label">${c.name}</div>
+      </div>`;
+    }
+    return `<div class="color-swatch" id="color-${i}" title="${c.name}"
+         style="background:${c.hex};${c.border?'border-color:'+c.border+';':''}"
+         onclick="selectColor(${i})"></div>`;
+  }).join('');
+}
+
+function selectColor(i) {
+  order.color = COLORS[i];
+  document.querySelectorAll('.color-swatch, .color-swatch-photo').forEach(c => c.classList.remove('selected'));
+  document.getElementById('color-' + i).classList.add('selected');
+  checkStep2();
+}
+
+function initSizes() {
+  document.getElementById('size-grid').innerHTML = SIZES.map(s => `
+    <button class="size-btn" id="size-${s}" onclick="selectSize('${s}')">${s}</button>`).join('');
+}
+
+function selectSize(s) {
+  order.size = s;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('size-' + s).classList.add('selected');
+  checkStep2();
+}
+
+function changeQty(delta) {
+  order.qty = Math.max(1, Math.min(999, order.qty + delta));
+  document.getElementById('qty-display').textContent = order.qty;
+}
+
+function checkStep2() {
+  const btn = document.getElementById('btn-next-2');
+  if (btn) btn.disabled = !order.color || !order.size;
+  if (order.color && order.size) {
+    addAIMessage(`${order.color.name}, taille ${order.size} — parfait ! Vous pouvez ajuster la quantité puis passer au logo.`);
+  }
+}
+
+// ────────────────────────────────────────────────
+// LOGO
+// ────────────────────────────────────────────────
+function handleLogoFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 10*1024*1024) { alert('Fichier trop lourd (max 10 MB)'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => { setLogo(ev.target.result); };
+  reader.readAsDataURL(file);
+}
+
+function handleLogoDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => setLogo(ev.target.result);
+  reader.readAsDataURL(file);
+}
+
+function setLogo(src) {
+  order.logoSrc = src;
+  document.getElementById('logo-img').src = src;
+  document.getElementById('logo-preview').style.display = 'block';
+  document.getElementById('upload-zone').style.display = 'none';
+  addAIMessage("Logo chargé avec succès ! Cliquez sur Suivant pour voir l'aperçu sur votre article.");
+}
+
+function clearLogo() {
+  order.logoSrc = null;
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('upload-zone').style.display = 'block';
+  document.getElementById('logo-input').value = '';
+}
+
+// ────────────────────────────────────────────────
+// MOCKUP CANVAS
+// ────────────────────────────────────────────────
+function drawMockupVector(ctx, w, h) {
+  // Fallback vectoriel (t-shirt générique)
+  const color = order.color ? order.color.hex : '#ffffff';
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color === '#ffffff' ? '#ccc' : color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(80, 100, 200, 230, 10); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(30, 100, 60, 90, 8); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.roundRect(270, 100, 60, 90, 8); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath(); ctx.ellipse(180, 100, 30, 15, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.ellipse(180, 102, 22, 12, 0, 0, Math.PI*2); ctx.fill();
+  const pName = order.product ? order.product.name : 'Produit';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '11px Inter, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(pName + (order.size ? ' · ' + order.size : ''), 180, 365);
+  // Logo
+  const zone = { x:130, y:155, w:100, h:80 };
+  drawLogoOnZone(ctx, zone.x, zone.y, zone.w, zone.h);
+}
+
+function drawLogoOnZone(ctx, zx, zy, zw, zh) {
+  if (order.logoSrc) {
+    const img = new Image();
+    img.onload = () => {
+      let lw = img.width, lh = img.height;
+      if (lw > zw) { lh = lh * zw / lw; lw = zw; }
+      if (lh > zh) { lw = lw * zh / lh; lh = zh; }
+      const lx = zx + zw/2 - lw/2, ly = zy + zh/2 - lh/2;
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(img, lx, ly, lw, lh);
+      ctx.globalAlpha = 1;
+    };
+    img.src = order.logoSrc;
+  } else {
+    ctx.strokeStyle = 'rgba(255,107,0,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(zx, zy, zw, zh);
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,107,0,0.55)';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Zone logo', zx + zw/2, zy + zh/2 + 4);
+  }
+}
+
+function drawMockup() {
+  const canvas = document.getElementById('mockup-canvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Background
+  ctx.fillStyle = '#1e1e1e';
+  ctx.roundRect(0, 0, w, h, 14);
+  ctx.fill();
+
+  // Update photo badge
+  const productId = order.product ? order.product.id : null;
+  const colorName = order.color ? order.color.name : null;
+  const photoSrc = getProductPhoto(productId, colorName);
+  const badge = document.getElementById('mockup-photo-badge');
+  if (badge) {
+    badge.innerHTML = photoSrc
+      ? '<span class="photo-badge">📷 Photo produit réelle</span>'
+      : '<span class="no-photo-badge">🖼️ Aperçu vectoriel (ajoutez des photos dans Admin Photos)</span>';
+  }
+
+  if (photoSrc) {
+    // ── Dessin avec photo produit réelle ──
+    const productImg = new Image();
+    productImg.onload = () => {
+      // Fit photo dans le canvas avec padding
+      const pad = 20;
+      const scale = Math.min((w - pad*2) / productImg.width, (h - 40) / productImg.height);
+      const iw = productImg.width * scale;
+      const ih = productImg.height * scale;
+      const ix = (w - iw) / 2;
+      const iy = (h - ih) / 2 - 10;
+      ctx.drawImage(productImg, ix, iy, iw, ih);
+
+      // Libellé produit
+      const pName = order.product ? order.product.name : '';
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.font = '11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(pName + (order.size ? ' · ' + order.size : ''), w/2, h - 10);
+
+      // Zone impression — coordonnées stockées pour canvas 360×400, on les rescale
+      const zoneRaw = getProductZone(productId);
+      const sx = iw / 360, sy = ih / 400;
+      const zx = ix + zoneRaw.x * sx;
+      const zy = iy + zoneRaw.y * sy;
+      const zw = zoneRaw.w * sx;
+      const zh = zoneRaw.h * sy;
+      drawLogoOnZone(ctx, zx, zy, zw, zh);
+    };
+    productImg.src = photoSrc;
+  } else {
+    // ── Fallback vectoriel ──
+    drawMockupVector(ctx, w, h);
+  }
+}
+
+function openMockupForge() {
+  const productId = order.product ? order.product.id : '';
+  const colorName = order.color ? order.color.name : '';
+  const url = '../agent8_boutique/admin-photos-produits.html'
+    + (productId ? '?product=' + encodeURIComponent(productId) + '&color=' + encodeURIComponent(colorName) : '');
+  window.open(url, '_blank');
+}
+
+function downloadMockup() {
+  const canvas = document.getElementById('mockup-canvas');
+  const link = document.createElement('a');
+  const prod = order.product ? order.product.id : 'mockup';
+  const col = order.color ? order.color.name : '';
+  link.download = 'hcs-mockup-' + prod + '-' + col + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ────────────────────────────────────────────────
+// SUMMARY
+// ────────────────────────────────────────────────
+function calcTotal() {
+  const base = order.product ? order.product.base : 0;
+  const total = (base + PRINT_PRICE) * order.qty;
+  const livFee = order.livraison === 'livraison' ? 500 : 0;
+  return total + livFee;
+}
+
+function buildSummary() {
+  const el = document.getElementById('summary-display');
+  const total = calcTotal();
+  const liv = order.livraison === 'livraison' ? 'Livraison Papeete' : 'Retrait boutique';
+  el.innerHTML = `
+    <div class="summary-row"><span class="label">Produit</span><span class="value">${order.product ? order.product.name : '—'}</span></div>
+    <div class="summary-row"><span class="label">Couleur / Taille</span><span class="value">${order.color ? order.color.name : '—'} · ${order.size || '—'}</span></div>
+    <div class="summary-row"><span class="label">Quantité</span><span class="value">${order.qty} pièce${order.qty>1?'s':''}</span></div>
+    <div class="summary-row"><span class="label">Logo</span><span class="value">${order.logoSrc ? '✅ Importé' : '⚠️ Aucun logo'}</span></div>
+    <div class="summary-row"><span class="label">Livraison</span><span class="value">${liv}</span></div>
+    <div class="summary-row"><span class="label">Prix unitaire</span><span class="value">${order.product ? (order.product.base + PRINT_PRICE).toLocaleString('fr-FR') : '—'} XPF</span></div>
+    <div class="summary-row"><span class="label">Total estimé</span><span class="value summary-total">${total.toLocaleString('fr-FR')} XPF</span></div>`;
+}
+
+// ────────────────────────────────────────────────
+// CONFIRM ORDER
+// ────────────────────────────────────────────────
+function confirmOrder() {
+  const nom = document.getElementById('c-nom').value.trim();
+  if (!nom) { alert('Veuillez entrer votre nom.'); return; }
+  order.client = nom;
+  order.contact = document.getElementById('c-contact').value.trim();
+  order.livraison = document.getElementById('c-livraison').value;
+  order.notes = document.getElementById('c-notes').value.trim();
+
+  // Save to localStorage
+  const orders = JSON.parse(localStorage.getItem('hcs_boutique_orders') || '[]');
+  const newOrder = {
+    id: 'BQ-' + Date.now(),
+    ...order,
+    logoSrc: order.logoSrc ? '[image]' : null, // ne pas stocker l'image complète
+    createdAt: new Date().toISOString(),
+    total: calcTotal(),
+    status: 'nouveau'
+  };
+  orders.unshift(newOrder);
+  localStorage.setItem('hcs_boutique_orders', JSON.stringify(orders));
+
+  // Envoyer vers Agent 5 (planning)
+  const planningOrders = JSON.parse(localStorage.getItem('hcs_planning') || '[]');
+  planningOrders.unshift({
+    id: 'cmd-' + Date.now(),
+    client: nom,
+    ref: newOrder.id,
+    canal: 'Boutique',
+    desc: `${order.qty}x ${order.product?.name || 'article'} ${order.color?.name || ''} taille ${order.size || '?'} — logo ${order.logoSrc ? 'fourni' : 'à fournir'}`,
+    type: order.product?.id?.includes('casquette') ? 'casquette' : 'dtf',
+    machine: order.product?.id?.includes('casquette') ? 'Presse Casquette 1' : 'Presse T-shirt 1',
+    qty: order.qty,
+    deadline: new Date(Date.now() + 48*3600*1000).toISOString(),
+    priority: 'normal',
+    notes: order.notes,
+    col: 'attente',
+    createdAt: new Date().toISOString()
+  });
+  localStorage.setItem('hcs_planning', JSON.stringify(planningOrders));
+
+  // Show success
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const succ = document.getElementById('success-screen');
+  succ.classList.add('show');
+  document.getElementById('success-text').innerHTML =
+    `Merci <strong>${nom}</strong> ! Votre commande <strong>${newOrder.id}</strong> est enregistrée.<br><br>` +
+    `Montant estimé : <strong>${calcTotal().toLocaleString('fr-FR')} XPF</strong><br>` +
+    `Récupération : <strong>${order.livraison === 'boutique' ? 'En boutique sous 48h' : 'Livraison Papeete 48h'}</strong><br><br>` +
+    `Vous recevrez une confirmation sur ${order.contact || 'vos coordonnées'}.`;
+
+  addAIMessage(`Commande confirmée pour ${nom} ! Référence : ${newOrder.id}. La commande a été transmise au planning de production. Merci et à bientôt !`);
+  if (mode === 'client') speak(`Parfait ${nom} ! Votre commande est bien enregistrée sous la référence ${newOrder.id}. Nous vous contacterons dans 48 heures. Merci de votre visite !`);
+}
+
+function newOrder() {
+  resetOrder();
+  goStep(1);
+  addAIMessage("Nouvelle commande ! Par quel article voulez-vous commencer ?");
+}
+
+function resetOrder() {
+  order = { product:null, color:null, size:null, qty:1, logoSrc:null, client:'', contact:'', livraison:'boutique', notes:'' };
+  currentStep = 1;
+  document.querySelectorAll('.product-card,.color-swatch,.color-swatch-photo,.size-btn,.variant-card').forEach(e => e.classList.remove('selected'));
+  const vg = document.getElementById('variants-gallery');
+  if (vg) vg.style.display = 'none';
+  clearLogo();
+  ['c-nom','c-contact','c-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+}
+
+// ────────────────────────────────────────────────
+// ASSISTANT AI
+// ────────────────────────────────────────────────
+function addAIMessage(text) {
+  lastAIMsg = text;
+  const body = document.getElementById('chat-body');
+  const time = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  const div = document.createElement('div');
+  div.innerHTML = `<div class="msg msg-ai">${text}</div><div class="msg-time">${time}</div>`;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  if (mode === 'client') speak(text);
+}
+
+function addUserMessage(text) {
+  const body = document.getElementById('chat-body');
+  const time = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+  const div = document.createElement('div');
+  div.innerHTML = `<div class="msg msg-user">${text}</div><div class="msg-time">${time}</div>`;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  processUserInput(text);
+}
+
+function sendUserMsg() {
+  const input = document.getElementById('voice-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addUserMessage(text);
+}
+
+// Réponses scriptées intelligentes
+function processUserInput(text) {
+  const t = text.toLowerCase();
+  let reply = '';
+
+  // Navigation vocale
+  if (t.includes('suivant') || t.includes('next') || t.includes('continuer')) {
+    reply = "D'accord, passons à l'étape suivante.";
+    if (currentStep < TOTAL_STEPS) goStep(currentStep + 1);
+  } else if (t.includes('retour') || t.includes('précédent') || t.includes('back')) {
+    reply = "On revient en arrière.";
+    if (currentStep > 1) goStep(currentStep - 1);
+  }
+  // Produits
+  else if (t.includes('t-shirt') || t.includes('tshirt')) {
+    const id = t.includes('poly') ? 'tshirt-poly' : 'tshirt-coton';
+    selectProduct(id);
+    reply = `T-shirt ${t.includes('poly') ? 'polyester' : 'coton'} sélectionné !`;
+  } else if (t.includes('casquette')) {
+    selectProduct('casquette');
+    reply = "Casquette sélectionnée !";
+  } else if (t.includes('polo')) {
+    selectProduct('polo');
+    reply = "Polo sélectionné !";
+  }
+  // Couleurs
+  else if (t.includes('blanc')) { selectColorByName('Blanc'); reply = "Couleur blanche sélectionnée."; }
+  else if (t.includes('noir')) { selectColorByName('Noir'); reply = "Couleur noire sélectionnée."; }
+  else if (t.includes('rouge')) { selectColorByName('Rouge'); reply = "Couleur rouge sélectionnée."; }
+  else if (t.includes('marine') || t.includes('bleu')) { selectColorByName('Marine'); reply = "Couleur marine sélectionnée."; }
+  // Tailles
+  else if (/\b(xs|s|m|l|xl|xxl|3xl)\b/i.test(t)) {
+    const sz = t.match(/\b(xs|s|m|l|xl|xxl|3xl)\b/i)[0].toUpperCase();
+    selectSize(sz);
+    reply = `Taille ${sz} sélectionnée !`;
+  }
+  // Quantité
+  else if (t.match(/(\d+)\s*(pièce|t-shirt|article|polo|casquette)/i)) {
+    const q = parseInt(t.match(/(\d+)/)[0]);
+    order.qty = q;
+    document.getElementById('qty-display').textContent = q;
+    reply = `Quantité mise à ${q}.`;
+  }
+  // Questions fréquentes
+  else if (t.includes('prix') || t.includes('combien') || t.includes('coût')) {
+    const prod = order.product;
+    reply = prod
+      ? `Un ${prod.name} avec impression coûte ${(prod.base + PRINT_PRICE).toLocaleString('fr-FR')} XPF par pièce.`
+      : "Les prix varient selon l'article. Choisissez d'abord votre produit et je vous donnerai le tarif exact.";
+  } else if (t.includes('délai') || t.includes('quand') || t.includes('livraison')) {
+    reply = "La production prend généralement 48h. Vous pouvez récupérer en boutique ou opter pour la livraison sur Papeete.";
+  } else if (t.includes('format') || t.includes('logo') || t.includes('fichier')) {
+    reply = "Pour le logo, nous acceptons les fichiers PNG, JPG et SVG. Un fond blanc ou transparent donne le meilleur résultat.";
+  }
+  // Fallback
+  else {
+    const fallbacks = [
+      "Je suis là pour vous aider ! Choisissez votre article, couleur, taille et importez votre logo.",
+      "Vous pouvez me dire quel article vous voulez, quelle couleur, ou demander un prix !",
+      "Pour avancer, dites-moi par exemple : « t-shirt blanc taille M » ou cliquez sur les options."
+    ];
+    reply = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  }
+
+  if (reply) setTimeout(() => addAIMessage(reply), 400);
+}
+
+function selectColorByName(name) {
+  const idx = COLORS.findIndex(c => c.name === name);
+  if (idx >= 0) selectColor(idx);
+}
+
+// ────────────────────────────────────────────────
+// SPEECH SYNTHESIS (voix)
+// ────────────────────────────────────────────────
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'fr-FR';
+  utt.rate = 1.05;
+  utt.pitch = 1.1;
+  // Prefer a French female voice if available
+  const voices = window.speechSynthesis.getVoices();
+  const frVoice = voices.find(v => v.lang.startsWith('fr') && v.name.toLowerCase().includes('female'))
+    || voices.find(v => v.lang.startsWith('fr'));
+  if (frVoice) utt.voice = frVoice;
+
+  utt.onstart = () => {
+    isSpeaking = true;
+    document.getElementById('ai-status').textContent = 'Parle…';
+    document.getElementById('ai-avatar').classList.add('speaking');
+    document.getElementById('waveform').classList.add('active');
+    document.getElementById('speak-btn').classList.add('speaking');
+  };
+  utt.onend = utt.onerror = () => {
+    isSpeaking = false;
+    document.getElementById('ai-status').textContent = 'Prête à vous aider';
+    document.getElementById('ai-avatar').classList.remove('speaking');
+    document.getElementById('waveform').classList.remove('active');
+    document.getElementById('speak-btn').classList.remove('speaking');
+  };
+  window.speechSynthesis.speak(utt);
+}
+
+function replayLastAI() {
+  if (lastAIMsg) speak(lastAIMsg);
+}
+
+// ────────────────────────────────────────────────
+// SPEECH RECOGNITION (écoute)
+// ────────────────────────────────────────────────
+function initSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('mic-btn').textContent = '🎙️ Micro non dispo';
+    document.getElementById('mic-btn').disabled = true;
+    return;
+  }
+  recognition = new SR();
+  recognition.lang = 'fr-FR';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('voice-input').value = transcript;
+    addUserMessage(transcript);
+    stopListening();
+  };
+  recognition.onerror = () => stopListening();
+  recognition.onend = () => stopListening();
+}
+
+function toggleMic() {
+  if (isListening) { stopListening(); return; }
+  if (!recognition) return;
+  isListening = true;
+  recognition.start();
+  document.getElementById('mic-btn').classList.add('listening');
+  document.getElementById('mic-btn').innerHTML = '⏹️ Arrêter';
+  document.getElementById('ai-status').textContent = 'Écoute en cours…';
+}
+
+function stopListening() {
+  isListening = false;
+  if (recognition) try { recognition.stop(); } catch(e) {}
+  const btn = document.getElementById('mic-btn');
+  if (btn) { btn.classList.remove('listening'); btn.innerHTML = '🎙️ Parler'; }
+  const status = document.getElementById('ai-status');
+  if (status && !isSpeaking) status.textContent = 'Prête à vous aider';
+}
+
+// ────────────────────────────────────────────────
+// UPLOAD ZONE DRAG EVENTS
+// ────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  const uz = document.getElementById('upload-zone');
+  if (uz) {
+    uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('drag'); });
+    uz.addEventListener('dragleave', () => uz.classList.remove('drag'));
+    uz.addEventListener('drop', e => { uz.classList.remove('drag'); handleLogoDrop(e); });
+  }
+  // Load voices async
+  window.speechSynthesis && window.speechSynthesis.getVoices();
+  setTimeout(() => window.speechSynthesis && window.speechSynthesis.getVoices(), 500);
+});
+</script>
+</body>
+</html>

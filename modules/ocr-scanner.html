@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>HCS — Scanner OCR Documents</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0a0a0a; color: #e5e5e5; }
+    .card { background: #111111; border: 1px solid #222222; border-radius: 12px; }
+    .accent { color: #FF6B00; }
+    .btn-primary { background: #FF6B00; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .btn-primary:hover { background: #e05a00; }
+    .btn-ghost { background: #1a1a1a; color: #aaa; border: 1px solid #333; border-radius: 8px; padding: 10px 20px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .btn-ghost:hover { border-color: #FF6B00; color: #FF6B00; }
+    .btn-green { background: #14532d; color: #86efac; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .btn-green:hover { background: #166534; }
+    .btn-blue { background: #1e3a5f; color: #93c5fd; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+    .btn-blue:hover { background: #1e40af; }
+    input, select, textarea { background: #1a1a1a; border: 1px solid #333; color: #e5e5e5; border-radius: 8px; padding: 8px 12px; width: 100%; outline: none; font-family: 'Inter', sans-serif; }
+    input:focus, select:focus, textarea:focus { border-color: #FF6B00; }
+    .drop-zone { border: 2px dashed #333; border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #FF6B00; background: #1a0e00; }
+    .progress-bar { height: 6px; background: #222; border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #FF6B00; border-radius: 99px; transition: width 0.4s ease; }
+    .step { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+    .step-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .step-icon.done { background: #14532d; color: #86efac; }
+    .step-icon.active { background: #7c2d12; color: #fdba74; }
+    .step-icon.wait { background: #222; color: #666; }
+    .nav-link { color: #888; text-decoration: none; font-size: 13px; }
+    .nav-link:hover { color: #FF6B00; }
+    .table-article { width: 100%; border-collapse: collapse; }
+    .table-article th { background: #0d0d0d; color: #666; padding: 6px 10px; text-align: left; font-size: 12px; font-weight: 600; }
+    .table-article td { padding: 6px 10px; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+    .table-article input { padding: 4px 8px; font-size: 12px; }
+  </style>
+</head>
+<body class="min-h-screen p-4 max-w-2xl mx-auto">
+
+<!-- ===== SECTION CONFIG ===== -->
+<script>
+const CONFIG = {
+  // --- OpenAI GPT-4o Vision (OCR) ---
+  OPENAI_API_KEY: 'VOTRE_CLE_API_OPENAI',
+  // --- Odoo API ---
+  ODOO_URL: 'https://VOTRE_ODOO.odoo.com',
+  ODOO_DB: 'VOTRE_DB',
+  ODOO_API_KEY: 'VOTRE_CLE_API_ODOO',
+  // --- Dropbox ---
+  DROPBOX_ACCESS_TOKEN: 'VOTRE_TOKEN_DROPBOX',
+  DROPBOX_BASE_PATH: '/HCS/2026'
+};
+</script>
+<!-- ===== FIN CONFIG ===== -->
+
+<!-- Navigation -->
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#FF6B00">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-white">Scanner OCR</h1>
+      <p class="text-xs text-gray-500">Agent 9 — Documents comptables</p>
+    </div>
+  </div>
+  <div class="flex gap-3">
+    <a href="finance-dashboard.html" class="nav-link">💰 Finance</a>
+    <a href="rapport-pl.html" class="nav-link">📊 P&L</a>
+    <a href="routine-dashboard.html" class="nav-link">✅ Routines</a>
+  </div>
+</div>
+
+<!-- Vérification clé API -->
+<div id="api-warning" class="hidden mb-4 p-3 rounded-lg text-sm" style="background:#1a0000;border:1px solid #7f1d1d;color:#fca5a5">
+  ⚠️ Clé API OpenAI non configurée. Ouvrez le fichier et renseignez <code>CONFIG.OPENAI_API_KEY</code>.
+</div>
+
+<!-- Zone d'import image -->
+<div class="card p-5 mb-5">
+  <h2 class="text-base font-semibold text-white mb-4">1. Importer le document</h2>
+
+  <div id="drop-zone" class="drop-zone" onclick="triggerFileInput()">
+    <div id="preview-container" class="hidden w-full">
+      <img id="preview-img" class="max-w-full max-h-64 mx-auto rounded-lg object-contain" src="" alt="Aperçu">
+      <p id="preview-name" class="text-xs text-gray-500 text-center mt-2"></p>
+    </div>
+    <div id="drop-placeholder">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+      </svg>
+      <p class="text-gray-400 font-medium">Glissez une image ici</p>
+      <p class="text-xs text-gray-600">ou cliquez pour parcourir</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-3 mt-4">
+    <button onclick="triggerCamera()" class="btn-ghost text-sm">
+      📷 Prendre une photo
+    </button>
+    <button onclick="triggerFileInput()" class="btn-ghost text-sm">
+      📁 Importer une image
+    </button>
+  </div>
+
+  <!-- Inputs cachés -->
+  <input type="file" id="file-input" accept="image/*" class="hidden" onchange="onFileSelected(event)">
+  <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden" onchange="onFileSelected(event)">
+</div>
+
+<!-- Bouton Analyser + barre de progression -->
+<div class="card p-5 mb-5">
+  <h2 class="text-base font-semibold text-white mb-4">2. Analyser avec GPT-4o Vision</h2>
+
+  <button id="btn-analyser" onclick="analyserDocument()" class="btn-primary w-full" disabled>
+    🔍 Analyser le document
+  </button>
+
+  <div id="progress-section" class="hidden mt-4">
+    <div class="progress-bar mb-3">
+      <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+    </div>
+    <div id="etapes">
+      <div class="step" id="step-upload">
+        <div class="step-icon wait" id="icon-upload">1</div>
+        <span class="text-sm text-gray-400">Préparation de l'image...</span>
+      </div>
+      <div class="step" id="step-ocr">
+        <div class="step-icon wait" id="icon-ocr">2</div>
+        <span class="text-sm text-gray-400">Analyse OCR (GPT-4o Vision)...</span>
+      </div>
+      <div class="step" id="step-parse">
+        <div class="step-icon wait" id="icon-parse">3</div>
+        <span class="text-sm text-gray-400">Extraction des données...</span>
+      </div>
+    </div>
+    <p id="log-msg" class="text-xs text-gray-600 mt-2"></p>
+  </div>
+</div>
+
+<!-- Formulaire résultat (éditable) -->
+<div id="result-section" class="hidden">
+  <div class="card p-5 mb-5">
+    <h2 class="text-base font-semibold text-white mb-4">3. Données extraites — vérifier et valider</h2>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Type de document</label>
+        <select id="res-type" class="text-sm">
+          <option value="facture">Facture</option>
+          <option value="ticket">Ticket de caisse</option>
+          <option value="bon_commande">Bon de commande</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Date</label>
+        <input type="date" id="res-date" class="text-sm">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Fournisseur</label>
+        <input type="text" id="res-fournisseur" class="text-sm" placeholder="Nom du fournisseur">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">N° de document</label>
+        <input type="text" id="res-numero" class="text-sm" placeholder="FAC-001">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Montant total</label>
+        <input type="number" id="res-montant" class="text-sm" placeholder="0">
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 mb-1 block">Devise</label>
+        <select id="res-devise" class="text-sm">
+          <option value="XPF">XPF (Francs Pacifique)</option>
+          <option value="EUR">EUR</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <label class="text-xs text-gray-500 mb-1 block">Catégorie comptable</label>
+      <select id="res-categorie" class="text-sm">
+        <option value="fournisseur_textile">Fournisseur textile (Taaroa/Anémone)</option>
+        <option value="fournisseur_dtf">Fournisseur DTF (Heat Transfer 4 You)</option>
+        <option value="consommables">Consommables (encre, vinyle, etc.)</option>
+        <option value="charges_fixes">Charges fixes (loyer, électricité, abonnements)</option>
+        <option value="investissement">Investissement matériel</option>
+      </select>
+    </div>
+
+    <!-- Articles extraits -->
+    <div class="mb-4">
+      <label class="text-xs text-gray-500 mb-2 block">Articles détectés</label>
+      <div class="overflow-x-auto rounded-lg">
+        <table class="table-article">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="w-20">Qté</th>
+              <th class="w-28">Prix unit.</th>
+              <th class="w-8"></th>
+            </tr>
+          </thead>
+          <tbody id="articles-tbody"></tbody>
+        </table>
+      </div>
+      <button onclick="ajouterLigneArticle()" class="text-xs text-orange-400 mt-2 hover:text-orange-300 cursor-pointer">+ Ajouter une ligne</button>
+    </div>
+
+    <div>
+      <label class="text-xs text-gray-500 mb-1 block">Notes / Observations</label>
+      <textarea id="res-notes" rows="2" class="text-sm" placeholder="Observations importantes..."></textarea>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="grid grid-cols-1 gap-3 mb-6">
+    <button onclick="validerEtEnregistrer()" class="btn-green w-full">
+      ✅ Valider &amp; Enregistrer dans Finance Dashboard
+    </button>
+    <button onclick="archiverDropbox()" class="btn-ghost w-full">
+      📦 Archiver dans Dropbox (/HCS/2026/[Mois]/Comptabilité/)
+    </button>
+    <button onclick="creerDansOdoo()" class="btn-blue w-full">
+      🔗 Créer la pièce comptable dans Odoo
+    </button>
+  </div>
+
+  <!-- Journal d'actions -->
+  <div id="journal-section" class="card p-4" style="display:none">
+    <h3 class="text-sm font-semibold text-gray-400 mb-2">Journal d'actions</h3>
+    <div id="journal" class="text-xs text-gray-500 space-y-1"></div>
+  </div>
+</div>
+
+<!-- Bouton reset -->
+<div class="text-center mt-4">
+  <button onclick="reinitialiser()" class="text-xs text-gray-600 hover:text-gray-400 cursor-pointer">↩ Recommencer avec un nouveau document</button>
+</div>
+
+<div class="mt-6 text-center text-xs text-gray-700">
+  High Coffee Shirt — Agent 9 OCR v1.0 — Propulsé par GPT-4o Vision
+</div>
+
+<script>
+// ===== ÉTAT =====
+let imageDataUrl = null;    // Image en base64
+let imageFile = null;       // Fichier original
+let donneesExtraites = {};  // Résultat OCR parsé
+
+// ===== VÉRIFICATION CLÉ API =====
+if (!CONFIG.OPENAI_API_KEY || CONFIG.OPENAI_API_KEY === 'VOTRE_CLE_API_OPENAI') {
+  document.getElementById('api-warning').classList.remove('hidden');
+}
+
+// ===== DRAG & DROP =====
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) chargerImage(file);
+});
+
+function triggerFileInput() { document.getElementById('file-input').click(); }
+function triggerCamera() { document.getElementById('camera-input').click(); }
+function onFileSelected(e) {
+  const file = e.target.files[0];
+  if (file) chargerImage(file);
+}
+
+function chargerImage(file) {
+  imageFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageDataUrl = ev.target.result;
+    // Afficher aperçu
+    document.getElementById('preview-img').src = imageDataUrl;
+    document.getElementById('preview-name').textContent = file.name + ' — ' + (file.size / 1024).toFixed(0) + ' Ko';
+    document.getElementById('preview-container').classList.remove('hidden');
+    document.getElementById('drop-placeholder').classList.add('hidden');
+    document.getElementById('btn-analyser').disabled = false;
+    document.getElementById('btn-analyser').style.opacity = '1';
+    // Cacher résultats précédents
+    document.getElementById('result-section').classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== ANALYSE OCR =====
+async function analyserDocument() {
+  if (!imageDataUrl) { alert('Veuillez d\'abord importer une image.'); return; }
+  if (!CONFIG.OPENAI_API_KEY || CONFIG.OPENAI_API_KEY === 'VOTRE_CLE_API_OPENAI') {
+    alert('Clé API OpenAI non configurée.'); return;
+  }
+
+  document.getElementById('progress-section').classList.remove('hidden');
+  document.getElementById('btn-analyser').disabled = true;
+  document.getElementById('result-section').classList.add('hidden');
+
+  setStep('upload', 'active'); setProgress(10);
+  log('Préparation de l\'image...');
+  await sleep(300);
+
+  // Extraire base64 pur
+  const base64 = imageDataUrl.split(',')[1];
+  const mimeType = imageDataUrl.split(';')[0].split(':')[1];
+  setStep('upload', 'done'); setProgress(30);
+
+  setStep('ocr', 'active'); log('Envoi à GPT-4o Vision...');
+
+  // Prompt OCR structuré
+  const promptOCR = `Tu es un expert comptable. Analyse ce document comptable (facture, ticket de caisse ou bon de commande) et extrais les informations en JSON strict.
+
+Réponds UNIQUEMENT avec ce JSON valide (sans markdown, sans explication) :
+{
+  "type": "facture|ticket|bon_commande",
+  "fournisseur": "nom complet du fournisseur",
+  "date": "YYYY-MM-DD",
+  "numero": "numéro de facture ou de ticket",
+  "montant_total": 0,
+  "devise": "XPF ou EUR ou USD",
+  "articles": [
+    {"description": "libellé article", "quantite": 1, "prix_unitaire": 0}
+  ],
+  "tva": 0,
+  "notes": "observations importantes (livraison, conditions paiement, etc.)"
+}
+
+Si une information est absente, mets null. Priorité à la précision des montants.`;
+
+  try {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CONFIG.OPENAI_API_KEY
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'text', text: promptOCR },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64}`, detail: 'high' } }
+          ]
+        }]
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || 'Erreur API OpenAI');
+    }
+
+    const data = await resp.json();
+    const content = data.choices[0].message.content.trim();
+    setStep('ocr', 'done'); setProgress(70);
+
+    setStep('parse', 'active'); log('Extraction des données...');
+    await sleep(200);
+
+    // Parser le JSON retourné
+    let json;
+    try {
+      // Nettoyer si markdown
+      const cleaned = content.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+      json = JSON.parse(cleaned);
+    } catch {
+      throw new Error('Impossible de parser la réponse JSON. Réponse brute : ' + content.substring(0, 200));
+    }
+
+    donneesExtraites = json;
+    setStep('parse', 'done'); setProgress(100);
+    log('✅ Extraction réussie !');
+    await sleep(300);
+
+    remplirFormulaire(json);
+    document.getElementById('result-section').classList.remove('hidden');
+
+  } catch (err) {
+    log('❌ Erreur : ' + err.message);
+    document.getElementById('btn-analyser').disabled = false;
+    alert('Erreur lors de l\'analyse : ' + err.message);
+  }
+}
+
+// ===== REMPLIR FORMULAIRE =====
+function remplirFormulaire(json) {
+  // Type
+  const typeEl = document.getElementById('res-type');
+  if (json.type && ['facture','ticket','bon_commande'].includes(json.type)) {
+    typeEl.value = json.type;
+  }
+  // Date
+  if (json.date) document.getElementById('res-date').value = json.date;
+  else document.getElementById('res-date').value = today();
+  // Fournisseur
+  if (json.fournisseur) document.getElementById('res-fournisseur').value = json.fournisseur;
+  // Numéro
+  if (json.numero) document.getElementById('res-numero').value = json.numero;
+  // Montant
+  if (json.montant_total) document.getElementById('res-montant').value = json.montant_total;
+  // Devise
+  if (json.devise) {
+    const deviseEl = document.getElementById('res-devise');
+    for (let i = 0; i < deviseEl.options.length; i++) {
+      if (deviseEl.options[i].value === json.devise) { deviseEl.selectedIndex = i; break; }
+    }
+  }
+  // Notes
+  if (json.notes) document.getElementById('res-notes').value = json.notes;
+
+  // Catégorie auto-détectée
+  const fournisseur = (json.fournisseur || '').toLowerCase();
+  const catEl = document.getElementById('res-categorie');
+  if (fournisseur.includes('taaroa') || fournisseur.includes('anemone') || fournisseur.includes('anémone')) {
+    catEl.value = 'fournisseur_textile';
+  } else if (fournisseur.includes('heat') || fournisseur.includes('transfer') || fournisseur.includes('dtf')) {
+    catEl.value = 'fournisseur_dtf';
+  } else if (fournisseur.includes('loyer') || fournisseur.includes('electricite') || fournisseur.includes('électricité')) {
+    catEl.value = 'charges_fixes';
+  }
+
+  // Articles
+  const tbody = document.getElementById('articles-tbody');
+  tbody.innerHTML = '';
+  const articles = json.articles || [];
+  if (articles.length === 0) {
+    // Ajouter une ligne vide
+    ajouterLigneArticle();
+  } else {
+    articles.forEach(a => ajouterLigneArticle(a));
+  }
+}
+
+function ajouterLigneArticle(a) {
+  a = a || {};
+  const tbody = document.getElementById('articles-tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" value="${a.description || ''}" placeholder="Description" class="text-xs"></td>
+    <td><input type="number" value="${a.quantite || 1}" class="text-xs text-center"></td>
+    <td><input type="number" value="${a.prix_unitaire || 0}" class="text-xs text-right"></td>
+    <td><button onclick="this.closest('tr').remove()" class="text-red-500 text-xs hover:text-red-300">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// ===== VALIDER & ENREGISTRER =====
+function validerEtEnregistrer() {
+  const montant = +document.getElementById('res-montant').value;
+  const fournisseur = document.getElementById('res-fournisseur').value;
+  if (!fournisseur || !montant) {
+    alert('Veuillez renseigner au moins le fournisseur et le montant.');
+    return;
+  }
+
+  const charge = {
+    id: Date.now().toString(),
+    date: document.getElementById('res-date').value || today(),
+    fournisseur: fournisseur,
+    categorie: document.getElementById('res-categorie').value,
+    montant: montant,
+    numero: document.getElementById('res-numero').value,
+    statut: 'paye',
+    source: 'ocr'
+  };
+
+  // Sauvegarder dans le même localStorage que finance-dashboard.html
+  let charges = [];
+  try { charges = JSON.parse(localStorage.getItem('hcs_charges') || '[]'); } catch {}
+  charges.push(charge);
+  localStorage.setItem('hcs_charges', JSON.stringify(charges));
+
+  journaliser('✅ Charge enregistrée dans Finance Dashboard — ' + fournisseur + ' — ' + montant + ' XPF');
+  afficherJournal();
+  alert('✅ Document enregistré dans le Finance Dashboard !');
+}
+
+// ===== ARCHIVER DROPBOX =====
+async function archiverDropbox() {
+  if (!CONFIG.DROPBOX_ACCESS_TOKEN || CONFIG.DROPBOX_ACCESS_TOKEN === 'VOTRE_TOKEN_DROPBOX') {
+    alert('Token Dropbox non configuré.'); return;
+  }
+  if (!imageFile) { alert('Aucune image à archiver.'); return; }
+
+  const date = document.getElementById('res-date').value || today();
+  const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const moisIdx = new Date(date).getMonth();
+  const moisFr = moisNoms[moisIdx];
+  const annee = date.split('-')[0];
+  const numero = document.getElementById('res-numero').value || Date.now().toString();
+  const fournisseur = (document.getElementById('res-fournisseur').value || 'Inconnu').replace(/[^a-zA-Z0-9]/g, '_');
+  const ext = imageFile.name.split('.').pop().toLowerCase();
+  const path = `${CONFIG.DROPBOX_BASE_PATH}/${annee}/${moisFr}/Comptabilite/${fournisseur}_${numero}.${ext}`;
+
+  journaliser('📦 Archivage Dropbox en cours : ' + path + '...');
+  afficherJournal();
+
+  try {
+    const arrayBuffer = await imageFile.arrayBuffer();
+    const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + CONFIG.DROPBOX_ACCESS_TOKEN,
+        'Content-Type': 'application/octet-stream',
+        'Dropbox-API-Arg': JSON.stringify({
+          path: path,
+          mode: 'overwrite',
+          autorename: true,
+          mute: false
+        })
+      },
+      body: arrayBuffer
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    journaliser('✅ Archivé dans Dropbox : ' + path);
+    afficherJournal();
+    alert('✅ Document archivé dans Dropbox !');
+  } catch (err) {
+    journaliser('❌ Erreur Dropbox : ' + err.message);
+    afficherJournal();
+    alert('Erreur Dropbox : ' + err.message);
+  }
+}
+
+// ===== CRÉER DANS ODOO =====
+async function creerDansOdoo() {
+  if (!CONFIG.ODOO_URL || CONFIG.ODOO_URL.includes('VOTRE_ODOO')) {
+    alert('URL Odoo non configurée.'); return;
+  }
+  const montant = +document.getElementById('res-montant').value;
+  const fournisseur = document.getElementById('res-fournisseur').value;
+  const date = document.getElementById('res-date').value;
+  const numero = document.getElementById('res-numero').value;
+
+  journaliser('🔗 Création dans Odoo en cours...');
+  afficherJournal();
+
+  try {
+    // Authentification Odoo
+    const authResp = await fetch(CONFIG.ODOO_URL + '/web/dataset/call_kw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', method: 'call', id: 1,
+        params: {
+          model: 'account.move',
+          method: 'create',
+          args: [{
+            move_type: 'in_invoice',
+            partner_id: false,
+            invoice_date: date,
+            ref: numero,
+            narration: `Import OCR — ${fournisseur} — ${montant} XPF`,
+            invoice_line_ids: [[0, 0, {
+              name: `Facture ${fournisseur}`,
+              quantity: 1,
+              price_unit: montant
+            }]]
+          }],
+          kwargs: { context: { lang: 'fr_FR' } }
+        }
+      })
+    });
+    const data = await authResp.json();
+    if (data.error) throw new Error(data.error.data?.message || 'Erreur Odoo');
+    journaliser('✅ Pièce comptable créée dans Odoo (ID: ' + data.result + ')');
+    afficherJournal();
+    alert('✅ Pièce comptable créée dans Odoo !');
+  } catch (err) {
+    journaliser('❌ Erreur Odoo : ' + err.message);
+    afficherJournal();
+    alert('Erreur Odoo : ' + err.message + '\n\nNote : Vérifiez la configuration Odoo dans CONFIG.');
+  }
+}
+
+// ===== JOURNAL =====
+const journalEntries = [];
+function journaliser(msg) {
+  const ts = new Date().toLocaleTimeString('fr-FR');
+  journalEntries.push(`[${ts}] ${msg}`);
+}
+function afficherJournal() {
+  const section = document.getElementById('journal-section');
+  const div = document.getElementById('journal');
+  section.style.display = 'block';
+  div.innerHTML = journalEntries.map(e => `<p>${e}</p>`).join('');
+}
+
+// ===== PROGRESSION =====
+function setProgress(pct) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+function setStep(stepId, state) {
+  const icon = document.getElementById('icon-' + stepId);
+  icon.className = 'step-icon ' + state;
+  if (state === 'done') icon.textContent = '✓';
+  else if (state === 'active') icon.textContent = '⟳';
+}
+function log(msg) {
+  document.getElementById('log-msg').textContent = msg;
+}
+
+// ===== UTILITAIRES =====
+function today() { return new Date().toISOString().split('T')[0]; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function reinitialiser() {
+  imageDataUrl = null; imageFile = null; donneesExtraites = {};
+  document.getElementById('preview-container').classList.add('hidden');
+  document.getElementById('drop-placeholder').classList.remove('hidden');
+  document.getElementById('progress-section').classList.add('hidden');
+  document.getElementById('result-section').classList.add('hidden');
+  document.getElementById('btn-analyser').disabled = true;
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('file-input').value = '';
+  document.getElementById('camera-input').value = '';
+  document.getElementById('journal-section').style.display = 'none';
+  journalEntries.length = 0;
+  setProgress(0);
+  ['upload','ocr','parse'].forEach(s => {
+    const icon = document.getElementById('icon-' + s);
+    icon.className = 'step-icon wait';
+    icon.textContent = ['upload','ocr','parse'].indexOf(s) + 1;
+  });
+}
+</script>
+</body>
+</html>

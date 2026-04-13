@@ -1,0 +1,500 @@
+/* ================================================================
+   HCS ERP — responsive.css
+   Responsive design, filter-bar component, sidebar toggle,
+   améliorations des tables, breakpoints multi-écrans
+   Inspiré : Stripe, Notion, Linear, Odoo 17
+   ================================================================ */
+
+/* ================================================================
+   FILTER-BAR — barre de filtres compacte unifiée
+   Usage :
+     <div class="filter-bar">
+       <div class="filter-search">
+         <span class="filter-search-icon">🔍</span>
+         <input type="text" placeholder="Rechercher…">
+       </div>
+       <select>…</select>
+       <div class="filter-bar-spacer"></div>
+       <button class="btn btn-primary btn-sm">+ Nouveau</button>
+       <button class="btn-clear-filters">✕ Effacer</button>
+     </div>
+   ================================================================ */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 16px;
+  flex-wrap: wrap;
+}
+
+.filter-bar .filter-search {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+  max-width: 260px;
+}
+
+.filter-bar .filter-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.filter-bar .filter-search input,
+.filter-bar input.filter-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px 0 32px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.filter-bar .filter-search input:focus,
+.filter-bar input.filter-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Select dans la filter-bar */
+.filter-bar select,
+.filter-bar .filter-select {
+  height: 34px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0 28px 0 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892b0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+.filter-bar select:focus,
+.filter-bar .filter-select:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+/* Select avec filtre actif = bordure bleue + texte en gras */
+.filter-bar select.active-filter,
+.filter-bar .filter-select.active-filter {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+
+/* Espaceur flexible pour pousser les boutons à droite */
+.filter-bar-spacer { flex: 1; min-width: 0; }
+
+/* Bouton "Effacer les filtres" */
+.btn-clear-filters {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: border-color var(--transition), color var(--transition);
+}
+.btn-clear-filters:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+}
+
+/* Input date compact (dans toolbar) */
+input[type="date"].filter-date {
+  height: 34px;
+  padding: 0 8px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+input[type="date"].filter-date:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+/* ================================================================
+   TOOLBAR RESPONSIVE
+   On rend la toolbar flexible (auto-height, flex-wrap)
+   ================================================================ */
+
+.toolbar {
+  height: auto !important;
+  min-height: var(--toolbar-h);
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px var(--space-5);
+}
+
+/* ================================================================
+   TABLE GÉNÉRIQUE .table
+   Amélioration des styles pour toutes les pages
+   ================================================================ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table thead th {
+  text-align: left;
+  padding: 10px 14px;
+  background: #FAFBFC;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.table thead th:first-child { padding-left: 20px; }
+.table thead th:last-child  { padding-right: 20px; }
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition);
+}
+.table tbody tr:last-child { border-bottom: none; }
+.table tbody tr:hover { background: #F5F8FF; }
+
+.table tbody td {
+  padding: 10px 14px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.table tbody td:first-child { padding-left: 20px; }
+.table tbody td:last-child  { padding-right: 20px; }
+
+/* .col-ref — numéros de référence en mono */
+.col-ref {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Wrapper de table avec scroll horizontal */
+.table-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ================================================================
+   SIDEBAR TOGGLE BUTTON (burger) — masqué sur desktop
+   ================================================================ */
+
+#sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  color: rgba(255,255,255,0.75);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  transition: background var(--transition);
+}
+#sidebar-toggle:hover { background: rgba(255,255,255,0.08); }
+
+/* Overlay sombre derrière la sidebar en mode mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 45;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.sidebar-overlay.visible {
+  display: block;
+  opacity: 1;
+}
+
+/* ================================================================
+   TOPBAR — menu overflow "⋯ Plus"
+   ================================================================ */
+
+.app-overflow {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.app-overflow-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  padding: 6px;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+.app-overflow-menu.open { display: flex; }
+
+.overflow-app-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  text-align: left;
+  width: 100%;
+  transition: background var(--transition), color var(--transition);
+}
+.overflow-app-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.overflow-app-item.active {
+  background: rgba(99,102,241,0.08);
+  color: var(--accent-blue);
+}
+
+/* ================================================================
+   BREAKPOINT — LAPTOP 1100px
+   Topbar compressée, sidebar légèrement réduite
+   ================================================================ */
+
+@media (max-width: 1100px) {
+  .brand-name { display: none; }
+  .topbar-brand { min-width: 44px; padding: 0 10px; }
+
+  .app-item {
+    padding: 0 10px;
+    min-width: 52px;
+    font-size: 9px;
+  }
+
+  .user-badge { display: none; }
+
+  :root { --sidebar-w: 200px; }
+}
+
+/* ================================================================
+   BREAKPOINT — TABLET 900px
+   Sidebar icônes seulement (56px), burger visible
+   ================================================================ */
+
+@media (max-width: 900px) {
+  :root { --sidebar-w: 56px; }
+
+  #sidebar-toggle { display: flex; }
+
+  #sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    overflow: visible;
+    transition: width 0.22s ease, min-width 0.22s ease;
+    position: relative;
+    z-index: 60;
+  }
+
+  /* Labels masqués en mode compact */
+  #sidebar .sidebar-title,
+  #sidebar .sidebar-section-label,
+  #sidebar .item-label,
+  #sidebar .sidebar-badge {
+    display: none;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .sidebar-menu { padding: 6px 4px; }
+
+  .sidebar-item {
+    justify-content: center;
+    padding: 10px;
+    border-radius: 8px;
+  }
+  .sidebar-item .item-icon { width: auto; font-size: 1.1rem; }
+  .sidebar-item::before { display: none; } /* pas de border left en compact */
+
+  /* Sidebar ouverte (class ajoutée par JS) */
+  #sidebar.sidebar-open {
+    width: 230px;
+    min-width: 230px;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+  }
+
+  #sidebar.sidebar-open .sidebar-title,
+  #sidebar.sidebar-open .sidebar-section-label,
+  #sidebar.sidebar-open .item-label,
+  #sidebar.sidebar-open .sidebar-badge {
+    display: block;
+  }
+
+  #sidebar.sidebar-open .sidebar-item {
+    justify-content: flex-start;
+    padding: 7px 12px;
+  }
+  #sidebar.sidebar-open .sidebar-item::before { display: block; }
+
+  .view-content { padding: var(--space-4); }
+  .toolbar { padding: 8px var(--space-4); }
+
+  .filter-bar .filter-search { max-width: 200px; }
+}
+
+/* ================================================================
+   BREAKPOINT — MOBILE 640px
+   Sidebar en drawer overlay, topbar ultra-compacte
+   ================================================================ */
+
+@media (max-width: 640px) {
+  :root { --sidebar-w: 0px; }
+
+  #sidebar {
+    width: 0;
+    min-width: 0;
+    border-right: none;
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: 0;
+    transition: width 0.22s ease, min-width 0.22s ease;
+  }
+
+  #sidebar.sidebar-open {
+    width: 270px;
+    min-width: 270px;
+    border-right: 1px solid var(--border);
+  }
+
+  /* Overlay actif sur mobile */
+  .sidebar-overlay { display: block; pointer-events: none; }
+  .sidebar-overlay.visible { pointer-events: all; }
+
+  /* App-menu labels masqués sur mobile */
+  .app-item .app-label { display: none; }
+  .app-item {
+    padding: 0 8px;
+    min-width: 40px;
+    gap: 0;
+  }
+  .app-item .app-icon { font-size: 1.15rem; }
+
+  .view-content { padding: var(--space-3); }
+
+  .toolbar {
+    padding: 6px var(--space-3);
+    gap: 4px;
+  }
+
+  /* Formulaires 1 colonne */
+  .form-grid { grid-template-columns: 1fr !important; }
+  .form-grid .span-2,
+  .form-grid .span-3,
+  .form-grid .span-full { grid-column: 1 !important; }
+
+  /* Modal plein écran */
+  .modal-box {
+    width: 100%;
+    max-width: 100% !important;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: var(--space-4);
+    margin: 0;
+  }
+
+  /* Dashboard 2 cols */
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Tables : scroll horizontal */
+  .card { overflow-x: auto; padding: var(--space-3); }
+
+  /* Filter-bar : wraps naturellement */
+  .filter-bar .filter-search { max-width: 100%; flex: 1; }
+  .filter-bar select { flex: 1; min-width: 100px; }
+}
+
+/* ================================================================
+   BREAKPOINT — XS 420px
+   ================================================================ */
+
+@media (max-width: 420px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .app-item { min-width: 36px; }
+}
+
+/* ================================================================
+   AMÉLIORATIONS GLOBALES — valables toutes tailles
+   ================================================================ */
+
+/* Transition douce sur la sidebar */
+#sidebar {
+  transition: width 0.22s ease, min-width 0.22s ease;
+}
+
+/* Scrollbar dans sidebar */
+#sidebar::-webkit-scrollbar { width: 3px; }
+#sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Focus visible accessible */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* Page-header plus compact sur petit écran */
+@media (max-width: 640px) {
+  .page-header { margin-bottom: var(--space-4); }
+  .page-title { font-size: var(--text-lg); }
+}

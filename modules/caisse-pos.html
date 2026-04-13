@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HCS — Caisse</title>
+  <style>
+    /* ── Variables ── */
+    :root {
+      --bg:         #0f1117;
+      --surface:    #1a1d27;
+      --border:     #2a2d3e;
+      --text:       #e2e8f0;
+      --muted:      #64748b;
+      --blue:       #4a5fff;
+      --green:      #00d4aa;
+      --orange:     #ffc857;
+      --red:        #ff6b6b;
+      --violet:     #b07bff;
+      --radius:     10px;
+      --font:       'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Topbar caisse ── */
+    .pos-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 18px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .pos-topbar .brand { font-weight: 700; font-size: 1.1em; color: var(--green); letter-spacing: 0.5px; }
+    .pos-topbar .meta  { font-size: 0.8em; color: var(--muted); }
+    .pos-topbar .actions { display: flex; gap: 8px; }
+
+    /* ── Corps principal ── */
+    .pos-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Panneau gauche : catalogue produits ── */
+    .pos-catalog {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .catalog-search {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .catalog-search input {
+      flex: 1;
+      min-width: 160px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 12px;
+      color: var(--text);
+      font-size: 0.88em;
+    }
+    .catalog-search input:focus { outline: none; border-color: var(--blue); }
+    .cat-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cat-btn {
+      padding: 4px 11px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.78em;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .cat-btn:hover, .cat-btn.active {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .product-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+      user-select: none;
+    }
+    .product-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+    .product-card:active { transform: scale(0.96); }
+    .product-card .emoji { font-size: 1.8em; margin-bottom: 6px; }
+    .product-card .pnom  { font-size: 0.78em; font-weight: 600; line-height: 1.3; margin-bottom: 4px; }
+    .product-card .pprix { font-size: 0.82em; color: var(--green); font-family: monospace; font-weight: 700; }
+    .product-card .pstock { font-size: 0.7em; color: var(--muted); margin-top: 2px; }
+    .product-card.out-of-stock { opacity: 0.4; pointer-events: none; }
+
+    /* ── Panneau droit : panier + paiement ── */
+    .pos-cart {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+    }
+
+    /* En-tête panier */
+    .cart-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .cart-header h3 { font-size: 0.9em; font-weight: 600; }
+    .cart-clear {
+      font-size: 0.75em;
+      color: var(--red);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: 4px;
+      transition: background .15s;
+    }
+    .cart-clear:hover { background: rgba(255,107,107,.15); }
+
+    /* Client sélect */
+    .cart-client {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cart-client label { font-size: 0.75em; color: var(--muted); display: block; margin-bottom: 4px; }
+    .cart-client select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 0.82em;
+    }
+    .cart-client select:focus { outline: none; border-color: var(--blue); }
+
+    /* Lignes panier */
+    .cart-lines {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+    .cart-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      font-size: 0.85em;
+      gap: 8px;
+    }
+    .cart-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cart-line .cl-info { flex: 1; min-width: 0; }
+    .cart-line .cl-nom  { font-size: 0.82em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cart-line .cl-prix { font-size: 0.76em; color: var(--muted); font-family: monospace; }
+    .cart-line .cl-remise {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 0.7em;
+      color: var(--orange);
+    }
+    .cart-line .cl-remise input {
+      width: 40px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 4px;
+      color: var(--orange);
+      font-size: 1em;
+      text-align: center;
+    }
+    .cl-qty {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cl-qty button {
+      width: 22px; height: 22px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 1em;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .1s;
+    }
+    .cl-qty button:hover { background: var(--blue); border-color: var(--blue); }
+    .cl-qty span {
+      min-width: 24px;
+      text-align: center;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    .cl-del {
+      background: none; border: none;
+      color: var(--red); cursor: pointer;
+      font-size: 0.9em; padding: 2px 4px;
+      border-radius: 4px; transition: background .15s;
+    }
+    .cl-del:hover { background: rgba(255,107,107,.15); }
+    .cl-total { font-size: 0.82em; font-family: monospace; color: var(--green); min-width: 62px; text-align: right; }
+
+    /* Totaux */
+    .cart-totaux {
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+    .tot-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82em;
+      padding: 3px 0;
+      color: var(--muted);
+    }
+    .tot-row.main {
+      font-size: 1.05em;
+      font-weight: 700;
+      color: var(--text);
+      border-top: 1px solid var(--border);
+      margin-top: 6px;
+      padding-top: 8px;
+    }
+    .tot-row .mono { font-family: monospace; }
+
+    /* Paiement */
+    .cart-paiement {
+      border-top: 1px solid var(--border);
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+    .cart-paiement label { font-size: 0.75em; color: var(--muted); display: block; margin-bottom: 6px; }
+    .pay-modes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .pay-mode-btn {
+      padding: 7px 4px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 0.78em;
+      cursor: pointer;
+      text-align: center;
+      transition: all .15s;
+    }
+    .pay-mode-btn:hover { border-color: var(--blue); color: var(--text); }
+    .pay-mode-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
+    .pay-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .pay-input-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 0.95em;
+      font-family: monospace;
+    }
+    .pay-input-row input:focus { outline: none; border-color: var(--green); }
+    .monnaie {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82em;
+      padding: 4px 0;
+    }
+    .monnaie .val { font-family: monospace; font-weight: 700; }
+    .monnaie .val.pos { color: var(--green); }
+    .monnaie .val.neg { color: var(--red); }
+
+    /* Bouton valider */
+    .btn-valider {
+      width: 100%;
+      padding: 13px;
+      background: var(--green);
+      color: #0f1117;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .15s;
+      margin-top: 10px;
+      letter-spacing: 0.3px;
+    }
+    .btn-valider:hover  { opacity: 0.88; }
+    .btn-valider:active { transform: scale(0.98); }
+    .btn-valider:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Boutons génériques ── */
+    .btn { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; font-size: 0.82em; font-weight: 600; transition: all .15s; }
+    .btn-ghost { background: transparent; color: var(--text); }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-danger { background: rgba(255,107,107,.15); border-color: var(--red); color: var(--red); }
+    .btn-danger:hover { background: var(--red); color: #fff; }
+
+    /* ── Ticket (overlay) ── */
+    .ticket-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+    }
+    .ticket-box {
+      background: #fff;
+      color: #111;
+      width: 320px;
+      border-radius: 10px;
+      padding: 24px 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82em;
+    }
+    .ticket-box h2 { text-align: center; font-size: 1.1em; margin-bottom: 4px; }
+    .ticket-box .t-sub { text-align: center; font-size: 0.78em; color: #555; margin-bottom: 12px; }
+    .ticket-box .t-sep { border: none; border-top: 1px dashed #aaa; margin: 10px 0; }
+    .ticket-box .t-row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .ticket-box .t-total { font-weight: 700; font-size: 1.05em; }
+    .ticket-box .t-merci { text-align: center; margin-top: 10px; font-size: 0.78em; color: #555; }
+    .ticket-btns { display: flex; gap: 8px; margin-top: 16px; }
+    .ticket-btns button {
+      flex: 1; padding: 9px;
+      border-radius: 6px; border: 1px solid #ccc;
+      cursor: pointer; font-size: 0.85em; font-weight: 600;
+    }
+    .ticket-btns .btn-print { background: #111; color: #fff; border-color: #111; }
+    .ticket-btns .btn-close-ticket { background: #fff; color: #111; }
+
+    /* ── Toast ── */
+    .pos-toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--green); color: #0f1117;
+      padding: 10px 22px; border-radius: 8px;
+      font-weight: 600; font-size: 0.88em;
+      animation: fadeInUp .25s ease;
+      z-index: 9999;
+    }
+    .pos-toast.error { background: var(--red); color: #fff; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="pos-topbar">
+  <div>
+    <div class="brand">⬡ HCS — Caisse</div>
+    <div class="meta" id="pos-date"></div>
+  </div>
+  <div class="actions">
+    <button class="btn btn-ghost" onclick="window.print()">🖨️ Imprimer</button>
+  </div>
+</div>
+
+<!-- ── Corps ── -->
+<div class="pos-body">
+
+  <!-- Catalogue produits -->
+  <div class="pos-catalog">
+    <div class="catalog-search">
+      <input type="text" id="prod-search" placeholder="🔍 Rechercher un produit…" oninput="filterProducts()" />
+    </div>
+    <div class="cat-filters" id="cat-filters"></div>
+    <div class="product-grid" id="product-grid"></div>
+  </div>
+
+  <!-- Panier + Paiement -->
+  <div class="pos-cart">
+
+    <div class="cart-header">
+      <h3>🛒 Panier</h3>
+      <button class="cart-clear" onclick="clearCart()">🗑 Vider</button>
+    </div>
+
+    <div class="cart-client">
+      <label>Client</label>
+      <select id="pos-client">
+        <option value="">— Client anonyme —</option>
+      </select>
+    </div>
+
+    <div class="cart-lines" id="cart-lines">
+      <div class="cart-empty">
+        <span style="font-size:2em;">🛒</span>
+        <span>Panier vide — cliquez sur un produit</span>
+      </div>
+    </div>
+
+    <div class="cart-totaux" id="cart-totaux" style="display:none;">
+      <div class="tot-row"><span>Sous-total HT</span><span class="mono" id="tot-ht">—</span></div>
+      <div class="tot-row"><span>TVA 13%</span><span class="mono" id="tot-tva">—</span></div>
+      <div class="tot-row"><span>Remises</span><span class="mono" id="tot-remise" style="color:var(--orange);">—</span></div>
+      <div class="tot-row main"><span>TOTAL TTC</span><span class="mono" id="tot-ttc">—</span></div>
+    </div>
+
+    <div class="cart-paiement">
+      <label>Mode de paiement</label>
+      <div class="pay-modes">
+        <button class="pay-mode-btn active" data-mode="Espèces"        onclick="selectMode(this)">💵 Espèces</button>
+        <button class="pay-mode-btn"        data-mode="Carte bancaire" onclick="selectMode(this)">💳 Carte</button>
+        <button class="pay-mode-btn"        data-mode="Virement"       onclick="selectMode(this)">🏦 Virement</button>
+        <button class="pay-mode-btn"        data-mode="Chèque"         onclick="selectMode(this)">📋 Chèque</button>
+      </div>
+
+      <label>Montant reçu (XPF)</label>
+      <div class="pay-input-row">
+        <input type="number" id="pay-amount" placeholder="0" oninput="calcMonnaie()" />
+      </div>
+      <div class="monnaie">
+        <span>Monnaie à rendre</span>
+        <span class="val" id="pay-change">—</span>
+      </div>
+
+      <button class="btn-valider" id="btn-valider" onclick="validerVente()" disabled>
+        ✔ Valider la vente
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Ticket overlay -->
+<div class="ticket-overlay" id="ticket-overlay" style="display:none;">
+  <div class="ticket-box" id="ticket-content"></div>
+</div>
+
+<script>
+/* ================================================================
+   HCS ERP — caisse-pos.html
+   Caisse / Point de vente standalone
+   Lit et écrit directement dans localStorage (même clé que l'ERP)
+   ================================================================ */
+
+const LS_KEY    = 'hcs_erp_db';
+const TVA_RATE  = 0.13; /* 13% */
+
+/* ── État ── */
+let db       = null;
+let cart     = [];     /* [{produitId, nom, emoji, prixHT, qte, remise}] */
+let payMode  = 'Espèces';
+
+/* ── Chargement DB ── */
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    db = raw ? JSON.parse(raw) : { produits: [], contacts: [], factures: [], _meta: { counters: {} } };
+  } catch(e) {
+    db = { produits: [], contacts: [], factures: [], _meta: { counters: {} } };
+  }
+}
+
+function saveDB() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch(e) {}
+}
+
+/* ── Date/heure topbar ── */
+function updateClock() {
+  const now = new Date();
+  document.getElementById('pos-date').textContent =
+    now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+    + ' · ' + now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+}
+setInterval(updateClock, 30000);
+updateClock();
+
+/* ── Catalogue produits ── */
+let activeCategory = 'Tous';
+
+function buildCatalog() {
+  loadDB();
+  const produits = (db.produits || []);
+
+  /* Catégories uniques */
+  const cats = ['Tous', ...new Set(produits.map(p => p.categorie).filter(Boolean))];
+  const filtersEl = document.getElementById('cat-filters');
+  filtersEl.innerHTML = cats.map(c =>
+    `<button class="cat-btn${c === activeCategory ? ' active' : ''}"
+      onclick="setCategory('${c.replace(/'/g,"\\'")}', this)">${c}</button>`
+  ).join('');
+
+  renderProducts();
+  buildClientSelect();
+}
+
+function setCategory(cat, btn) {
+  activeCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderProducts();
+}
+
+function filterProducts() {
+  activeCategory = 'Tous';
+  document.querySelectorAll('.cat-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === 0);
+  });
+  renderProducts();
+}
+
+function renderProducts() {
+  const q       = (document.getElementById('prod-search')?.value || '').toLowerCase();
+  const produits = (db.produits || []).filter(p => {
+    const matchCat  = activeCategory === 'Tous' || p.categorie === activeCategory;
+    const matchSearch = !q || (p.nom || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q);
+    return matchCat && matchSearch;
+  });
+
+  const grid = document.getElementById('product-grid');
+  if (produits.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0;font-size:0.88em;">
+      Aucun produit trouvé.
+    </div>`;
+    return;
+  }
+
+  /* Prix HT depuis prix TTC (prix dans DB est TTC généralement) */
+  grid.innerHTML = produits.map(p => {
+    const prixHT  = Math.round(p.prix / (1 + TVA_RATE));
+    const outStock = (p.stock || 0) <= 0;
+    return `
+      <div class="product-card${outStock ? ' out-of-stock' : ''}"
+        onclick="addToCart('${p.id}')">
+        <div class="emoji">${p.emoji || '📦'}</div>
+        <div class="pnom">${esc(p.nom)}</div>
+        <div class="pprix">${fmt(p.prix)} XPF</div>
+        <div class="pstock">${outStock ? '⚠ Rupture' : 'Stock : ' + (p.stock || 0)}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ── Panier ── */
+function addToCart(produitId) {
+  const p = (db.produits || []).find(x => x.id === produitId);
+  if (!p) return;
+
+  const existing = cart.find(l => l.produitId === produitId);
+  if (existing) {
+    existing.qte++;
+  } else {
+    cart.push({
+      produitId,
+      nom:    p.nom,
+      emoji:  p.emoji || '📦',
+      prixTTC: p.prix,
+      prixHT:  Math.round(p.prix / (1 + TVA_RATE)),
+      qte:    1,
+      remise: 0
+    });
+  }
+  renderCart();
+}
+
+function removeFromCart(idx) {
+  cart.splice(idx, 1);
+  renderCart();
+}
+
+function changeQty(idx, delta) {
+  cart[idx].qte = Math.max(1, (cart[idx].qte || 1) + delta);
+  renderCart();
+}
+
+function changeRemise(idx, val) {
+  cart[idx].remise = Math.min(100, Math.max(0, parseFloat(val) || 0));
+  renderCart();
+}
+
+function clearCart() {
+  cart = [];
+  document.getElementById('pay-amount').value = '';
+  document.getElementById('pay-change').textContent = '—';
+  document.getElementById('pay-change').className = 'val';
+  renderCart();
+}
+
+function renderCart() {
+  const linesEl  = document.getElementById('cart-lines');
+  const totauxEl = document.getElementById('cart-totaux');
+  const btnVal   = document.getElementById('btn-valider');
+
+  if (cart.length === 0) {
+    linesEl.innerHTML = `<div class="cart-empty">
+      <span style="font-size:2em;">🛒</span>
+      <span>Panier vide — cliquez sur un produit</span>
+    </div>`;
+    totauxEl.style.display = 'none';
+    btnVal.disabled = true;
+    return;
+  }
+
+  linesEl.innerHTML = cart.map((l, i) => {
+    const montantHT  = l.prixHT * l.qte;
+    const remiseMnt  = Math.round(montantHT * l.remise / 100);
+    const netHT      = montantHT - remiseMnt;
+    const netTTC     = Math.round(netHT * (1 + TVA_RATE));
+    return `
+    <div class="cart-line">
+      <div style="font-size:1.3em;">${l.emoji}</div>
+      <div class="cl-info">
+        <div class="cl-nom">${esc(l.nom)}</div>
+        <div class="cl-prix">${fmt(l.prixHT)} XPF HT/u · net : ${fmt(netTTC)} TTC</div>
+        <div class="cl-remise">
+          Remise :
+          <input type="number" value="${l.remise}" min="0" max="100" step="0.5"
+            onchange="changeRemise(${i}, this.value)" />%
+        </div>
+      </div>
+      <div class="cl-qty">
+        <button onclick="changeQty(${i}, -1)">−</button>
+        <span>${l.qte}</span>
+        <button onclick="changeQty(${i}, +1)">+</button>
+      </div>
+      <div class="cl-total">${fmt(netTTC)}</div>
+      <button class="cl-del" onclick="removeFromCart(${i})">✕</button>
+    </div>`;
+  }).join('');
+
+  /* Calcul totaux */
+  const totaux = calcTotaux();
+  totauxEl.style.display = 'block';
+  document.getElementById('tot-ht').textContent     = fmt(totaux.totalHT)     + ' XPF';
+  document.getElementById('tot-tva').textContent    = fmt(totaux.totalTVA)    + ' XPF';
+  document.getElementById('tot-remise').textContent = totaux.totalRemise > 0  ? '−' + fmt(totaux.totalRemise) + ' XPF' : '—';
+  document.getElementById('tot-ttc').textContent    = fmt(totaux.totalTTC)    + ' XPF';
+
+  btnVal.disabled = cart.length === 0;
+  calcMonnaie();
+}
+
+function calcTotaux() {
+  let totalHT = 0, totalRemise = 0;
+  cart.forEach(l => {
+    const brut    = l.prixHT * l.qte;
+    const remise  = Math.round(brut * l.remise / 100);
+    totalRemise  += remise;
+    totalHT      += brut - remise;
+  });
+  const totalTVA = Math.round(totalHT * TVA_RATE);
+  const totalTTC = totalHT + totalTVA;
+  return { totalHT, totalTVA, totalTTC, totalRemise };
+}
+
+/* ── Paiement ── */
+function selectMode(btn) {
+  document.querySelectorAll('.pay-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  payMode = btn.dataset.mode;
+}
+
+function calcMonnaie() {
+  const { totalTTC } = calcTotaux();
+  const recu = parseFloat(document.getElementById('pay-amount').value) || 0;
+  const changeEl = document.getElementById('pay-change');
+
+  if (recu === 0 || totalTTC === 0) {
+    changeEl.textContent = '—';
+    changeEl.className = 'val';
+    return;
+  }
+  const monnaie = recu - totalTTC;
+  changeEl.textContent = fmt(Math.abs(monnaie)) + ' XPF';
+  changeEl.className   = 'val ' + (monnaie >= 0 ? 'pos' : 'neg');
+}
+
+/* ── Validation de la vente ── */
+function validerVente() {
+  if (cart.length === 0) return;
+
+  loadDB(); /* Rafraîchit la DB avant d'écrire */
+
+  const totaux    = calcTotaux();
+  const contactId = document.getElementById('pos-client')?.value || null;
+  const contact   = contactId ? (db.contacts || []).find(c => c.id === contactId) : null;
+  const client    = contact ? contact.nom : 'Client anonyme';
+  const now       = new Date();
+  const dateStr   = now.toISOString().slice(0, 10);
+
+  /* Numéro de facture */
+  if (!db._meta) db._meta = { counters: {} };
+  if (!db._meta.counters) db._meta.counters = {};
+  db._meta.counters.factures = (db._meta.counters.factures || 0) + 1;
+  const num = String(db._meta.counters.factures).padStart(4, '0');
+  const ref = 'FAC-' + num;
+
+  /* Lignes de facture */
+  const lignes = cart.map(l => ({
+    produitId:    l.produitId,
+    description:  l.nom,
+    qte:          l.qte,
+    prixUnitaire: l.prixHT,
+    remise:       l.remise
+  }));
+
+  /* Facture */
+  const facture = {
+    id:           'factures-' + Date.now() + '-pos',
+    ref,
+    _type:        'Facture',
+    contactId:    contactId || null,
+    client,
+    date:         dateStr,
+    dateEcheance: dateStr,
+    statut:       'Payé',
+    source:       'caisse',
+    modePaiement: payMode,
+    lignes,
+    paiements: [{
+      date:    dateStr,
+      mode:    payMode,
+      montant: totaux.totalTTC,
+      type:    'Paiement'
+    }],
+    totalHT:  totaux.totalHT,
+    totalTVA: totaux.totalTVA,
+    totalTTC: totaux.totalTTC,
+    _createdAt: now.toISOString(),
+    _updatedAt: now.toISOString()
+  };
+
+  if (!db.factures) db.factures = [];
+  db.factures.push(facture);
+
+  /* Mise à jour du stock */
+  cart.forEach(l => {
+    const idx = (db.produits || []).findIndex(p => p.id === l.produitId);
+    if (idx !== -1) {
+      db.produits[idx].stock = Math.max(0, (db.produits[idx].stock || 0) - l.qte);
+      db.produits[idx]._updatedAt = now.toISOString();
+    }
+  });
+
+  /* Audit log */
+  if (!db.auditLog) db.auditLog = [];
+  db.auditLog.unshift({
+    id:          'audit-' + Date.now(),
+    date:        now.toISOString(),
+    utilisateur: 'Caisse',
+    action:      `Vente caisse ${ref} — ${fmt(totaux.totalTTC)} XPF — ${payMode}`,
+    module:      'caisse',
+    details:     { ref, totalTTC: totaux.totalTTC, client, nbLignes: cart.length }
+  });
+  if (db.auditLog.length > 500) db.auditLog = db.auditLog.slice(0, 500);
+
+  saveDB();
+
+  /* Afficher le ticket */
+  showTicket(facture, totaux, contact);
+}
+
+/* ── Ticket de caisse ── */
+function showTicket(facture, totaux, contact) {
+  const now     = new Date();
+  const heure   = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString('fr-FR');
+  const recu    = parseFloat(document.getElementById('pay-amount').value) || totaux.totalTTC;
+  const monnaie = Math.max(0, recu - totaux.totalTTC);
+
+  document.getElementById('ticket-content').innerHTML = `
+    <h2>⬡ HCS</h2>
+    <div class="t-sub">Polynésie Française · Papeete<br>${dateStr} à ${heure}</div>
+    <hr class="t-sep" />
+    <div class="t-row"><span>N° :</span><span>${esc(facture.ref)}</span></div>
+    ${contact ? `<div class="t-row"><span>Client :</span><span>${esc(contact.nom)}</span></div>` : ''}
+    <hr class="t-sep" />
+    ${cart.map(l => {
+      const ht     = l.prixHT * l.qte;
+      const remise = Math.round(ht * l.remise / 100);
+      const net    = Math.round((ht - remise) * (1 + TVA_RATE));
+      return `
+      <div class="t-row">
+        <span>${esc(l.nom)} x${l.qte}${l.remise > 0 ? ' (-' + l.remise + '%)' : ''}</span>
+        <span>${fmt(net)} F</span>
+      </div>`;
+    }).join('')}
+    <hr class="t-sep" />
+    <div class="t-row"><span>HT</span><span>${fmt(totaux.totalHT)} F</span></div>
+    <div class="t-row"><span>TVA 13%</span><span>${fmt(totaux.totalTVA)} F</span></div>
+    ${totaux.totalRemise > 0 ? `<div class="t-row"><span>Remises</span><span>−${fmt(totaux.totalRemise)} F</span></div>` : ''}
+    <hr class="t-sep" />
+    <div class="t-row t-total"><span>TOTAL TTC</span><span>${fmt(totaux.totalTTC)} F</span></div>
+    <div class="t-row"><span>${esc(facture.modePaiement)}</span><span>${fmt(recu)} F</span></div>
+    ${monnaie > 0 ? `<div class="t-row"><span>Monnaie</span><span>${fmt(monnaie)} F</span></div>` : ''}
+    <hr class="t-sep" />
+    <div class="t-merci">Merci de votre visite !<br>À bientôt chez HCS 🌺</div>
+    <div class="ticket-btns">
+      <button class="btn-print" onclick="printTicket()">🖨️ Imprimer</button>
+      <button class="btn-close-ticket" onclick="closeTicket()">✓ Fermer</button>
+    </div>`;
+
+  document.getElementById('ticket-overlay').style.display = 'flex';
+}
+
+function printTicket() {
+  window.print();
+}
+
+function closeTicket() {
+  document.getElementById('ticket-overlay').style.display = 'none';
+  clearCart();
+  buildCatalog(); /* Rafraîchit les stocks */
+  showToast('✔ Vente enregistrée !');
+}
+
+/* ── Select clients ── */
+function buildClientSelect() {
+  const sel = document.getElementById('pos-client');
+  sel.innerHTML = '<option value="">— Client anonyme —</option>';
+  (db.contacts || []).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.text  = c.nom + (c.type ? ' (' + c.type + ')' : '');
+    sel.appendChild(opt);
+  });
+}
+
+/* ── Utilitaires ── */
+function fmt(n) {
+  return (n || 0).toLocaleString('fr-FR');
+}
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'pos-toast' + (type === 'error' ? ' error' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+/* ── Init ── */
+buildCatalog();
+</script>
+</body>
+</html>

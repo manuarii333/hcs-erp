@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 2 — Commercial & Devis</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#0a0a14;color:#e0e0f0;min-height:100vh}
+  header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #f0c040;box-shadow:0 4px 20px rgba(240,192,64,.2)}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#f0c040,#d4a020);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .logo h1{font-size:18px;color:#f0c040;font-weight:700}
+  .logo p{font-size:11px;color:#666688;margin-top:2px}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .btn-back{font-size:12px;color:#666688;text-decoration:none;background:#12122a;border:1px solid #1e1e3a;border-radius:8px;padding:6px 14px;transition:.2s}
+  .btn-back:hover{color:#f0c040;border-color:#f0c040}
+  .status{display:flex;align-items:center;gap:6px;background:#0d1a0d;border:1px solid #2d7a2d;border-radius:20px;padding:5px 12px;font-size:11px;color:#4caf50}
+  .dot{width:7px;height:7px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  main{padding:20px 28px;max-width:1400px;margin:0 auto}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+  .kpi{background:#12122a;border:1px solid #1e1e3a;border-radius:10px;padding:16px;text-align:center;border-top:3px solid #f0c040}
+  .kpi.blue{border-top-color:#4a9eff}
+  .kpi.green{border-top-color:#4caf50}
+  .kpi.orange{border-top-color:#ff9800}
+  .kpi.red{border-top-color:#ef5350}
+  .kpi-val{font-size:26px;font-weight:700;color:#f0c040}
+  .kpi.blue .kpi-val{color:#4a9eff}
+  .kpi.green .kpi-val{color:#4caf50}
+  .kpi.orange .kpi-val{color:#ff9800}
+  .kpi.red .kpi-val{color:#ef5350}
+  .kpi-lbl{font-size:11px;color:#666688;margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+  .kpi-sub{font-size:10px;color:#444466;margin-top:3px}
+
+  /* Pipeline funnel */
+  .pipeline{display:flex;align-items:center;gap:0;margin-bottom:24px;background:#12122a;border:1px solid #1e1e3a;border-radius:12px;overflow:hidden}
+  .pipe-step{flex:1;text-align:center;padding:14px 8px;border-right:1px solid #1e1e3a;position:relative;transition:.2s}
+  .pipe-step:last-child{border-right:none}
+  .pipe-step:hover{background:#0f0f22}
+  .pipe-icon{font-size:22px;margin-bottom:4px}
+  .pipe-name{font-size:10px;color:#666688;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+  .pipe-val{font-size:20px;font-weight:700;color:#f0c040}
+  .pipe-arrow{position:absolute;right:-10px;top:50%;transform:translateY(-50%);color:#4a9eff;font-size:18px;z-index:2}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:20px}
+  .panel{background:#12122a;border:1px solid #1e1e3a;border-radius:12px;padding:18px}
+  .panel-title{font-size:12px;font-weight:600;color:#666688;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .chart-wrap{position:relative;height:200px}
+
+  /* Table devis */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#0d0d20;color:#666688;padding:8px 10px;text-align:left;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.4px;border-bottom:1px solid #1e1e3a}
+  td{padding:9px 10px;border-bottom:1px solid #0d0d20;color:#a0a0c0;vertical-align:middle}
+  tr:hover td{background:#0f0f22}
+  .statut{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+  .s-draft{background:#1a1500;color:#f0c040;border:1px solid #4a3800}
+  .s-sent{background:#0d1a2e;color:#4a9eff;border:1px solid #1a3a5a}
+  .s-confirmed{background:#0f2f0f;color:#4caf50;border:1px solid #2d7a2d}
+  .s-cancelled{background:#2a0d0d;color:#ef5350;border:1px solid #5a1a1a}
+  .client-new{font-size:10px;background:#1a0a2e;color:#ce93d8;border:1px solid #4a1a6a;border-radius:8px;padding:1px 6px;margin-left:4px}
+  .montant{color:#f0c040;font-weight:600}
+
+  /* Connexions Odoo */
+  .conn-list{display:flex;flex-direction:column;gap:8px}
+  .conn-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0d0d20;border-radius:8px;font-size:12px}
+  .conn-name{color:#a0a0c0;display:flex;align-items:center;gap:8px}
+  .conn-ok{font-size:11px;padding:2px 10px;border-radius:12px;background:#0f2f0f;color:#4caf50;border:1px solid #2d7a2d}
+  .conn-warn{font-size:11px;padding:2px 10px;border-radius:12px;background:#2a1800;color:#ff9800;border:1px solid #5a3000}
+  .conn-err{font-size:11px;padding:2px 10px;border-radius:12px;background:#2a0d0d;color:#ef5350;border:1px solid #5a1a1a}
+
+  /* Logs erreurs */
+  .log-item{padding:8px 10px;border-radius:8px;font-size:11px;margin-bottom:6px;display:flex;align-items:flex-start;gap:8px}
+  .log-ok{background:#0a1a0a;border-left:3px solid #4caf50}
+  .log-warn{background:#1a1000;border-left:3px solid #ff9800}
+  .log-err{background:#1a0808;border-left:3px solid #ef5350}
+  .log-time{color:#444466;white-space:nowrap;flex-shrink:0}
+  .log-msg{color:#a0a0c0;flex:1}
+
+  /* Stats clients */
+  .stat-pair{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #0d0d20;font-size:12px}
+  .stat-pair:last-child{border-bottom:none}
+  .stat-lbl{color:#666688}
+  .stat-val{font-weight:600;color:#f0c040}
+  .progress-bar{height:6px;background:#1e1e3a;border-radius:3px;margin-top:4px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#f0c040,#d4a020)}
+
+  /* n8n info */
+  .info-box{background:#0d0d20;border:1px solid #1e1e3a;border-radius:8px;padding:12px;font-size:11px;color:#666688;line-height:2;margin-bottom:10px}
+  .info-box a{color:#4a9eff;text-decoration:none}
+  .tag-fix{background:#0f2f0f;color:#4caf50;border:1px solid #2d7a2d;border-radius:4px;padding:1px 6px;font-size:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">💼</div>
+    <div>
+      <h1>Agent 2 — Commercial & Devis</h1>
+      <p>Création automatique devis Odoo · Mémoire clients · Archivage Dropbox</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <a href="../../hcs-hub.html" class="btn-back">← Hub HCS</a>
+    <div class="status"><div class="dot"></div>n8n actif</div>
+  </div>
+</header>
+
+<main>
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val" id="kpiDevisMois">0</div><div class="kpi-lbl">Devis ce mois</div><div class="kpi-sub">via Gmail → Odoo</div></div>
+    <div class="kpi blue"><div class="kpi-val" id="kpiCA">0</div><div class="kpi-lbl">CA devis (kXPF)</div><div class="kpi-sub">montant total</div></div>
+    <div class="kpi green"><div class="kpi-val" id="kpiNouveaux">0</div><div class="kpi-lbl">Nouveaux clients</div><div class="kpi-sub">créés dans Odoo</div></div>
+    <div class="kpi orange"><div class="kpi-val" id="kpiConf">0</div><div class="kpi-lbl">Confirmés</div><div class="kpi-sub">devis acceptés</div></div>
+    <div class="kpi red"><div class="kpi-val" id="kpiErreurs">0</div><div class="kpi-lbl">Erreurs</div><div class="kpi-sub">workflow échoué</div></div>
+  </div>
+
+  <!-- Pipeline -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-title">🔄 Pipeline traitement email → devis</div>
+    <div class="pipeline">
+      <div class="pipe-step"><div class="pipe-icon">✉️</div><div class="pipe-name">Email reçu</div><div class="pipe-val" id="p1">24</div></div>
+      <div class="pipe-step"><div class="pipe-icon">🤖</div><div class="pipe-name">Classifié devis</div><div class="pipe-val" id="p2">16</div></div>
+      <div class="pipe-step"><div class="pipe-icon">🔐</div><div class="pipe-name">Auth Odoo</div><div class="pipe-val" id="p3">16</div></div>
+      <div class="pipe-step"><div class="pipe-icon">👤</div><div class="pipe-name">Client identifié</div><div class="pipe-val" id="p4">16</div></div>
+      <div class="pipe-step"><div class="pipe-icon">📋</div><div class="pipe-name">Devis créé</div><div class="pipe-val" id="p5">14</div></div>
+      <div class="pipe-step"><div class="pipe-icon">🧾</div><div class="pipe-name">Lignes IA</div><div class="pipe-val" id="p6">14</div></div>
+      <div class="pipe-step"><div class="pipe-icon">✅</div><div class="pipe-name">Archivé</div><div class="pipe-val" id="p7">13</div></div>
+    </div>
+  </div>
+
+  <!-- Charts + stats clients -->
+  <div class="grid3">
+    <div class="panel">
+      <div class="panel-title">📈 Devis — 7 jours</div>
+      <div class="chart-wrap"><canvas id="devisChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🥧 Statuts devis</div>
+      <div class="chart-wrap"><canvas id="statutChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">👥 Clients</div>
+      <div class="conn-list">
+        <div class="stat-pair"><span class="stat-lbl">Total clients Odoo</span><span class="stat-val">147</span></div>
+        <div class="stat-pair"><span class="stat-lbl">Nouveaux ce mois</span><span class="stat-val">8</span></div>
+        <div class="stat-pair"><span class="stat-lbl">Clients récurrents</span><span class="stat-val">23</span></div>
+        <div style="margin-top:8px">
+          <div style="font-size:10px;color:#666688;margin-bottom:4px">Taux client trouvé / créé</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+          <div style="font-size:10px;color:#444466;margin-top:4px;display:flex;justify-content:space-between">
+            <span>65% trouvés</span><span>35% créés</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table devis -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-title">
+      📄 Derniers devis créés
+      <div style="display:flex;gap:8px">
+        <select id="filterStatut" onchange="renderDevis()" style="font-size:11px;padding:4px 8px;width:auto;background:#0d0d20;border:1px solid #1e1e3a;color:#e0e0f0;border-radius:6px">
+          <option value="">Tous statuts</option>
+          <option value="draft">Brouillon</option>
+          <option value="sent">Envoyé</option>
+          <option value="confirmed">Confirmé</option>
+          <option value="cancelled">Annulé</option>
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>N° Devis</th><th>Client</th><th>Email</th><th>Montant (XPF)</th><th>Lignes IA</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody id="devisTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Connexions + logs -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-title">🔌 Connexions & Workflow</div>
+      <div class="info-box">
+        📁 Fichier actif : <strong style="color:#4caf50">Envoyer Devis Client v2-fixed.json</strong><br>
+        <span class="tag-fix">52 nœuds</span> · 5 bugs corrigés (S6 + S7)<br>
+        🌐 Trigger : Gmail → <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1870717f707b777e7e7d7d6b70716a6c587f75797174367b7775">[email&#160;protected]</a><br>
+        🔗 Webhook validation : /webhook/devis-validation<br>
+        📊 Odoo : highcoffeeshirt.easypme.com
+      </div>
+      <div class="conn-list" id="connList"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">📋 Journal d'exécution</div>
+      <div id="logList"></div>
+    </div>
+  </div>
+</main>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// === DONNÉES DÉMO ===
+const DEVIS = [
+  {num:'SO-2847',client:'Marie Tamatoa',email:'marie.tamatoa@gmail.com',montant:48500,lignes:4,statut:'sent',date:'26/02',nouveau:false},
+  {num:'SO-2846',client:'Faa\'a Sport Club',email:'contact@faaasport.pf',montant:127000,lignes:6,statut:'confirmed',date:'26/02',nouveau:false},
+  {num:'SO-2845',client:'Hina Varua',email:'hina.varua@hotmail.fr',montant:23400,lignes:2,statut:'draft',date:'25/02',nouveau:true},
+  {num:'SO-2844',client:'Jean-Pierre Teriimana',email:'jp.teriimana@gmail.com',montant:56200,lignes:5,statut:'sent',date:'25/02',nouveau:false},
+  {num:'SO-2843',client:'Maeva Nui',email:'maeva.nui@yahoo.fr',montant:89000,lignes:7,statut:'confirmed',date:'24/02',nouveau:true},
+  {num:'SO-2842',client:'Tahiti Events Pro',email:'contact@tahiti-events.pf',montant:215000,lignes:9,statut:'confirmed',date:'24/02',nouveau:false},
+  {num:'SO-2841',client:'Roa Tetuanui',email:'roa.tetuanui@gmail.com',montant:31500,lignes:3,statut:'cancelled',date:'23/02',nouveau:false},
+  {num:'SO-2840',client:'Puna Vahine',email:'puna@vahine.pf',montant:42800,lignes:4,statut:'sent',date:'23/02',nouveau:true},
+];
+
+const STATUTS={draft:'Brouillon',sent:'Envoyé',confirmed:'Confirmé',cancelled:'Annulé'};
+const STATUT_CSS={draft:'s-draft',sent:'s-sent',confirmed:'s-confirmed',cancelled:'s-cancelled'};
+
+function renderDevis(){
+  const fs=document.getElementById('filterStatut').value;
+  const list=DEVIS.filter(d=>fs===''||d.statut===fs);
+  const tbody=document.getElementById('devisTable');
+  tbody.innerHTML='';
+  list.forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-weight:600;color:#e0e0f0">${d.num}</td>
+      <td>${d.client}${d.nouveau?'<span class="client-new">Nouveau</span>':''}</td>
+      <td style="font-size:11px;color:#666688">${d.email}</td>
+      <td class="montant">${d.montant.toLocaleString('fr-FR')}</td>
+      <td style="color:#a0a0c0;font-size:11px">${d.lignes} lignes</td>
+      <td><span class="statut ${STATUT_CSS[d.statut]}">${STATUTS[d.statut]}</span></td>
+      <td style="font-size:11px;color:#444466">${d.date}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// === KPIs ===
+function loadKPIs(){
+  document.getElementById('kpiDevisMois').textContent=DEVIS.length;
+  const ca=Math.round(DEVIS.reduce((s,d)=>s+d.montant,0)/1000);
+  document.getElementById('kpiCA').textContent=ca;
+  document.getElementById('kpiNouveaux').textContent=DEVIS.filter(d=>d.nouveau).length;
+  document.getElementById('kpiConf').textContent=DEVIS.filter(d=>d.statut==='confirmed').length;
+  document.getElementById('kpiErreurs').textContent=1;
+}
+
+// === CHARTS ===
+function buildCharts(){
+  // Devis 7 jours
+  new Chart(document.getElementById('devisChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],
+      datasets:[{label:'Devis créés',data:[2,3,1,4,2,1,3],backgroundColor:'rgba(240,192,64,.7)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'#1e1e3a'},ticks:{color:'#666688',font:{size:9}}},
+              y:{grid:{color:'#1e1e3a'},ticks:{color:'#666688',font:{size:9}}}}}
+  });
+  // Statuts
+  const counts={draft:0,sent:0,confirmed:0,cancelled:0};
+  DEVIS.forEach(d=>counts[d.statut]++);
+  new Chart(document.getElementById('statutChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['Brouillon','Envoyé','Confirmé','Annulé'],
+      datasets:[{data:[counts.draft,counts.sent,counts.confirmed,counts.cancelled],
+        backgroundColor:['#f0c040','#4a9eff','#4caf50','#ef5350'],borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#666688',font:{size:10},boxWidth:10}}}}
+  });
+}
+
+// === CONNEXIONS ===
+const CONNS=[
+  {name:'Gmail Trigger',icon:'✉️',status:'ok'},
+  {name:'API Odoo (auth)',icon:'🔐',status:'ok'},
+  {name:'res.partner (clients)',icon:'👤',status:'ok'},
+  {name:'sale.order (devis)',icon:'📋',status:'ok'},
+  {name:'OpenAI (lignes IA)',icon:'🤖',status:'ok'},
+  {name:'Google Sheets (mémoire)',icon:'📊',status:'ok'},
+  {name:'Dropbox (archivage)',icon:'📦',status:'ok'},
+  {name:'Slack (notification)',icon:'💬',status:'warn'},
+];
+function buildConns(){
+  const list=document.getElementById('connList');
+  CONNS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='conn-item';
+    const badge=c.status==='ok'?'conn-ok':'conn-warn';
+    const lbl=c.status==='ok'?'Actif':'Config. requise';
+    div.innerHTML=`<div class="conn-name">${c.icon} ${c.name}</div>
+      <div class="${badge}">${lbl}</div>`;
+    list.appendChild(div);
+  });
+}
+
+// === LOGS ===
+const LOGS=[
+  {type:'ok',time:'11:34',msg:'SO-2847 créé — Marie Tamatoa — 48 500 XPF — 4 lignes IA'},
+  {type:'ok',time:'11:22',msg:'Client Faa\'a Sport Club trouvé (ID 142) — devis SO-2846'},
+  {type:'ok',time:'10:55',msg:'SO-2845 créé — Hina Varua (nouveau client ID 201) — 23 400 XPF'},
+  {type:'warn',time:'10:31',msg:'Email sans PJ — branche Stub activée — Merge OK'},
+  {type:'ok',time:'09:48',msg:'SO-2844 créé — J.P. Teriimana — 56 200 XPF — 5 lignes IA'},
+  {type:'err',time:'08:12',msg:'Erreur OpenAI timeout (ligne IA) — retry 1/3 OK'},
+  {type:'ok',time:'08:05',msg:'Workflow démarré — Gmail Trigger actif'},
+];
+function buildLogs(){
+  const list=document.getElementById('logList');
+  LOGS.forEach(l=>{
+    const div=document.createElement('div');
+    div.className=`log-item log-${l.type}`;
+    const icon=l.type==='ok'?'✅':l.type==='warn'?'⚠️':'❌';
+    div.

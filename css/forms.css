@@ -1,0 +1,365 @@
+/* ================================================================
+   HCS ERP — forms.css
+   Inputs, selects, textareas, grilles de formulaire,
+   table de lignes de commande (.line-table)
+   ================================================================ */
+
+/* ================================================================
+   INPUTS DE BASE
+   ================================================================ */
+
+.form-control {
+  display: block;
+  width: 100%;
+  height: 38px;                      /* légèrement plus grand = plus confortable */
+  padding: 0 var(--space-3);
+  background: var(--bg-input);
+  border: 1.5px solid var(--border); /* 1.5px = plus visible sans être agressif */
+  border-radius: var(--radius-md);   /* 8px — doux et moderne */
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);       /* 14px — lisible en atelier */
+  line-height: 1.5;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form-control::placeholder { color: var(--text-muted); }
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);   /* vert profond au focus */
+  box-shadow: var(--shadow-glow);       /* halo vert subtil */
+}
+
+.form-control:disabled {
+  opacity: 0.50;
+  cursor: not-allowed;
+  background: var(--bg-hover);
+}
+
+/* Textarea */
+textarea.form-control {
+  height: auto;
+  min-height: 80px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* Select */
+select.form-control {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892b0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-8);
+  cursor: pointer;
+}
+
+/* Input avec icône à gauche */
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-group .input-icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-muted);
+  pointer-events: none;
+  font-size: 1rem;
+  line-height: 1;
+}
+.input-group .form-control { padding-left: var(--space-8); }
+
+/* Input avec suffixe (ex: "XPF") */
+.input-suffix {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-input);
+}
+.input-suffix .form-control {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+}
+.input-suffix .suffix-label {
+  padding: 0 var(--space-3);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border-left: 1px solid var(--border);
+  height: 36px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Input type number — aligner à droite + mono */
+input[type="number"].form-control {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* ================================================================
+   GROUPES ET GRILLES DE FORMULAIRE
+   ================================================================ */
+
+/* Groupe label + input */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.form-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: var(--accent-red);
+}
+
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.form-error {
+  font-size: var(--text-xs);
+  color: var(--accent-red);
+  margin-top: 2px;
+}
+
+/* Grille responsive (2 colonnes par défaut) */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.form-grid.cols-1 { grid-template-columns: 1fr; }
+.form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.form-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* Étendre un champ sur toute la largeur */
+.form-grid .span-2 { grid-column: span 2; }
+.form-grid .span-3 { grid-column: span 3; }
+.form-grid .span-full { grid-column: 1 / -1; }
+
+/* Section de formulaire avec titre */
+.form-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.form-section-title {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semi);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Formulaire dans la modal */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* ================================================================
+   TABLE DE LIGNES DE COMMANDE (.line-table)
+   Utilisée pour : devis, commandes, factures, bons d'achat
+   ================================================================ */
+
+.line-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--bg-surface);
+  margin-bottom: var(--space-4);
+}
+
+.line-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+/* En-têtes */
+.line-table thead th {
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semi);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.line-table thead th.col-num { text-align: right; }
+.line-table thead th.col-actions { width: 40px; }
+
+/* Lignes */
+.line-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+.line-table tbody tr:last-child { border-bottom: none; }
+.line-table tbody tr:hover { background: var(--bg-hover); }
+
+.line-table tbody td {
+  padding: var(--space-2) var(--space-3);
+  vertical-align: middle;
+}
+
+/* Cellules numériques */
+.line-table .col-num {
+  font-family: var(--font-mono);
+  text-align: right;
+  font-size: var(--text-sm);
+}
+
+/* Champs éditables dans la table */
+.line-table .line-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  transition: border-color var(--transition);
+}
+.line-table .line-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: var(--bg-input);
+}
+.line-table .line-input.num-input {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* Bouton supprimer ligne */
+.line-table .btn-remove-line {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+  line-height: 1;
+}
+.line-table .btn-remove-line:hover { color: var(--accent-red); }
+
+/* Ligne "Ajouter un article" */
+.line-table .add-line-row td {
+  padding: var(--space-2) var(--space-3);
+}
+.btn-add-line {
+  background: transparent;
+  border: none;
+  color: var(--accent-blue);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.btn-add-line:hover { background: rgba(99,102,241,0.1); }
+
+/* Totaux en bas de table */
+.line-table-totals {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.total-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--text-sm);
+}
+
+.total-row .total-label {
+  color: var(--text-secondary);
+  min-width: 120px;
+  text-align: right;
+}
+
+.total-row .total-value {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semi);
+  color: var(--text-primary);
+  min-width: 120px;
+  text-align: right;
+}
+
+.total-row.grand-total .total-label,
+.total-row.grand-total .total-value {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--accent-blue);
+}
+
+/* ================================================================
+   CHECKBOX & RADIO custom
+   ================================================================ */
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.form-check input[type="checkbox"],
+.form-check input[type="radio"] {
+  width: 16px; height: 16px;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
+}
+
+.form-check-label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}

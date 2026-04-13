@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DTF Polynésie Arts — Plaques de Transfert Premium</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════ VARIABLES & RESET ═══════════════ */
+:root {
+  --black:     #0a0a0a;
+  --white:     #f5f0e8;
+  --gold:      #d4a843;
+  --gold-lt:   #f0c96a;
+  --teal:      #22a85a;
+  --teal-dk:   #155c35;
+  --red:       #e03c3c;
+  --grey:      #2a2a2a;
+  --grey-md:   #444;
+  --grey-lt:   #888;
+  --border:    rgba(212,168,67,.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--black);color:var(--white);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--black)}
+::-webkit-scrollbar-thumb{background:var(--grey-md);border-radius:3px}
+
+/* ═══════════════ HEADER ═══════════════ */
+header{
+  background:linear-gradient(135deg,#0a0a0a,#111 50%,#0d1f1c);
+  border-bottom:1px solid var(--border);
+  padding:0 32px;position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--teal),var(--gold));border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black)}
+.brand-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px}
+.brand-sub{font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase}
+nav{display:flex;gap:4px}
+nav a{color:var(--grey-lt);text-decoration:none;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+  padding:7px 13px;border-radius:4px;cursor:pointer;transition:all .18s}
+nav a:hover,nav a.on{color:var(--gold);background:rgba(212,168,67,.08)}
+
+/* ═══════════════ TABS ═══════════════ */
+.tab{display:none}.tab.on{display:block}
+
+/* ═══════════════ SECTION WRAPPER ═══════════════ */
+.wrap{padding:60px 36px;max-width:1440px;margin:0 auto}
+.sec-hd{display:flex;align-items:baseline;gap:16px;margin-bottom:42px}
+.sec-n{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);letter-spacing:2px}
+.sec-t{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px}
+.sec-ln{flex:1;height:1px;background:var(--border)}
+
+/* ═══════════════ BUTTONS ═══════════════ */
+.btn-p{background:linear-gradient(135deg,var(--teal),var(--teal-dk));color:var(--white);border:none;
+  padding:12px 24px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;
+  text-transform:uppercase;border-radius:4px;cursor:pointer;transition:all .22s}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(34,168,90,.35)}
+.btn-o{background:transparent;color:var(--gold);border:1px solid var(--gold);padding:12px 24px;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;
+  text-transform:uppercase;border-radius:4px;cursor:pointer;transition:all .22s}
+.btn-o:hover{background:rgba(212,168,67,.08);transform:translateY(-2px)}
+
+/* ═══════════════ PANELS ═══════════════ */
+.panel{background:#111;border:1px solid var(--border);border-radius:8px;padding:22px}
+.panel h4{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--gold);margin-bottom:14px}
+
+/* ═══════════════ FORM CONTROLS ═══════════════ */
+.lbl{display:block;font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--grey-lt);
+  margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+.inp,.sel,.ta{width:100%;background:var(--grey);border:1px solid rgba(255,255,255,.07);color:var(--white);
+  padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;border-radius:4px;outline:none;
+  margin-bottom:12px;transition:border-color .18s}
+.inp:focus,.sel:focus,.ta:focus{border-color:var(--teal)}
+.sel option{background:var(--grey)}
+.ta{resize:vertical;min-height:80px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inp-color{height:36px;padding:3px 8px;cursor:pointer}
+
+/* ═══════════════ HOME ═══════════════ */
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;padding:72px 36px 56px;max-width:1440px;margin:0 auto}
+.hero-badge{display:inline-block;background:var(--teal-dk);color:var(--gold-lt);font-size:10px;
+  letter-spacing:3px;text-transform:uppercase;padding:5px 13px;border-radius:2px;margin-bottom:18px;
+  font-family:'JetBrains Mono',monospace}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,6vw,82px);line-height:.95;
+  letter-spacing:2px;margin-bottom:22px}
+.hero h1 span{color:var(--gold);display:block}
+.hero p{color:#aaa;font-size:14px;line-height:1.9;max-width:460px;margin-bottom:32px;font-weight:300}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.sheet-demo{width:190px;height:380px;background:linear-gradient(160deg,#f5f0e8,#e8e0d0);
+  border-radius:4px;position:relative;display:flex;flex-wrap:wrap;gap:5px;padding:12px;
+  align-content:flex-start;overflow:hidden;
+  box-shadow:0 28px 72px rgba(0,0,0,.6),0 0 0 1px rgba(212,168,67,.28)}
+.sheet-demo::after{content:'45×100';position:absolute;bottom:8px;right:8px;
+  font-size:8px;font-family:'JetBrains Mono',monospace;color:rgba(0,0,0,.25);letter-spacing:1px}
+.demo-dot{width:32px;height:32px;border-radius:50%;animation:pulse 2.5s ease-in-out infinite alternate}
+.demo-dot:nth-child(3n+1){background:linear-gradient(135deg,var(--teal),var(--teal-dk))}
+.demo-dot:nth-child(3n+2){background:linear-gradient(135deg,#c94040,#8b1a1a)}
+.demo-dot:nth-child(3n){background:linear-gradient(135deg,var(--gold),#a07820)}
+@keyframes pulse{from{opacity:.45;transform:scale(.96)}to{opacity:.82;transform:scale(1.03)}}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border)}
+.stat-b{background:var(--black);padding:26px 28px;text-align:center}
+.stat-n{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--gold);letter-spacing:2px;line-height:1}
+.stat-l{font-size:10px;color:var(--grey-lt);text-transform:uppercase;letter-spacing:2px;margin-top:5px;
+  font-family:'JetBrains Mono',monospace}
+
+/* ═══════════════ FICHE TECH ═══════════════ */
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:28px}
+.tc{background:var(--grey);padding:24px;position:relative;overflow:hidden;transition:background .18s}
+.tc:hover{background:#333}
+.tc::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--teal)}
+.tc.g::before{background:var(--gold)}
+.tc.r::before{background:var(--red)}
+.tc-ico{font-size:24px;margin-bottom:10px}
+.tc-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--grey-lt);margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+.tc-val{font-size:16px;font-weight:600;color:var(--white);line-height:1.4}
+.tc-dsc{font-size:11px;color:#666;margin-top:5px;font-weight:300}
+.av-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.av{background:linear-gradient(135deg,#141414,#1a1a1a);border:1px solid var(--border);border-radius:6px;
+  padding:24px 20px;transition:all .22s;cursor:default}
+.av:hover{border-color:var(--teal);transform:translateY(-3px);box-shadow:0 14px 36px rgba(34,168,90,.14)}
+.av-ico{font-size:28px;margin-bottom:12px}
+.av-t{font-weight:700;font-size:13px;margin-bottom:7px;color:var(--gold-lt)}
+.av-d{font-size:11px;color:#888;line-height:1.7;font-weight:300}
+
+/* ═══════════════ CALCULATEUR ═══════════════ */
+.calc-lay{display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start}
+.calc-panel{background:#111;border:1px solid var(--border);border-radius:8px;padding:28px}
+.calc-panel h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:22px;color:var(--gold)}
+.f-grp{margin-bottom:18px}
+.f-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--grey-lt);
+  margin-bottom:6px;font-family:'JetBrains Mono',monospace;display:block}
+.f-inp{width:100%;background:var(--grey);border:1px solid rgba(255,255,255,.08);color:var(--white);
+  padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;border-radius:4px;outline:none;transition:border-color .18s}
+.f-inp:focus{border-color:var(--teal)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.calc-btn{width:100%;background:linear-gradient(135deg,var(--gold),#a07820);color:var(--black);
+  border:none;padding:13px;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:3px;
+  border-radius:4px;cursor:pointer;margin-top:8px;transition:all .2s}
+.calc-btn:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(212,168,67,.28)}
+.res-panel{display:grid;gap:14px}
+.res-c{background:var(--grey);border-radius:6px;padding:18px 22px;display:flex;
+  justify-content:space-between;align-items:center;border-left:3px solid transparent;transition:all .18s}
+.res-c.hl{border-left-color:var(--gold);background:#1c1a00}
+.res-c.tl{border-left-color:var(--teal)}
+.res-lbl{font-size:11px;color:var(--grey-lt);margin-bottom:3px;font-family:'JetBrains Mono',monospace;letter-spacing:.8px}
+.res-val{font-size:21px;font-weight:700;color:var(--white);font-family:'Bebas Neue',sans-serif;letter-spacing:1px}
+.res-un{font-size:10px;color:var(--grey-lt);margin-top:2px}
+.res-badge{background:var(--teal-dk);color:var(--gold-lt);font-size:9px;font-weight:700;
+  letter-spacing:2px;padding:3px 9px;border-radius:2px;font-family:'JetBrains Mono',monospace}
+.cfg-tbl{width:100%;border-collapse:collapse;background:#111;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.cfg-tbl th{background:var(--grey);padding:11px 14px;font-size:9px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--gold);text-align:left;font-family:'JetBrains Mono',monospace;font-weight:400}
+.cfg-tbl td{padding:11px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.04);color:#ccc}
+.cfg-tbl tr:hover td{background:rgba(255,255,255,.02)}
+.cfg-tbl tr:last-child td{border-bottom:none}
+.td-b{font-weight:700;color:var(--white)}
+.td-g{color:var(--gold);font-family:'JetBrains Mono',monospace}
+.td-t{color:var(--teal);font-family:'JetBrains Mono',monospace}
+
+/* ═══════════════ PLACEMENT VISUEL ═══════════════ */
+.vis-lay{display:grid;grid-template-columns:280px 1fr 290px;gap:14px;align-items:start}
+
+/* Format library cards */
+.fmt-card{background:var(--grey);border-radius:6px;padding:9px 11px;margin-bottom:7px;
+  display:flex;align-items:center;gap:9px;cursor:pointer;border:2px solid transparent;transition:all .18s;position:relative}
+.fmt-card:hover{border-color:var(--teal)}
+.fmt-card.active{border-color:var(--gold);background:#1e1b00}
+.fmt-swatch{width:38px;height:38px;border-radius:4px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(255,255,255,.75);
+  font-family:'JetBrains Mono',monospace;overflow:hidden}
+.fmt-swatch.circle{border-radius:50%}
+.fmt-info{flex:1;min-width:0}
+.fmt-name{font-size:12px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmt-dims{font-size:9px;color:var(--grey-lt);font-family:'JetBrains Mono',monospace}
+.fmt-qty{font-size:9px;color:var(--teal);font-family:'JetBrains Mono',monospace}
+.fmt-del{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;
+  opacity:.55;padding:2px 5px;line-height:1;transition:opacity .15s}
+.fmt-del:hover{opacity:1}
+
+/* Toolbar & tools */
+.tool-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%}
+.tb{background:var(--grey);border:1px solid rgba(255,255,255,.09);color:var(--white);
+  padding:7px 13px;font-size:11px;font-family:'DM Sans',sans-serif;border-radius:4px;
+  cursor:pointer;transition:all .15s;letter-spacing:.4px;white-space:nowrap}
+.tb:hover,.tb.on{background:var(--teal-dk);border-color:var(--teal);color:var(--white)}
+.tb.danger:hover{background:#5a0d0d;border-color:var(--red)}
+.tb.gold{background:linear-gradient(135deg,var(--gold),#a07820);border-color:var(--gold);color:var(--black);font-weight:700}
+.tb.gold:hover{opacity:.88}
+.tool-sep{width:1px;height:22px;background:rgba(255,255,255,.09);flex-shrink:0}
+
+/* Zoom row */
+.zoom-row{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);border-radius:4px;padding:4px 10px}
+.zbtn{background:none;border:1px solid rgba(255,255,255,.13);color:var(--white);width:24px;height:24px;
+  border-radius:3px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .14s}
+.zbtn:hover{background:var(--teal-dk);border-color:var(--teal)}
+.zlbl{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);min-width:38px;text-align:center}
+
+/* Canvas scroll */
+.cv-scroll{overflow:auto;border:1px solid var(--border);border-radius:6px;background:#1a1a1a;
+  display:flex;justify-content:flex-start;align-items:flex-start;padding:14px;
+  max-height:800px;min-height:300px}
+.cv-info{font-size:10px;color:var(--grey-lt);font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:.4px}
+
+/* Selection panel */
+.sel-box{background:linear-gradient(135deg,#1a1a00,#1e1c00);border:1px solid var(--gold);
+  border-radius:6px;padding:13px;margin-top:9px;display:none}
+.sel-box.vis{display:block}
+.sel-title{font-size:10px;color:var(--gold);font-family:'JetBrains Mono',monospace;margin-bottom:9px;line-height:1.4}
+.sel-row{display:flex;gap:5px;margin-bottom:5px}
+.sb{flex:1;background:var(--grey);border:1px solid rgba(255,255,255,.08);color:var(--white);
+  padding:6px 4px;font-size:10px;border-radius:3px;cursor:pointer;text-align:center;
+  transition:all .13s;font-family:'DM Sans',sans-serif}
+.sb:hover{background:var(--teal-dk);border-color:var(--teal)}
+.sb.g:hover{background:#3a2a00;border-color:var(--gold);color:var(--gold)}
+.sb.r:hover{background:#5a0d0d;border-color:var(--red)}
+
+/* Stats mini */
+.stats-mini{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:11px}
+.sm-box{background:var(--grey);border-radius:4px;padding:9px;text-align:center}
+.sm-n{font-family:'Bebas Neue',sans-serif;font-size:21px;color:var(--gold);letter-spacing:1px}
+.sm-l{font-size:8px;color:var(--grey-lt);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace}
+
+/* Forfait */
+.forfait{background:linear-gradient(135deg,#0d1f1c,#111);border:1px solid var(--teal);border-radius:6px;padding:14px}
+.forfait-t{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:var(--teal);margin-bottom:9px}
+.f-ln{display:flex;justify-content:space-between;align-items:center;padding:4px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:10px}
+.f-ln:last-child{border-bottom:none}
+.f-key{color:var(--grey-lt)}
+.f-val{color:var(--white);font-family:'JetBrains Mono',monospace;font-weight:700}
+.f-val.g{color:var(--gold)}
+.f-val.t{color:var(--teal)}
+
+/* Total bar */
+.total-bar{background:linear-gradient(135deg,var(--teal-dk),#0a3a34);border:1px solid var(--teal);
+  border-radius:6px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.total-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:rgba(245,240,232,.65)}
+.total-sub{font-size:9px;color:rgba(245,240,232,.45);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.total-val{font-size:22px;font-family:'Bebas Neue',sans-serif;color:var(--gold-lt);letter-spacing:2px}
+
+/* Import zone */
+.import-zone{border:2px dashed rgba(212,168,67,.28);border-radius:5px;padding:13px;text-align:center;
+  cursor:pointer;transition:all .18s;background:rgba(212,168,67,.02)}
+.import-zone:hover{border-color:var(--gold);background:rgba(212,168,67,.05)}
+.import-zone .iz-ico{font-size:20px}
+.import-zone p{font-size:10px;color:var(--grey-lt);margin-top:6px;line-height:1.5}
+
+/* Breakdown */
+.bdwn-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.04);font-size:10px}
+.bdwn-row:last-child{border-bottom:none}
+
+/* ═══════════════ ABONNEMENTS ═══════════════ */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.plan{background:#111;border:1px solid var(--border);border-radius:10px;padding:32px 26px;
+  position:relative;transition:all .22s}
+.plan:hover{transform:translateY(-5px);box-shadow:0 22px 55px rgba(0,0,0,.4)}
+.plan.feat{border-color:var(--gold);background:linear-gradient(160deg,#111,#1a1500)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);
+  color:var(--black);font-size:8px;font-weight:800;letter-spacing:3px;padding:3px 14px;
+  border-radius:2px;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+.plan-name{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;margin-bottom:5px}
+.plan-sheets{font-size:11px;color:var(--teal);letter-spacing:1px;margin-bottom:20px;font-family:'JetBrains Mono',monospace}
+.plan-price{margin-bottom:24px}
+.plan-amt{font-size:38px;font-family:'Bebas Neue',sans-serif;color:var(--gold);letter-spacing:2px;line-height:1}
+.plan-unit{font-size:11px;color:var(--grey-lt);margin-top:3px}
+.plan-feats{list-style:none;margin-bottom:24px}
+.plan-feats li{padding:7px 0;font-size:12px;color:#aaa;border-bottom:1px solid rgba(255,255,255,.04);
+  display:flex;gap:9px;align-items:flex-start;font-weight:300}
+.plan-feats li::before{content:'✓';color:var(--teal);font-weight:700;flex-shrink:0;margin-top:1px}
+.plan-btn{width:100%;padding:12px;border-radius:4px;font-family:'Bebas Neue',sans-serif;
+  font-size:16px;letter-spacing:3px;cursor:pointer;transition:all .2s;border:1px solid var(--teal);
+  background:transparent;color:var(--teal)}
+.plan.feat .plan-btn{background:linear-gradient(135deg,var(--gold),#a07820);border-color:var(--gold);color:var(--black)}
+.plan-btn:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(0,0,0,.3)}
+
+/* ═══════════════ COMMANDE ═══════════════ */
+.form-lay{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.form-sec{background:#111;border:1px solid var(--border);border-radius:8px;padding:28px}
+.form-sec h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);margin-bottom:20px}
+.f-lbl2{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--grey-lt);margin-bottom:5px;
+  display:block;font-family:'JetBrains Mono',monospace}
+.f-inp2,.f-sel2,.f-ta2{width:100%;background:var(--grey);border:1px solid rgba(255,255,255,.08);color:var(--white);
+  padding:10px 13px;font-family:'DM Sans',sans-serif;font-size:13px;border-radius:4px;outline:none;
+  margin-bottom:14px;transition:border-color .18s}
+.f-inp2:focus,.f-sel2:focus,.f-ta2:focus{border-color:var(--teal)}
+.f-sel2 option{background:var(--grey)}
+.f-ta2{resize:vertical;min-height:88px}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.submit-btn{width:100%;background:linear-gradient(135deg,var(--teal),var(--teal-dk));color:var(--white);
+  border:none;padding:14px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;
+  border-radius:4px;cursor:pointer;margin-top:6px;transition:all .22s}
+.submit-btn:hover{transform:translateY(-2px);box-shadow:0 9px 28px rgba(34,168,90,.4)}
+
+/* ═══════════════ RESPONSIVE ═══════════════ */
+@media(max-width:960px){
+  .hero{grid-template-columns:1fr;padding:40px 20px}
+  .tech-grid,.av-grid{grid-template-columns:1fr 1fr}
+  .calc-lay,.vis-lay,.plans,.form-lay{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+  nav{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">DTF</div>
+    <div>
+      <div class="brand-name">BN20 Yannick</div>
+      <div class="brand-sub">Transferts Premium — Papeete</div>
+    </div>
+  </div>
+  <nav>
+    <a id="n-home"       onclick="goTab('home')"       class="on">Accueil</a>
+    <a id="n-fiche"      onclick="goTab('fiche')">Fiche Technique</a>
+    <a id="n-calc"       onclick="goTab('calc')">Calculateur</a>
+    <a id="n-visuel"     onclick="goTab('visuel')">Placement Visuel</a>
+    <a id="n-abonnement" onclick="goTab('abonnement')">Abonnements</a>
+    <a id="n-commande"   onclick="goTab('commande')">Commander</a>
+  </nav>
+</header>
+
+<!-- ════════════════════════════════════════════
+     TAB — ACCUEIL
+═════════════════════════════════════════════ -->
+<div id="tab-home" class="tab on">
+  <div class="hero">
+    <div>
+      <div class="hero-badge">🌺 Atelier BN20 Yannick · 45 × 100 cm</div>
+      <h1>Plaques de<br>Transfert<br><span>Thermofusibles</span></h1>
+      <p>Feuilles DTF premium 50×100 cm pour transferts haute définition sur tous types de tissus. Couleurs éclatantes, durabilité maximale — livrées ici en Polynésie.</p>
+      <div class="hero-btns">
+        <button class="btn-p" onclick="goTab('abonnement')">Voir les Formules</button>
+        <button class="btn-o" onclick="goTab('visuel')">Placer mes Logos →</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:center">
+      <div style="position:relative;padding-top:18px">
+        <div style="position:absolute;top:4px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--black);font-size:8px;font-weight:800;letter-spacing:2px;padding:3px 12px;border-radius:2px;white-space:nowrap;font-family:'JetBrains Mono',monospace">FEUILLE DTF 50×100 CM</div>
+        <div class="sheet-demo" id="heroSheet"></div>
+      </div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-b"><div class="stat-n">45×100</div><div class="stat-l">Format cm</div></div>
+    <div class="stat-b"><div class="stat-n">8 000</div><div class="stat-l">XPF coût revient</div></div>
+    <div class="stat-b"><div class="stat-n">20 000</div><div class="stat-l">XPF prix de vente</div></div>
+    <div class="stat-b"><div class="stat-n">60%</div><div class="stat-l">Marge commerciale</div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB — FICHE TECHNIQUE
+═════════════════════════════════════════════ -->
+<div id="tab-fiche" class="tab">
+  <div class="wrap">
+    <div class="sec-hd"><span class="sec-n">01</span><h2 class="sec-t">Fiche Technique — DTF 50×100 cm</h2><div class="sec-ln"></div></div>
+    <div class="tech-grid">
+      <div class="tc"><div class="tc-ico">📐</div><div class="tc-lbl">Dimensions</div><div class="tc-val">50 × 100 cm</div><div class="tc-dsc">Format standard professionnel, optimisé pour la production en série</div></div>
+      <div class="tc g"><div class="tc-ico">🖨️</div><div class="tc-lbl">Technologie</div><div class="tc-val">DTF — Direct To Film</div><div class="tc-dsc">Impression directe sur film PET, transfert thermofusible haute précision</div></div>
+      <div class="tc"><div class="tc-ico">🌡️</div><div class="tc-lbl">Application</div><div class="tc-val">160–175°C · 10–15 sec</div><div class="tc-dsc">Presse à chaud, chaleur sèche. Pression modérée recommandée</div></div>
+      <div class="tc r"><div class="tc-ico">🎨</div><div class="tc-lbl">Rendu couleurs</div><div class="tc-val">CMJN + blanc opaque</div><div class="tc-dsc">Sous-couche blanche intégrée — rendu parfait sur tissus sombres</div></div>
+      <div class="tc"><div class="tc-ico">👕</div><div class="tc-lbl">Compatibilité</div><div class="tc-val">Tous textiles</div><div class="tc-dsc">Coton, polyester, mélange, cuir synthétique, nylon, toile</div></div>
+      <div class="tc g"><div class="tc-ico">🔬</div><div class="tc-lbl">Résolution</div><div class="tc-val">1440 DPI</div><div class="tc-dsc">Détail fin, rendu photographique, dégradés fluides</div></div>
+      <div class="tc"><div class="tc-ico">🧺</div><div class="tc-lbl">Résistance lavage</div><div class="tc-val">+50 lavages 40°C</div><div class="tc-dsc">Adhérence durable, pas d'écaillage, flexibilité conservée</div></div>
+      <div class="tc"><div class="tc-ico">☀️</div><div class="tc-lbl">Tenue UV</div><div class="tc-val">Haute résistance</div><div class="tc-dsc">Encres anti-UV adaptées au climat tropical polynésien</div></div>
+      <div class="tc r"><div class="tc-ico">📦</div><div class="tc-lbl">Conditionnement</div><div class="tc-val">Rouleau protégé</div><div class="tc-dsc">Emballage sous vide, protection humidité, prêt à l'emploi</div></div>
+    </div>
+
+    <div class="sec-hd" style="margin-top:48px"><span class="sec-n">02</span><h2 class="sec-t">Avantages Produit</h2><div class="sec-ln"></div></div>
+    <div class="av-grid">
+      <div class="av"><div class="av-ico">⚡</div><div class="av-t">Production Rapide</div><div class="av-d">Application en moins de 15 secondes par logo. Idéal pour les petites et moyennes séries sans minimum de commande.</div></div>
+      <div class="av"><div class="av-ico">🎯</div><div class="av-t">Précision Millimétrique</div><div class="av-d">Contours nets et précis à 1440 DPI. Découpe laser possible. Aucun débordement sur les bords du motif.</div></div>
+      <div class="av"><div class="av-ico">🌈</div><div class="av-t">Couleurs Éclatantes</div><div class="av-d">Gamme chromatique étendue, dégradés parfaits, paillettes possibles. Rendu identique sur fond clair ou foncé.</div></div>
+      <div class="av"><div class="av-ico">💰</div><div class="av-t">Rentabilité 60%</div><div class="av-d">Marge commerciale de 60%. Placement jusqu'à 72 logos par feuille selon format. ROI immédiat dès la première commande.</div></div>
+      <div class="av"><div class="av-ico">🏝️</div><div class="av-t">Adapté Polynésie</div><div class="av-d">Encres résistantes à l'humidité et aux UV tropicaux. Testé dans les conditions climatiques de nos îles.</div></div>
+      <div class="av"><div class="av-ico">♻️</div><div class="av-t">Zéro Gaspillage</div><div class="av-d">Utilisation au millimètre carré, pas de logo raté. Conservation 12 mois avant application.</div></div>
+      <div class="av"><div class="av-ico">🔁</div><div class="av-t">Flexibilité Totale</div><div class="av-d">Mélangez différentes tailles et motifs sur une même feuille. Personnalisation client à la demande.</div></div>
+      <div class="av"><div class="av-ico">📲</div><div class="av-t">Commande en Ligne</div><div class="av-d">Import de fichiers PNG/SVG depuis notre plateforme web. Visualisation instantanée du placement avant validation.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB — CALCULATEUR
+═════════════════════════════════════════════ -->
+<div id="tab-calc" class="tab">
+  <div class="wrap">
+    <div class="sec-hd"><span class="sec-n">03</span><h2 class="sec-t">Calculateur de Prix & Logos</h2><div class="sec-ln"></div></div>
+    <div class="calc-lay">
+      <div class="calc-panel">
+        <h3>Paramètres</h3>
+        <div class="f-grp"><label class="f-lbl">Coût feuille (XPF)</label><input type="number" id="cCout" class="f-inp" value="8000" min="1"></div>
+        <div class="f-grp"><label class="f-lbl">Marge commerciale (%)</label><input type="number" id="cMarge" class="f-inp" value="60" min="1" max="99"></div>
+        <div class="f-grp">
+          <label class="f-lbl">Dimensions logo (cm)</label>
+          <div class="f-row">
+            <div><label class="f-lbl">Largeur</label><input type="number" id="cW" class="f-inp" value="8" step="0.5" min="1" max="50"></div>
+            <div><label class="f-lbl">Hauteur</label><input type="number" id="cH" class="f-inp" value="8" step="0.5" min="1" max="100"></div>
+          </div>
+        </div>
+        <div class="f-grp"><label class="f-lbl">Espacement (cm)</label><input type="number" id="cEsp" class="f-inp" value="0.5" step="0.1" min="0"></div>
+        <button class="calc-btn" onclick="doCalc()">⚡ CALCULER</button>
+      </div>
+      <div>
+        <div class="res-panel">
+          <div class="res-c"><div><div class="res-lbl">PRIX DE REVIENT / FEUILLE</div><div class="res-val" id="r-cout">8 000</div><div class="res-un">XPF / feuille 50×100 cm</div></div></div>
+          <div class="res-c hl"><div><div class="res-lbl">PRIX DE VENTE / FEUILLE</div><div class="res-val" id="r-vente">20 000</div><div class="res-un">XPF / feuille (marge 60%)</div></div><div class="res-badge">MARGE 60%</div></div>
+          <div class="res-c tl"><div><div class="res-lbl">NOMBRE DE LOGOS / FEUILLE</div><div class="res-val" id="r-nb">55</div><div class="res-un" id="r-nb-un">logos de 8×8 cm</div></div></div>
+          <div class="res-c"><div><div class="res-lbl">COÛT REVIENT / LOGO</div><div class="res-val" id="r-cl">145</div><div class="res-un">XPF par logo</div></div></div>
+          <div class="res-c hl"><div><div class="res-lbl">PRIX DE VENTE / LOGO</div><div class="res-val" id="r-vl">364</div><div class="res-un">XPF par logo</div></div><div class="res-badge">TARIF CLIENT</div></div>
+          <div class="res-c"><div><div class="res-lbl">BÉNÉFICE / FEUILLE</div><div class="res-val" id="r-ben">12 000</div><div class="res-un">XPF de bénéfice brut</div></div></div>
+          <div class="res-c tl"><div><div class="res-lbl">COLONNES × LIGNES</div><div class="res-val" id="r-grid">5 × 11</div><div class="res-un">disposition sur la feuille</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-hd" style="margin-top:48px"><span class="sec-n">04</span><h2 class="sec-t">Toutes les Configurations Standard</h2><div class="sec-ln"></div></div>
+    <table class="cfg-tbl"><thead><tr>
+      <th>Format Logo</th><th>Type</th><th>Col×Lig</th><th>Nb logos</th><th>Coût/logo</th><th>Prix vente/logo</th><th>Bénéfice/feuille</th>
+    </tr></thead><tbody id="cfgBody"></tbody></table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB — PLACEMENT VISUEL
+═════════════════════════════════════════════ -->
+<div id="tab-visuel" class="tab">
+  <div class="wrap">
+    <div class="sec-hd"><span class="sec-n">05</span><h2 class="sec-t">Placement Visuel &mdash; Feuille DTF 50&times;100 cm</h2><div class="sec-ln"></div></div>
+
+    <!-- BARRE ETAPES -->
+    <div style="display:flex;align-items:stretch;gap:0;margin-bottom:22px;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+      <div class="vstep on" id="step1"><span class="vstep-n">1</span><div><div class="vstep-t">Cr&eacute;er</div><div class="vstep-d">Forme &amp; dimensions</div></div></div>
+      <div class="vstep-arr">&rsaquo;</div>
+      <div class="vstep" id="step2"><span class="vstep-n">2</span><div><div class="vstep-t">Catalogue</div><div class="vstep-d">S&eacute;lectionner format</div></div></div>
+      <div class="vstep-arr">&rsaquo;</div>
+      <div class="vstep" id="step3"><span class="vstep-n">3</span><div><div class="vstep-t">Placer</div><div class="vstep-d">Cliquer sur la feuille</div></div></div>
+      <div class="vstep-arr">&rsaquo;</div>
+      <div class="vstep" id="step4"><span class="vstep-n">4</span><div><div class="vstep-t">Ajuster</div><div class="vstep-d">D&eacute;placer &amp; dupliquer</div></div></div>
+      <div class="vstep-arr">&rsaquo;</div>
+      <div class="vstep" id="step5"><span class="vstep-n">5</span><div><div class="vstep-t">Exporter</div><div class="vstep-d">Sauvegarder PNG</div></div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:270px 1fr 280px;gap:14px;align-items:start">
+
+      <!-- COL 1 ETAPE 1 : CREER UN FORMAT -->
+      <div class="panel" style="border-top:3px solid var(--gold);padding-top:22px;position:relative">
+        <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--black);font-size:9px;font-weight:900;letter-spacing:2.5px;padding:2px 12px;border-radius:0 0 4px 4px;font-family:'JetBrains Mono',monospace;white-space:nowrap">ETAPE 1</div>
+        <h4>&#127912; Cr&eacute;er un Format</h4>
+
+        <div class="import-zone" onclick="document.getElementById('imgFile').click()" style="margin-bottom:6px">
+          <div class="iz-ico">&#128193;</div>
+          <p style="font-size:10px">Logo client (optionnel)<br>PNG &middot; JPG &middot; SVG<br><span style="font-size:9px;color:var(--teal)">Dimensions &amp; forme auto-d&eacute;tect&eacute;es</span><br><span style="color:var(--gold)" id="imgFileName">Aucun fichier</span></p>
+        </div>
+        <input type="file" id="imgFile" accept="image/*" style="display:none" onchange="onImgLoad(event)">
+
+        <!-- Bandeau resolution dynamique -->
+        <div id="resoBadge" style="display:none;border-radius:4px;padding:8px 10px;margin-bottom:10px;font-size:10px;font-family:'JetBrains Mono',monospace;line-height:1.7">
+          <div id="resoLine1" style="font-weight:700"></div>
+          <div id="resoLine2"></div>
+          <div id="resoLine3" style="margin-top:3px;font-size:9px;opacity:.8"></div>
+        </div>
+
+        <!-- Forme en premier -->
+        <label class="lbl">Forme</label>
+        <div style="display:flex;gap:5px;margin-bottom:12px">
+          <button class="fbtn on" id="fb-circle" onclick="setForme('circle')">&#9899; Circ.</button>
+          <button class="fbtn"    id="fb-square" onclick="setForme('square')">&#9632; Carr&eacute;</button>
+          <button class="fbtn"    id="fb-rect"   onclick="setForme('rect')">&#9645; Rect.</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label class="lbl">Largeur (cm)</label>
+            <input type="number" id="fW" class="inp" value="8" min="1" max="50" step="0.5" oninput="syncDims('W');autoName();checkImgRes()">
+          </div>
+          <div>
+            <label class="lbl" id="fHLabel">Hauteur (cm)</label>
+            <input type="number" id="fH" class="inp" value="8" min="1" max="100" step="0.5" oninput="syncDims('H');autoName();checkImgRes()">
+          </div>
+        </div>
+        <div id="ratioInfo" style="display:none;font-size:9px;font-family:'JetBrains Mono',monospace;padding:5px 8px;background:rgba(34,168,90,.08);border-radius:4px;margin-bottom:8px;border-left:2px solid currentColor"></div>
+
+        <label class="lbl">Nom <span style="color:var(--teal);font-size:9px">auto si vide</span></label>
+        <input type="text" id="fName" class="inp" placeholder="8cm Circulaire">
+
+        <label class="lbl">Espacement (cm)</label>
+        <input type="number" id="fEsp" class="inp" value="0.5" min="0" max="5" step="0.1">
+
+        <!-- Couleur auto depuis l'image ou palette teal par defaut - hidden -->
+        <input type="hidden" id="fColor" value="#22a85a">
+
+        <button style="width:100%;background:linear-gradient(135deg,var(--gold),#a07820);color:var(--black);border:none;padding:12px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;border-radius:4px;cursor:pointer;transition:all .2s;margin-top:4px" onclick="addFmt();hlStep(2)">+ AJOUTER AU CATALOGUE</button>
+      </div>
+
+      <!-- COL 2 : CANVAS -->
+      <div class="panel" style="padding:14px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="tb on" id="t-place"  onclick="setTool('place');hlStep(3)">&#128204; Placer</button>
+          <button class="tb"    id="t-select" onclick="setTool('select');hlStep(4)">&#9632; S&eacute;lectionner</button>
+          <button class="tb"    id="t-delete" onclick="setTool('delete')">&#10060; Supprimer</button>
+          <div style="width:1px;height:22px;background:rgba(255,255,255,.09)"></div>
+          <button class="tb" style="background:linear-gradient(135deg,#1a3a00,#1e4400);border-color:#3a8a00;color:#7ddb3a" onclick="dupSel()">&#10695; Dupliquer</button>
+          <button class="tb" style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-color:#3a3a8a;color:#8a8adb" onclick="dupGrid()">&#8862; Grille &times;4</button>
+          <div style="width:1px;height:22px;background:rgba(255,255,255,.09)"></div>
+          <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.04);border-radius:4px;padding:4px 9px">
+            <button class="zbtn" onclick="dz(-0.25)">&minus;</button>
+            <span class="zlbl" id="zLbl">100%</span>
+            <button class="zbtn" onclick="dz(0.25)">+</button>
+            <button class="zbtn" style="font-size:10px;width:auto;padding:0 7px" onclick="fitZoom()">Fit</button>
+          </div>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button class="tb" style="background:var(--teal-dk);border-color:var(--teal);font-weight:700" onclick="exportPng('hi');hlStep(5)" title="300 DPI 5906x11811px">&#128190; Export 300 DPI</button>
+            <button class="tb" style="font-size:10px;padding:5px 8px;opacity:.7" onclick="exportPng('lo')" title="Apercu ecran">Apercu</button>
+          </div>
+        </div>
+
+        <div class="cv-scroll" id="cvScroll">
+          <canvas id="mainCv" width="500" height="1000"
+            onmousedown="cvDown(event)" onmousemove="cvMove(event)"
+            onmouseup="cvUp(event)" onmouseleave="cvLeave(event)"
+            onclick="cvClick(event)">
+          </canvas>
+        </div>
+
+        <div class="cv-info" id="cvInfo" style="margin-top:8px">
+          Feuille 50&times;100 cm &middot; S&eacute;lectionnez un format (Etape 2) puis cliquez pour placer
+        </div>
+
+        <div class="sel-box" id="selBox" style="margin-top:8px">
+          <div class="sel-title" id="selTitle">&mdash;</div>
+          <div class="sel-row">
+            <button class="sb g" onclick="dupSel()">&#10695; Dupliquer</button>
+            <button class="sb g" onclick="dupGrid()">&#8862; Grille x4</button>
+          </div>
+          <div class="sel-row">
+            <button class="sb" onclick="mvSel(-1,0)">&larr; 1cm</button>
+            <button class="sb" onclick="mvSel(1,0)">1cm &rarr;</button>
+            <button class="sb" onclick="mvSel(0,-1)">&uarr; 1cm</button>
+            <button class="sb" onclick="mvSel(0,1)">&darr; 1cm</button>
+          </div>
+          <div class="sel-row">
+            <button class="sb r" onclick="delSel()">Supprimer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COL 3 ETAPE 2 : CATALOGUE -->
+      <div class="panel" style="border-top:3px solid var(--teal);padding-top:22px;position:relative">
+        <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--teal);color:var(--black);font-size:9px;font-weight:900;letter-spacing:2.5px;padding:2px 12px;border-radius:0 0 4px 4px;font-family:'JetBrains Mono',monospace;white-space:nowrap">ETAPE 2</div>
+        <h4>&#128218; Catalogue de Formats</h4>
+
+        <div id="fmtLib" style="margin-bottom:12px">
+          <div style="font-size:11px;color:var(--grey-lt);text-align:center;padding:18px 0;border:1px dashed rgba(255,255,255,.1);border-radius:4px">&larr; Cr&eacute;ez un format en Etape 1</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:11px">
+          <label class="lbl">Espacement remplissage (cm)</label>
+          <input type="number" id="autoEsp" class="inp" value="0.5" min="0" max="5" step="0.1">
+          <button class="tb" style="width:100%;margin-bottom:6px" onclick="autoFill()">&#9889; Remplir (format actif)</button>
+          <button class="tb danger" style="width:100%" onclick="clearAll()">&#128465; Tout effacer</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="background:var(--grey);border-radius:4px;padding:8px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold)" id="sNb">0</div>
+            <div style="font-size:8px;color:var(--grey-lt);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace">Logos</div>
+          </div>
+          <div style="background:var(--grey);border-radius:4px;padding:8px;text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--teal)" id="sSurf">0%</div>
+            <div style="font-size:8px;color:var(--grey-lt);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace">Surface</div>
+          </div>
+        </div>
+
+        <!-- GALERIE LOGOS CLIENTS -->
+        <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--grey-lt);font-family:'JetBrains Mono',monospace">&#128444; Logos Clients</div>
+            <button onclick="clearLogoGallery()" style="font-size:9px;background:none;border:none;color:var(--grey-lt);cursor:pointer;font-family:'JetBrains Mono',monospace;padding:2px 5px" title="Effacer galerie">&#128465;</button>
+          </div>
+          <div id="logoGallery" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;min-height:48px">
+            <div style="font-size:9px;color:var(--grey-lt);text-align:center;padding:12px 4px;grid-column:1/-1;border:1px dashed rgba(255,255,255,.1);border-radius:4px">
+              Les logos upload&eacute;s apparaissent ici
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:none">
+    <span id="sFmt">0</span><span id="sResto">0</span>
+    <span id="fL">0</span><span id="fF">0</span><span id="fCF">0</span><span id="fPF">0</span>
+    <span id="fPL">0</span><span id="fR">0</span><span id="fT">0</span><span id="fB">0</span>
+    <span id="tSub">0</span><span id="tVal">0</span><span id="bdwn"></span>
+    <input id="vCout" value="8000"><input id="vMarge" value="60"><input id="vRoul" value="1">
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB — ABONNEMENTS
+═════════════════════════════════════════════ -->
+<div id="tab-abonnement" class="tab">
+  <div class="wrap">
+    <div class="sec-hd"><span class="sec-n">06</span><h2 class="sec-t">Formules d'Abonnement Mensuel</h2><div class="sec-ln"></div></div>
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-name">STARTER</div>
+        <div class="plan-sheets">📄 2 feuilles / mois</div>
+        <div class="plan-price"><div class="plan-amt">35 000</div><div class="plan-unit">XPF / mois — Éco. 5 000 XPF vs unitaire</div></div>
+        <ul class="plan-feats">
+          <li>2 feuilles DTF 50×100 cm premium</li>
+          <li>Jusqu'à 110 logos/mois (8 cm ø)</li>
+          <li>Livraison incluse Papeete</li>
+          <li>Support WhatsApp</li>
+          <li>Import fichiers en ligne</li>
+        </ul>
+        <button class="plan-btn" onclick="goTab('commande')">SOUSCRIRE</button>
+      </div>
+      <div class="plan feat">
+        <div class="plan-badge">⭐ LE PLUS POPULAIRE</div>
+        <div class="plan-name">BUSINESS</div>
+        <div class="plan-sheets">📄 5 feuilles / mois</div>
+        <div class="plan-price"><div class="plan-amt">80 000</div><div class="plan-unit">XPF / mois — Éco. 20 000 XPF vs unitaire</div></div>
+        <ul class="plan-feats">
+          <li>5 feuilles DTF 50×100 cm premium</li>
+          <li>Jusqu'à 275 logos/mois</li>
+          <li>Livraison prioritaire incluse</li>
+          <li>Support dédié + WhatsApp</li>
+          <li>Mise en page incluse (1h/mois)</li>
+          <li>Facturation client automatisée</li>
+          <li>Report feuille si non utilisée</li>
+        </ul>
+        <button class="plan-btn" onclick="goTab('commande')">SOUSCRIRE →</button>
+      </div>
+      <div class="plan">
+        <div class="plan-name">PRO STUDIO</div>
+        <div class="plan-sheets">📄 10 feuilles / mois</div>
+        <div class="plan-price"><div class="plan-amt">140 000</div><div class="plan-unit">XPF / mois — Éco. 60 000 XPF vs unitaire</div></div>
+        <ul class="plan-feats">
+          <li>10 feuilles DTF 50×100 cm premium</li>
+          <li>Jusqu'à 550 logos/mois</li>
+          <li>Livraison express J+1 Papeete</li>
+          <li>Account manager dédié</li>
+          <li>Mise en page illimitée</li>
+          <li>Tableau de bord analytics</li>
+          <li>Formation application offerte</li>
+          <li>2 feuilles bonus 1ère commande</li>
+        </ul>
+        <button class="plan-btn" onclick="goTab('commande')">SOUSCRIRE</button>
+      </div>
+    </div>
+    <div style="background:#111;border:1px solid var(--border);border-radius:8px;padding:24px;margin-top:26px;text-align:center">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--gold);margin-bottom:8px">FORMULE À LA CARTE</div>
+      <div style="color:#aaa;font-size:12px;margin-bottom:18px">Commande ponctuelle sans engagement</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:540px;margin:0 auto">
+        <div style="background:var(--grey);padding:18px;border-radius:6px"><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold)">20 000</div><div style="font-size:10px;color:#888;margin-top:3px">XPF / feuille</div></div>
+        <div style="background:var(--grey);padding:18px;border-radius:6px"><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--teal)">+ 2000</div><div style="font-size:10px;color:#888;margin-top:3px">XPF livraison</div></div>
+        <div style="background:var(--grey);padding:18px;border-radius:6px"><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--white)">5j</div><div style="font-size:10px;color:#888;margin-top:3px">délai moyen</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     TAB — COMMANDE
+═════════════════════════════════════════════ -->
+<div id="tab-commande" class="tab">
+  <div class="wrap">
+    <div class="sec-hd"><span class="sec-n">07</span><h2 class="sec-t">Formulaire de Commande</h2><div class="sec-ln"></div></div>
+    <div class="form-lay">
+      <div class="form-sec">
+        <h3>👤 Informations Client</h3>
+        <div><label class="f-lbl2">Nom complet / Entreprise *</label><input type="text" class="f-inp2" placeholder="Fare Hei Création…"></div>
+        <div class="fr2">
+          <div><label class="f-lbl2">Téléphone *</label><input type="tel" class="f-inp2" placeholder="+689 87 xx xx xx"></div>
+          <div><label class="f-lbl2">Email *</label><input type="email" class="f-inp2" placeholder="vous@exemple.pf"></div>
+        </div>
+        <div><label class="f-lbl2">Île / Commune</label>
+          <select class="f-sel2">
+            <option>Papeete — Tahiti</option><option>Faa'a</option><option>Pirae</option>
+            <option>Moorea</option><option>Bora Bora</option><option>Raiatea</option><option>Autre île (expédition)</option>
+          </select></div>
+        <div><label class="f-lbl2">Formule choisie</label>
+          <select class="f-sel2" id="cmdFormule">
+            <option value="starter">STARTER — 35 000 XPF/mois (2 feuilles)</option>
+            <option value="business" selected>BUSINESS — 80 000 XPF/mois (5 feuilles)</option>
+            <option value="pro">PRO STUDIO — 140 000 XPF/mois (10 feuilles)</option>
+            <option value="carte">À LA CARTE — 20 000 XPF/feuille</option>
+          </select></div>
+        <div><label class="f-lbl2">Nombre de feuilles (si à la carte)</label><input type="number" class="f-inp2" placeholder="ex: 3" min="1"></div>
+        <div><label class="f-lbl2">Mode de paiement</label>
+          <select class="f-sel2">
+            <option>Virement bancaire (OPT)</option><option>Chèque</option>
+            <option>Espèces (remise en main propre)</option><option>PayPal</option>
+          </select></div>
+      </div>
+      <div class="form-sec">
+        <h3>🎨 Détails Commande</h3>
+        <div><label class="f-lbl2">Type de textile cible</label>
+          <select class="f-sel2"><option>T-shirts coton</option><option>Polos polyester</option><option>Sweat-shirts</option><option>Casquettes</option><option>Sacs / totebags</option><option>Mixte</option></select></div>
+        <div class="fr2">
+          <div><label class="f-lbl2">Taille logo principale (cm)</label>
+            <select class="f-sel2">
+              <option>8 cm (diamètre)</option><option>10 cm</option><option>12 cm</option>
+              <option>15 cm</option><option>20 cm</option><option>24 cm (diamètre)</option><option>Mixte</option>
+            </select></div>
+          <div><label class="f-lbl2">Quantité logos estimée</label><input type="number" class="f-inp2" placeholder="ex: 50"></div>
+        </div>
+        <div><label class="f-lbl2">Forme des logos</label>
+          <select class="f-sel2"><option>Circulaire</option><option>Rectangulaire</option><option>Carré</option><option>Forme libre</option></select></div>
+        <div><label class="f-lbl2">Date de livraison souhaitée</label><input type="date" class="f-inp2"></div>
+        <div><label class="f-lbl2">Fichiers graphiques (PNG 300DPI, SVG, AI)</label>
+          <div class="import-zone" onclick="document.getElementById('fOrder').click()" style="margin-bottom:12px">
+            <div class="iz-ico">📎</div><p>Fond transparent requis · Plusieurs fichiers acceptés</p>
+          </div>
+          <input type="file" id="fOrder" accept="image/*,.svg,.ai,.pdf" multiple style="display:none"></div>
+        <div><label class="f-lbl2">Instructions particulières</label>
+          <textarea class="f-ta2" placeholder="Couleurs, disposition souhaitée, contraintes…"></textarea></div>
+        <button class="submit-btn" onclick="submitOrder()">✅ ENVOYER MA COMMANDE</button>
+      </div>
+    </div>
+    <div style="background:linear-gradient(135deg,#0d1f1c,#111);border:1px solid var(--teal);border-radius:8px;padding:22px;margin-top:26px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+      <div style="font-size:28px">📞</div>
+      <div><div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--gold)">NOUS CONTACTER</div><div style="font-size:12px;color:#aaa;margin-top:3px">WhatsApp · Email · Rendez-vous Papeete</div></div>
+      <div style="margin-left:auto;text-align:right"><div style="font-size:16px;font-weight:700">+689 87 xx xx xx</div><div style="font-size:11px;color:var(--teal)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7a1e0e1c3a0a151603141f09131f1b080e09540a1c">[email&#160;protected]</a></div></div>
+    </div>
+  </div>
+</div>
+
+<footer style="background:var(--grey);border-top:1px solid var(--border);padding:26px 36px;text-align:center;font-size:11px;color:var(--grey-lt);margin-top:50px">
+  © 2025 <span style="color:var(--gold)">DTF Polynésie Arts</span> — Transferts DTF Premium · Papeete, Tahiti · Tous droits réservés
+</footer>
+
+<!-- ════════════════════════════════════════════
+     JAVASCRIPT
+═════════════════════════════════════════════ -->
+<script>
+
+/* ═══════ TABS ═══════ */
+function goTab(id) {
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('nav a').forEach(function(a){a.classList.remove('on');});
+  document.getElementById('tab-'+id).classList.add('on');
+  var nl = document.getElementById('n-'+id); if(nl) nl.classList.add('on');
+  if(id==='calc') buildCfgTable();
+  if(id==='visuel'){ initCanvas(); setTimeout(fitZoom,60); }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ═══════ HERO DOTS ═══════ */
+(function(){
+  var sh=document.getElementById('heroSheet'); if(!sh) return;
+  for(var i=0;i<42;i++){var d=document.createElement('div');d.className='demo-dot';d.style.animationDelay=(i*0.06)+'s';sh.appendChild(d);}
+})();
+
+/* ═══════ CALCULATEUR ═══════ */
+var fmt=function(n){return Math.round(n).toLocaleString('fr-FR');};
+
+function cfgCalc(cout,marge,lw,lh,esp){
+  var pv=cout/(1-marge/100);
+  var cols=Math.floor(SHEET_W/(lw+esp)); var rows=Math.floor(SHEET_H/(lh+esp));
+  var nb=cols*rows; var cL=nb>0?cout/nb:0; var vL=nb>0?pv/nb:0;
+  return{pv:pv,nb:nb,cL:cL,vL:vL,ben:pv-cout,cols:cols,rows:rows};
+}
+
+function doCalc(){
+  var cout=+document.getElementById('cCout').value||8000;
+  var marge=+document.getElementById('cMarge').value||60;
+  var lw=+document.getElementById('cW').value||8;
+  var lh=+document.getElementById('cH').value||8;
+  var esp=+document.getElementById('cEsp').value||0.5;
+  var r=cfgCalc(cout,marge,lw,lh,esp);
+  document.getElementById('r-cout').textContent=fmt(cout);
+  document.getElementById('r-vente').textContent=fmt(r.pv);
+  document.getElementById('r-nb').textContent=r.nb;
+  document.getElementById('r-nb-un').textContent='logos de '+lw+'x'+lh+' cm (esp. '+esp+' cm)';
+  document.getElementById('r-cl').textContent=fmt(r.cL);
+  document.getElementById('r-vl').textContent=fmt(r.vL);
+  document.getElementById('r-ben').textContent=fmt(r.ben);
+  document.getElementById('r-grid').textContent=r.cols+' x '+r.rows;
+}
+doCalc();
+
+var CFGS=[
+  {label:'8cm circ.',w:8,h:8,type:'Circulaire'},{label:'8x5 badge',w:8,h:5,type:'Rectangle'},
+  {label:'10cm circ.',w:10,h:10,type:'Circulaire'},{label:'10x7',w:10,h:7,type:'Rectangle'},
+  {label:'12cm circ.',w:12,h:12,type:'Circulaire'},{label:'12x8',w:12,h:8,type:'Rectangle'},
+  {label:'15cm circ.',w:15,h:15,type:'Circulaire'},{label:'15x10',w:15,h:10,type:'Rectangle'},
+  {label:'20cm circ.',w:20,h:20,type:'Circulaire'},{label:'20x15',w:20,h:15,type:'Rectangle'},
+  {label:'24cm circ.',w:24,h:24,type:'Circulaire'},{label:'24x20',w:24,h:20,type:'Rectangle'},
+  {label:'30x20',w:30,h:20,type:'Rectangle'},{label:'50x30',w:50,h:30,type:'Rectangle'}
+];
+
+function buildCfgTable(){
+  var cout=8000,marge=60,esp=0.5;
+  document.getElementById('cfgBody').innerHTML=CFGS.map(function(c){
+    var r=cfgCalc(cout,marge,c.w,c.h,esp);
+    return '<tr><td class="td-b">'+c.label+'</td><td>'+c.type+'</td><td class="td-t">'+r.cols+'x'+r.rows+'</td><td class="td-b" style="font-size:17px">'+r.nb+'</td><td class="td-g">'+fmt(r.cL)+' XPF</td><td class="td-t">'+fmt(r.vL)+' XPF</td><td style="color:var(--gold-lt);font-family:JetBrains Mono,monospace">'+fmt(r.ben)+' XPF</td></tr>';
+  }).join('');
+}
+
+/* ═══════ CANVAS VARS ═══════ */
+var cv,ctx;
+var fmtLibrary=[], placed=[], pendingImg=null;
+var activeFmtId=null, selId=null, tool='place', zoom=1.0;
+var dragging=false, dragStart=null, dragOrigPos=null, hov=null, uid=1;
+var SHEET_W=45, SHEET_H=100;
+var S=10, SW=450, SH=1000;
+
+/* ═══════ INIT ═══════ */
+function initCanvas(){
+  if(cv) return;
+  cv=document.getElementById('mainCv');
+  ctx=cv.getContext('2d');
+  fmtLibrary=[];
+  activeFmtId=null;
+  renderLib(); renderCv();
+}
+
+/* ═══════ FORME BUTTONS ═══════ */
+function setForme(f){
+  document.querySelectorAll('.fbtn').forEach(function(b){b.classList.remove('on');});
+  var el=document.getElementById('fb-'+f); if(el) el.classList.add('on');
+  var fH=document.getElementById('fH'), fW=document.getElementById('fW');
+  var fHLbl=document.getElementById('fHLabel');
+  if(f==='square'){
+    if(fH&&fW) fH.value=fW.value;
+    if(fH){fH.disabled=true;fH.style.opacity='.4';}
+    if(fHLbl) fHLbl.innerHTML='Hauteur (cm) <span style="color:var(--teal);font-size:9px">= Largeur</span>';
+  } else {
+    if(fH){fH.disabled=false;fH.style.opacity='1';}
+    if(fHLbl) fHLbl.textContent='Hauteur (cm)';
+  }
+  autoName();
+}
+
+function getActiveForme(){
+  var el=document.querySelector('.fbtn.on'); if(!el) return 'circle';
+  return el.id.replace('fb-','');
+}
+
+function syncDims(changed){
+  var forme=getActiveForme();
+  var fW=document.getElementById('fW');
+  var fH=document.getElementById('fH');
+  if(!fW||!fH) return;
+  var v=parseFloat(document.getElementById('f'+changed).value)||0;
+  if(v<=0){ autoName(); return; }
+
+  if(forme==='square'){
+    // Carre : L = H toujours
+    fW.value=v; fH.value=v;
+  } else if(pendingImg&&pendingImg._ratio){
+    // Proportionnel selon ratio pixel du logo importe
+    var r=pendingImg._ratio; // W/H
+    if(changed==='W'){
+      // L modifie -> H suit
+      var newH=Math.max(0.5,Math.min(100, Math.round((v/r)*10)/10));
+      fH.value=newH;
+    } else {
+      // H modifie -> L suit
+      var newW=Math.max(0.5,Math.min(50, Math.round((v*r)*10)/10));
+      fW.value=newW;
+    }
+    // Indicateur ratio
+    showRatioInfo(parseFloat(fW.value), parseFloat(fH.value), r);
+  }
+  autoName();
+}
+
+function showRatioInfo(lw, lh, ratio){
+  var el=document.getElementById('ratioInfo');
+  if(!el) return;
+  var pct=Math.round(Math.abs(lw/lh - ratio)*100);
+  if(pct===0){
+    el.style.color='#4dd9c8';
+    el.textContent='Ratio 1:'+Math.round(1/ratio*10)/10+' ('+lw+'x'+lh+' cm) - Proportions exactes';
+  } else {
+    el.style.color='#d4a843';
+    el.textContent='Ratio '+Math.round(ratio*100)/100+' - '+lw+'x'+lh+' cm';
+  }
+  el.style.display='block';
+}
+
+/* ═══════ AUTO-NAME ═══════ */
+function autoNameFor(forme,lw,lh){
+  if(forme==='circle') return lw+'cm Circulaire';
+  if(forme==='square') return lw+'x'+lw+' Carre';
+  return lw+'x'+lh+' Rectangle';
+}
+
+function autoName(){
+  var nameEl=document.getElementById('fName'); if(!nameEl) return;
+  if(nameEl.dataset&&nameEl.dataset.custom==='1') return;
+  var forme=getActiveForme();
+  var lw=parseFloat(document.getElementById('fW')?document.getElementById('fW').value:8)||8;
+  var lh=parseFloat(document.getElementById('fH')?document.getElementById('fH').value:8)||8;
+  nameEl.placeholder=autoNameFor(forme,lw,forme==='square'?lw:lh);
+}
+
+/* ═══════ RANDOM COLOR ═══════ */
+function randomColor(){
+  var colors=['#22a85a','#d4a843','#e03c3c','#3a6de0','#8b3ae0','#e07a3a','#3ae04a','#e03a9e'];
+  var c=colors[Math.floor(Math.random()*colors.length)];
+  var fc=document.getElementById('fColor'), cp=document.getElementById('cprev');
+  if(fc) fc.value=c; if(cp) cp.style.background=c;
+}
+
+/* ═══════ IMAGE IMPORT + AUTO-DETECT ═══════ */
+function detectDpiFromFilename(name){
+  var m=name.match(/[_\-@](\d{2,4})\s*dpi/i)||name.match(/(\d{2,4})\s*dpi/i);
+  return m?parseInt(m[1]):null;
+}
+
+function autoDetectFormat(img,fileName){
+  var W=img.naturalWidth||img.width, H=img.naturalHeight||img.height;
+  var CM_IN=2.54, ratio=W/H, isSquarish=(ratio>0.9&&ratio<1.1);
+  var srcDpi=detectDpiFromFilename(fileName)||300;
+  // Calcul dimensions depuis DPI source
+  var wCm=parseFloat((W/(srcDpi/CM_IN)).toFixed(2));
+  var hCm=parseFloat((H/(srcDpi/CM_IN)).toFixed(2));
+  // Clamp a la feuille tout en preservant le ratio exact
+  if(wCm>50){ var s=50/wCm; wCm=50; hCm=parseFloat((hCm*s).toFixed(2)); }
+  if(hCm>100){ var s2=100/hCm; hCm=100; wCm=parseFloat((wCm*s2).toFixed(2)); }
+  // Arrondi propre 1 decimale
+  wCm=Math.max(0.5,Math.round(wCm*10)/10);
+  hCm=Math.max(0.5,Math.round(hCm*10)/10);
+  var forme='rect';
+  if(isSquarish) forme=(Math.abs(wCm-hCm)<0.2)?'circle':'square';
+  return{wCm:wCm,hCm:hCm,forme:forme,srcDpi:srcDpi,px:W+'x'+H,imgRatio:W/H};
+}
+
+function onImgLoad(e){
+  var file=e.target.files[0]; if(!file) return;
+  document.getElementById('imgFileName').textContent=file.name;
+  var rd=new FileReader();
+  rd.onload=function(ev){
+    var img=new Image();
+    img.onload=function(){
+      pendingImg=img; pendingImg._fileName=file.name;
+      var det=autoDetectFormat(img,file.name);
+      pendingImg._ratio=det.imgRatio; // ratio W/H pour proportionnalite
+      pendingImg._srcDpi=det.srcDpi;
+      var fW=document.getElementById('fW'), fH=document.getElementById('fH');
+      if(fW) fW.value=det.wCm; if(fH) fH.value=det.hCm;
+      if(typeof setForme==='function') setForme(det.forme);
+      // Afficher info ratio
+      if(det.imgRatio){
+        var fW2=document.getElementById('fW'), fH2=document.getElementById('fH');
+        if(fW2&&fH2) showRatioInfo(parseFloat(fW2.value),parseFloat(fH2.value),det.imgRatio);
+      }
+      var nameEl=document.getElementById('fName');
+      if(nameEl&&(!nameEl.dataset.custom||nameEl.dataset.custom!=='1')){
+        var baseName=file.name.replace(/\.[^.]+$/,'').replace(/[_\-]/g,' ');
+        nameEl.placeholder=baseName+' - '+det.wCm+'x'+det.hCm+'cm';
+      }
+      // Badge auto-detect
+      var badge=document.getElementById('resoBadge');
+      var l1=document.getElementById('resoLine1'),l2=document.getElementById('resoLine2'),l3=document.getElementById('resoLine3');
+      if(badge){
+        badge.style.display='block';
+        badge.style.background='rgba(34,168,90,.1)'; badge.style.border='1px solid rgba(34,168,90,.35)';
+        l1.style.color='#4dd9c8'; l1.textContent='Detecte depuis l image';
+        l2.style.color='#ccc';   l2.textContent=det.px+'px - '+det.srcDpi+' DPI source - Forme: '+det.forme;
+        l3.style.color='#888';   l3.textContent='Dimensions: '+det.wCm+' x '+det.hCm+' cm - Verifiez et ajustez';
+      }
+      if(typeof autoName==='function') autoName();
+      setTimeout(function(){checkImgRes();},50);
+    };
+    img.src=ev.target.result;
+  };
+  rd.readAsDataURL(file);
+}
+
+/* ═══════ RESOLUTION CHECKER ═══════ */
+function checkImgRes(){
+  var badge=document.getElementById('resoBadge');
+  var l1=document.getElementById('resoLine1'),l2=document.getElementById('resoLine2'),l3=document.getElementById('resoLine3');
+  if(!badge||!pendingImg){if(badge)badge.style.display='none';return;}
+  var CM_IN=2.54, TARGET=300, MIN=150;
+  var lw=parseFloat(document.getElementById('fW')?document.getElementById('fW').value:8)||8;
+  var lh=parseFloat(document.getElementById('fH')?document.getElementById('fH').value:8)||8;
+  var forme=getActiveForme(); if(forme==='square') lh=lw;
+  var W=pendingImg.naturalWidth||pendingImg.width;
+  var H=pendingImg.naturalHeight||pendingImg.height;
+  var dpiX=Math.round(W/(lw/CM_IN)), dpiY=Math.round(H/(lh/CM_IN));
+  var dpiMin=Math.min(dpiX,dpiY);
+  var reqW=Math.round(lw/CM_IN*TARGET), reqH=Math.round(lh/CM_IN*TARGET);
+  var minW=Math.round(lw/CM_IN*MIN), minH=Math.round(lh/CM_IN*MIN);
+  badge.style.display='block';
+  if(dpiMin>=TARGET){
+    badge.style.background='rgba(34,168,90,.15)'; badge.style.border='1px solid rgba(34,168,90,.4)';
+    l1.style.color='#4dd9c8'; l1.textContent='OK '+dpiMin+' DPI - Qualite optimale';
+    l2.style.color='#aaa';   l2.textContent=W+'x'+H+'px - Format '+lw+'x'+lh+' cm';
+    l3.style.color='#888';   l3.textContent='Requis 300 DPI = '+reqW+'x'+reqH+'px - OK';
+  } else if(dpiMin>=MIN){
+    badge.style.background='rgba(212,168,67,.12)'; badge.style.border='1px solid rgba(212,168,67,.4)';
+    l1.style.color='#d4a843'; l1.textContent='Attention '+dpiMin+' DPI - Acceptable (min 150)';
+    l2.style.color='#aaa';   l2.textContent=W+'x'+H+'px - Format '+lw+'x'+lh+' cm';
+    l3.style.color='#d4a843';l3.textContent='Pour 300 DPI il faut '+reqW+'x'+reqH+'px';
+  } else {
+    badge.style.background='rgba(224,60,60,.12)'; badge.style.border='1px solid rgba(224,60,60,.45)';
+    l1.style.color='#e03c3c'; l1.textContent='ERREUR '+dpiMin+' DPI - Resolution insuffisante';
+    l2.style.color='#aaa';   l2.textContent=W+'x'+H+'px - Format '+lw+'x'+lh+' cm';
+    l3.style.color='#e03c3c';l3.textContent='Min '+minW+'x'+minH+'px (150dpi) - Ideal '+reqW+'x'+reqH+'px (300dpi)';
+  }
+}
+
+/* ═══════ FORMAT CATALOGUE ═══════ */
+function addFmt(){
+  var forme=getActiveForme();
+  var lw=parseFloat(document.getElementById('fW').value)||8;
+  var lh=parseFloat(document.getElementById('fH').value)||8;
+  if(forme==='square') lh=lw;
+  var esp=parseFloat(document.getElementById('fEsp').value)||0.5;
+  var color='#22a85a';
+  var fColorEl=document.getElementById('fColor');
+  if(fColorEl) color=fColorEl.value||'#22a85a';
+  // Auto-color from image if available
+  if(pendingImg) color=imgDominantColor(pendingImg);
+  var nameEl=document.getElementById('fName');
+  var name=nameEl?nameEl.value.trim():'';
+  if(!name) name=autoNameFor(forme,lw,lh);
+  if(lw>SHEET_W||lh>SHEET_H){alert('Dimensions trop grandes pour cette feuille.');return;}
+  var f={id:uid++,name:name,lw:lw,lh:lh,forme:forme,img:pendingImg,color:color,esp:esp};
+  fmtLibrary.push(f); activeFmtId=f.id; pendingImg=null;
+  document.getElementById('imgFileName').textContent='Aucun fichier';
+  var badge=document.getElementById('resoBadge'); if(badge) badge.style.display='none';
+  var ri=document.getElementById('ratioInfo'); if(ri) ri.style.display='none';
+  // Update logo gallery
+  if(f.img) addToLogoGallery(f);
+  if(nameEl){nameEl.value='';nameEl.dataset.custom='0';}
+  autoName(); renderLib(); renderCv();
+}
+
+function delFmt(fid){
+  fmtLibrary=fmtLibrary.filter(function(f){return f.id!==fid;});
+  if(activeFmtId===fid) activeFmtId=fmtLibrary.length?fmtLibrary[0].id:null;
+  renderLib(); renderCv();
+}
+
+function selFmt(fid){ activeFmtId=fid; renderLib(); }
+
+function countFit(f){
+  return Math.floor(SHEET_W/(f.lw+f.esp))*Math.floor(SHEET_H/(f.lh+f.esp));
+}
+
+function fmtIcon(forme){
+  if(forme==='circle') return 'Circ.';
+  if(forme==='square') return 'Carre';
+  return 'Rect.';
+}
+
+function swatchBR(forme){ return forme==='circle'?'50%':forme==='square'?'3px':'3px'; }
+
+function renderLib(){
+  var el=document.getElementById('fmtLib'); if(!el) return;
+  if(!fmtLibrary.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--grey-lt);text-align:center;padding:14px 0">Aucun format</div>';
+    return;
+  }
+  el.innerHTML=fmtLibrary.map(function(f){
+    var isAct=f.id===activeFmtId;
+    var ratio=Math.min(f.lw/f.lh,2); var sw=Math.round(38*Math.min(ratio,1)); var sh=Math.round(38/Math.max(ratio,1));
+    var swStyle='background:'+f.color+';border-radius:'+swatchBR(f.forme)+';width:'+Math.max(20,sw)+'px;height:'+Math.max(16,sh)+'px;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden';
+    var prev=f.img?'<img src="'+f.img.src+'" style="width:100%;height:100%;object-fit:cover">'
+                  :'<span style="font-size:8px;color:rgba(255,255,255,.8)">'+f.lw+'x'+f.lh+'</span>';
+    return '<div class="fmt-card'+(isAct?' active':'')+'" onclick="selFmt('+f.id+')">'
+      +'<div style="'+swStyle+'">'+prev+'</div>'
+      +'<div class="fmt-info"><div class="fmt-name">'+f.name+'</div>'
+      +'<div class="fmt-dims">'+f.lw+'x'+f.lh+' cm - '+fmtIcon(f.forme)+' - esp:'+f.esp+'cm</div>'
+      +'<div class="fmt-qty">Max '+countFit(f)+' logos/feuille</div></div>'
+      +'<button class="fmt-del" onclick="event.stopPropagation();delFmt('+f.id+')">x</button>'
+      +'</div>';
+  }).join('');
+}
+
+/* ═══════ ZOOM ═══════ */
+function applyZoom(){
+  if(!cv) return;
+  cv.style.width=(SW*zoom)+'px'; cv.style.height=(SH*zoom)+'px';
+  document.getElementById('zLbl').textContent=Math.round(zoom*100)+'%';
+}
+function dz(d){ zoom=Math.max(0.2,Math.min(3.5,zoom+d)); applyZoom(); }
+function fitZoom(){
+  var sc=document.getElementById('cvScroll');
+  var avail=sc?sc.clientWidth-32:500;
+  zoom=Math.min(1.0,avail/SW); applyZoom();
+}
+
+/* ═══════ TOOLS ═══════ */
+function setTool(t){
+  tool=t;
+  if(t!=='select'){selId=null;updSelBox();}
+  document.querySelectorAll('.tb[id^="t-"]').forEach(function(b){b.classList.remove('on');});
+  var el=document.getElementById('t-'+t); if(el) el.classList.add('on');
+  if(cv) cv.style.cursor=t==='place'?'crosshair':(t==='delete'?'not-allowed':'default');
+  renderCv();
+}
+
+/* ═══════ COORDS / HIT ═══════ */
+function coords(e){
+  var r=cv.getBoundingClientRect();
+  return{x:(e.clientX-r.left)*(SW/r.width),y:(e.clientY-r.top)*(SH/r.height)};
+}
+function hit(cx,cy,lg){
+  var hw=lg.lw*S/2, hh=lg.lh*S/2;
+  if(lg.forme==='square'){var side=Math.min(hw,hh); return Math.abs(cx-lg.x)<=side&&Math.abs(cy-lg.y)<=side;}
+  return Math.abs(cx-lg.x)<=hw&&Math.abs(cy-lg.y)<=hh;
+}
+
+/* ═══════ RESIZE STATE ═══════ */
+var resizing=false, resizeCorner=null, resizeOrigLg=null;
+var HANDLE_R=7; // rayon zone poignee en px canvas
+
+function getHandles(lg){
+  var hw=lg.lw*S/2, hh=lg.lh*S/2;
+  if(lg.forme==='square'){hw=Math.min(hw,hh);hh=hw;}
+  return [
+    {dx:-1,dy:-1,x:lg.x-hw,y:lg.y-hh,cur:'nw-resize'},
+    {dx: 1,dy:-1,x:lg.x+hw,y:lg.y-hh,cur:'ne-resize'},
+    {dx:-1,dy: 1,x:lg.x-hw,y:lg.y+hh,cur:'sw-resize'},
+    {dx: 1,dy: 1,x:lg.x+hw,y:lg.y+hh,cur:'se-resize'}
+  ];
+}
+
+function hitHandle(p,lg){
+  if(!lg) return null;
+  var r=HANDLE_R*(SW/cv.getBoundingClientRect().width);
+  var handles=getHandles(lg);
+  for(var i=0;i<handles.length;i++){
+    var h=handles[i];
+    if(Math.abs(p.x-h.x)<=r&&Math.abs(p.y-h.y)<=r) return h;
+  }
+  return null;
+}
+
+/* ═══════ MOUSE EVENTS ═══════ */
+function cvDown(e){
+  if(tool!=='select') return;
+  var p=coords(e);
+  // Check resize handle first (only if something selected)
+  if(selId!==null){
+    var lg=placed.find(function(l){return l.id===selId;});
+    var h=hitHandle(p,lg);
+    if(h){
+      resizing=true; resizeCorner=h;
+      resizeOrigLg={x:lg.x,y:lg.y,lw:lg.lw,lh:lg.lh};
+      dragStart=p; cv.style.cursor=h.cur; return;
+    }
+  }
+  // Normal drag
+  var found=placed.slice().reverse().find(function(l){return hit(p.x,p.y,l);});
+  if(found){selId=found.id;dragging=true;dragStart=p;dragOrigPos={x:found.x,y:found.y};cv.style.cursor='grabbing';updSelBox();renderCv();}
+  else{selId=null;updSelBox();renderCv();}
+}
+
+function cvMove(e){
+  var p=coords(e);
+
+  // RESIZE mode
+  if(resizing&&selId!==null){
+    var lg=placed.find(function(l){return l.id===selId;});
+    if(lg){
+      var orig=resizeOrigLg;
+      var dx=p.x-dragStart.x, dy=p.y-dragStart.y;
+      // Corner direction: dx/dy applied to the moving corner
+      var dw=resizeCorner.dx*dx; // positive = grow
+      var dh=resizeCorner.dy*dy;
+      // New half-sizes
+      var MIN_CM=0.5;
+      var newLw=Math.max(MIN_CM, orig.lw + dw/S*2);
+      var newLh=Math.max(MIN_CM, orig.lh + dh/S*2);
+      // Square: keep equal
+      if(lg.forme==='square') newLh=newLw;
+      // Circle: maintain aspect ratio from larger delta
+      if(lg.forme==='circle'){
+        var avgD=(Math.abs(dw)+Math.abs(dh))/2*(dw+dh>0?1:-1);
+        newLw=Math.max(MIN_CM,orig.lw+avgD/S*2);
+        newLh=newLw;
+      }
+      // Clamp to sheet
+      newLw=Math.min(newLw,50); newLh=Math.min(newLh,100);
+      lg.lw=parseFloat(newLw.toFixed(1));
+      lg.lh=parseFloat(newLh.toFixed(1));
+      // Reposition center so the fixed corner stays fixed
+      var hw=lg.lw*S/2, hh=lg.lh*S/2;
+      lg.x=Math.max(hw,Math.min(SW-hw, orig.x + resizeCorner.dx*(lg.lw-orig.lw)*S/2));
+      lg.y=Math.max(hh,Math.min(SH-hh, orig.y + resizeCorner.dy*(lg.lh-orig.lh)*S/2));
+      updSelBox(); renderCv();
+    }
+    return;
+  }
+
+  // DRAG mode
+  if(dragging&&selId!==null){
+    var lg2=placed.find(function(l){return l.id===selId;});
+    if(lg2){
+      var hw2=lg2.lw*S/2, hh2=lg2.lh*S/2;
+      lg2.x=Math.max(hw2,Math.min(SW-hw2,dragOrigPos.x+p.x-dragStart.x));
+      lg2.y=Math.max(hh2,Math.min(SH-hh2,dragOrigPos.y+p.y-dragStart.y));
+      updatePricing(); renderCv();
+    }
+    return;
+  }
+
+  // HOVER: change cursor near handles or over items
+  if(tool==='place'){hov=p;renderCv();}
+  else if(tool==='select'){
+    var cur='default';
+    if(selId!==null){
+      var lg3=placed.find(function(l){return l.id===selId;});
+      var hh3=hitHandle(p,lg3);
+      if(hh3){cur=hh3.cur;}
+      else if(placed.find(function(l){return hit(p.x,p.y,l);})){cur='grab';}
+    } else if(placed.find(function(l){return hit(p.x,p.y,l);})){cur='grab';}
+    cv.style.cursor=cur;
+  }
+}
+
+function cvUp(e){
+  if(resizing){resizing=false;resizeCorner=null;resizeOrigLg=null;cv.style.cursor='default';updatePricing();return;}
+  if(dragging){dragging=false;cv.style.cursor='default';}
+}
+function cvLeave(e){hov=null;if(resizing){resizing=false;resizeCorner=null;}if(dragging)dragging=false;renderCv();}
+
+function cvClick(e){
+  if(dragging) return;
+  var p=coords(e);
+  if(tool==='place'){
+    var f=fmtLibrary.find(function(f){return f.id===activeFmtId;});
+    if(!f){alert('Selectionnez un format dans le catalogue.');return;}
+    var hw=f.lw*S/2, hh=f.lh*S/2;
+    if(p.x-hw<0||p.x+hw>SW||p.y-hh<0||p.y+hh>SH) return;
+    placed.push({id:uid++,x:p.x,y:p.y,lw:f.lw,lh:f.lh,forme:f.forme,img:f.img,color:f.color,name:f.name,esp:f.esp});
+    updatePricing(); renderCv();
+  } else if(tool==='delete'){
+    var found=placed.slice().reverse().find(function(l){return hit(p.x,p.y,l);});
+    if(found){placed=placed.filter(function(l){return l.id!==found.id;});if(selId===found.id){selId=null;updSelBox();}updatePricing();renderCv();}
+  }
+}
+
+/* ═══════ RENDER ═══════ */
+function renderCv(){
+  if(!cv||!ctx) return;
+  ctx.clearRect(0,0,SW,SH);
+  var grd=ctx.createLinearGradient(0,0,SW,SH);
+  grd.addColorStop(0,'#f5f0e8');grd.addColorStop(1,'#e8e0d0');
+  ctx.fillStyle=grd;ctx.fillRect(0,0,SW,SH);
+  ctx.strokeStyle='rgba(0,0,0,0.04)';ctx.lineWidth=0.4;
+  for(var x=0;x<=SW;x+=S){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,SH);ctx.stroke();}
+  for(var y=0;y<=SH;y+=S){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(SW,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(0,0,0,0.09)';ctx.lineWidth=0.7;
+  for(var x5=0;x5<=SW;x5+=S*5){ctx.beginPath();ctx.moveTo(x5,0);ctx.lineTo(x5,SH);ctx.stroke();}
+  for(var y5=0;y5<=SH;y5+=S*5){ctx.beginPath();ctx.moveTo(0,y5);ctx.lineTo(SW,y5);ctx.stroke();}
+  placed.forEach(function(lg,i){drawItem(lg,i+1,lg.id===selId,false);});
+  if(hov&&tool==='place'){
+    var f=fmtLibrary.find(function(f){return f.id===activeFmtId;});
+    if(f) drawItem({x:hov.x,y:hov.y,lw:f.lw,lh:f.lh,forme:f.forme,img:f.img,color:f.color},'?',false,true);
+  }
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.font='bold 10px monospace';
+  ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('45 cm',SW/2,4);
+  ctx.save();ctx.translate(13,SH/2);ctx.rotate(-Math.PI/2);ctx.fillText('100 cm',0,0);ctx.restore();
+  var su=surfacePct();
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.font='8px monospace';
+  ctx.textAlign='right';ctx.textBaseline='bottom';
+  ctx.fillText('Surface: '+su+'%',SW-6,SH-4);
+}
+
+function h2r(hex,a){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+
+function drawItem(lg,lbl,isSel,isPrev){
+  var cx=lg.x,cy=lg.y,pw=lg.lw*S,ph=lg.lh*S,hw=pw/2,hh=ph/2;
+  ctx.save();
+  if(isSel){ctx.shadowColor='#d4a843';ctx.shadowBlur=16;}
+  else if(!isPrev){ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=5;}
+  function shapePath(){
+    ctx.beginPath();
+    if(lg.forme==='circle') ctx.ellipse(cx,cy,hw,hh,0,0,Math.PI*2);
+    else if(lg.forme==='square'){var side=Math.min(hw,hh);ctx.rect(cx-side,cy-side,side*2,side*2);}
+    else ctx.rect(cx-hw,cy-hh,pw,ph);
+  }
+  shapePath();
+  if(lg.img&&!isPrev){
+    ctx.save();ctx.clip();
+    if(lg.forme==='square'){var side=Math.min(hw,hh);ctx.drawImage(lg.img,cx-side,cy-side,side*2,side*2);}
+    else ctx.drawImage(lg.img,cx-hw,cy-hh,pw,ph);
+    ctx.restore();shapePath();
+    ctx.strokeStyle=isSel?'#d4a843':'rgba(255,255,255,.5)';
+    ctx.lineWidth=isSel?2.5:1.5;ctx.stroke();
+  } else {
+    var a=isPrev?0.28:0.72; var col=lg.color||'#22a85a';
+    ctx.fillStyle=h2r(col,a);ctx.fill();
+    ctx.strokeStyle=isSel?'#d4a843':(isPrev?h2r(col,.6):col);
+    ctx.lineWidth=isSel?3:(isPrev?1:1.5);
+    ctx.setLineDash(isPrev?[5,3]:[]);ctx.stroke();ctx.setLineDash([]);
+  }
+  if(!isPrev){
+    ctx.shadowBlur=0;ctx.fillStyle='rgba(255,255,255,.92)';
+    var fs=Math.max(7,Math.min(12,hw*0.38));
+    ctx.font='bold '+fs+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(lbl,cx,cy);
+  }
+  if(isSel){
+    ctx.shadowBlur=0;
+    var hhx=lg.forme==='square'?Math.min(hw,hh):hw;
+    var hhy=lg.forme==='square'?Math.min(hw,hh):hh;
+    // Dimensions label
+    ctx.fillStyle='rgba(212,168,67,.9)';
+    ctx.font='bold 8px monospace';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText(lg.lw+'x'+lg.lh+' cm', cx, cy-hhy-8);
+    // Corner resize handles
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(function(d){
+      var hx=cx+d[0]*hhx, hy=cy+d[1]*hhy;
+      // Outer square handle
+      ctx.fillStyle='#d4a843';
+      ctx.fillRect(hx-6,hy-6,12,12);
+      // Inner white square
+      ctx.fillStyle='#fff';
+      ctx.fillRect(hx-3,hy-3,6,6);
+      // Diagonal arrow hint
+      ctx.strokeStyle='#d4a843'; ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.moveTo(hx+d[0]*2,hy+d[1]*2);
+      ctx.lineTo(hx+d[0]*5,hy+d[1]*5);
+      ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+
+function surfacePct(){
+  var total=SW*SH, used=0;
+  placed.forEach(function(lg){
+    if(lg.forme==='circle') used+=Math.PI*(lg.lw*S/2)*(lg.lh*S/2);
+    else if(lg.forme==='square'){var side=Math.min(lg.lw,lg.lh)*S;used+=side*side;}
+    else used+=lg.lw*S*lg.lh*S;
+  });
+  return Math.min(100,Math.round(used/total*100));
+}
+
+/* ═══════ AUTO-FILL ═══════ */
+function autoFill(){
+  var f=fmtLibrary.find(function(f){return f.id===activeFmtId;});
+  if(!f){alert('Selectionnez un format actif.');return;}
+  var esp=parseFloat(document.getElementById('autoEsp').value)||0.5;
+  var effW=(f.lw+esp)*S, effH=(f.lh+esp)*S;
+  var hw=f.lw*S/2, hh=f.lh*S/2;
+  var cols=Math.floor(SW/effW), rows=Math.floor(SH/effH);
+  var sx=(SW-(cols*effW-esp*S))/2, sy=(SH-(rows*effH-esp*S))/2;
+  for(var r=0;r<rows;r++) for(var c=0;c<cols;c++)
+    placed.push({id:uid++,x:sx+c*effW+hw,y:sy+r*effH+hh,lw:f.lw,lh:f.lh,forme:f.forme,img:f.img,color:f.color,name:f.name,esp:f.esp});
+  updatePricing();renderCv();
+}
+
+function clearAll(){
+  if(placed.length&&!confirm('Effacer tous les logos?')) return;
+  placed=[];selId=null;updSelBox();updatePricing();renderCv();
+}
+
+/* ═══════ SELECTION ═══════ */
+function updSelBox(){
+  var box=document.getElementById('selBox');
+  var ttl=document.getElementById('selTitle');
+  if(!selId){if(box)box.classList.remove('vis');return;}
+  var lg=placed.find(function(l){return l.id===selId;});
+  if(!lg){if(box)box.classList.remove('vis');return;}
+  if(box) box.classList.add('vis');
+  if(ttl) ttl.textContent=lg.name+' - '+lg.lw+'x'+lg.lh+' cm - '+lg.forme+(resizing?' [REDIM...]':'');
+}
+
+function dupSel(){
+  var lg=placed.find(function(l){return l.id===selId;}); if(!lg) return;
+  var hw=lg.lw*S/2;
+  var nx=Math.min(SW-hw,lg.x+lg.lw*S+5);
+  var nl=Object.assign({},lg,{id:uid++,x:nx});
+  placed.push(nl);selId=nl.id;updSelBox();updatePricing();renderCv();
+}
+
+function dupGrid(){
+  var lg=placed.find(function(l){return l.id===selId;}); if(!lg) return;
+  var stX=(lg.lw+(lg.esp||0.5))*S, stY=(lg.lh+(lg.esp||0.5))*S;
+  [[1,0],[0,1],[1,1]].forEach(function(d){
+    var nx=lg.x+d[0]*stX, ny=lg.y+d[1]*stY;
+    var hw=lg.lw*S/2, hh=lg.lh*S/2;
+    if(nx-hw>=0&&nx+hw<=SW&&ny-hh>=0&&ny+hh<=SH)
+      placed.push(Object.assign({},lg,{id:uid++,x:nx,y:ny}));
+  });
+  updatePricing();renderCv();
+}
+
+function mvSel(dcm,drm){
+  var lg=placed.find(function(l){return l.id===selId;}); if(!lg) return;
+  var hw=lg.lw*S/2, hh=lg.lh*S/2;
+  lg.x=Math.max(hw,Math.min(SW-hw,lg.x+dcm*S));
+  lg.y=Math.max(hh,Math.min(SH-hh,lg.y+drm*S));
+  renderCv();
+}
+
+function delSel(){
+  placed=placed.filter(function(l){return l.id!==selId;});
+  selId=null;updSelBox();updatePricing();renderCv();
+}
+
+/* ═══════ PRICING ═══════ */
+function updatePricing(){
+  var cout=parseFloat(document.getElementById('vCout')?document.getElementById('vCout').value:8000)||8000;
+  var marge=parseFloat(document.getElementById('vMarge')?document.getElementById('vMarge').value:60)||60;
+  var nRoul=parseInt(document.getElementById('vRoul')?document.getElementById('vRoul').value:1)||1;
+  var pv=cout/(1-marge/100), nb=placed.length, pL=nb>0?pv/nb:0;
+  var surfP=surfacePct();
+  var fmtsUsed=[...new Set(placed.map(function(l){return l.name;}))];
+  var sNb=document.getElementById('sNb'),sSurf=document.getElementById('sSurf');
+  if(sNb) sNb.textContent=nb; if(sSurf) sSurf.textContent=surfP+'%';
+  var inf=document.getElementById('cvInfo');
+  if(inf) inf.textContent=nb>0?nb+' logo(s) - Surface: '+surfP+'% - Moy: '+fmt(pL)+' XPF/logo':'Feuille 50x100 cm - Selectionnez un format puis cliquez pour placer';
+  updSelBox();
+}
+
+/* ═══════ EXPORT 300 DPI ═══════ */
+function exportPng(forceRes){
+  if(!cv) return;
+  var DPI_PRINT=300, CM_PER_IN=2.54;
+  var PX_PER_CM=DPI_PRINT/CM_PER_IN;
+  var MULT=PX_PER_CM/S;
+  var HI_W=Math.round(SHEET_W*PX_PER_CM), HI_H=Math.round(SHEET_H*PX_PER_CM);
+  var res=forceRes||'hi';
+  var expW=res==='hi'?HI_W:SW, expH=res==='hi'?HI_H:SH;
+  var expM=res==='hi'?MULT:1;
+  var dpiLabel=res==='hi'?'300dpi':'96dpi';
+  var oc=document.createElement('canvas');
+  oc.width=expW; oc.height=expH;
+  var ox=oc.getContext('2d');
+  ox.scale(expM,expM);
+  ox.fillStyle='#ffffff'; ox.fillRect(0,0,SW,SH);
+  ox.strokeStyle='rgba(0,0,0,0.06)';ox.lineWidth=0.3;
+  for(var gx=0;gx<=SW;gx+=S){ox.beginPath();ox.moveTo(gx,0);ox.lineTo(gx,SH);ox.stroke();}
+  for(var gy=0;gy<=SH;gy+=S){ox.beginPath();ox.moveTo(0,gy);ox.lineTo(SW,gy);ox.stroke();}
+  ox.strokeStyle='rgba(0,0,0,0.12)';ox.lineWidth=0.5;
+  for(var gx5=0;gx5<=SW;gx5+=S*5){ox.beginPath();ox.moveTo(gx5,0);ox.lineTo(gx5,SH);ox.stroke();}
+  for(var gy5=0;gy5<=SH;gy5+=S*5){ox.beginPath();ox.moveTo(0,gy5);ox.lineTo(SW,gy5);ox.stroke();}
+  var origCtx=ctx; ctx=ox;
+  placed.forEach(function(lg,i){drawItem(lg,i+1,false,false);});
+  ctx=origCtx;
+  ox.fillStyle='rgba(0,0,0,.3)';ox.font='bold '+(S*0.85)+'px monospace';
+  ox.textAlign='center';ox.textBaseline='top';ox.fillText('45 cm',SW/2,S*0.15);
+  ox.save();ox.translate(S*1.1,SH/2);ox.rotate(-Math.PI/2);ox.fillText('100 cm',0,0);ox.restore();
+  ox.fillStyle='rgba(0,0,0,.15)';ox.font=(S*0.65)+'px monospace';
+  ox.textAlign='right';ox.textBaseline='bottom';
+  ox.fillText('DTF 45x100cm '+DPI_PRINT+'DPI '+expW+'x'+expH+'px',SW-S*0.3,SH-S*0.2);
+  function u32(n){return [(n>>24)&0xff,(n>>16)&0xff,(n>>8)&0xff,n&0xff];}
+  function injectPHYs(dataUrl,ppm){
+    var b64=dataUrl.split(',')[1],bin=atob(b64),arr=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    var crcT=(function(){var t=new Uint32Array(256);for(var i=0;i<256;i++){var c=i;for(var j=0;j<8;j++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c;}return t;})();
+    function crc32(buf){var c=0xFFFFFFFF;for(var i=0;i<buf.length;i++)c=crcT[(c^buf[i])&0xff]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+    var cn=[0x70,0x48,0x59,0x73],pd=new Uint8Array([].concat(u32(ppm),u32(ppm),[1]));
+    var ci=new Uint8Array([].concat(cn,Array.from(pd)));
+    var pc=new Uint8Array([].concat(u32(9),cn,Array.from(pd),u32(crc32(ci))));
+    var IHDR=33,res2=new Uint8Array(arr.length+pc.length);
+    res2.set(arr.slice(0,IHDR));res2.set(pc,IHDR);res2.set(arr.slice(IHDR),IHDR+pc.length);
+    var out='',chunk=8192;
+    for(var ri=0;ri<res2.length;ri+=chunk) out+=String.fromCharCode.apply(null,res2.slice(ri,ri+chunk));
+    return 'data:image/png;base64,'+btoa(out);
+  }
+  var pxPerMeter=Math.round(DPI_PRINT/CM_PER_IN*100);
+  var rawUrl=oc.toDataURL('image/png',1.0);
+  var finalUrl=res==='hi'?injectPHYs(rawUrl,pxPerMeter):rawUrl;
+  var lnk=document.createElement('a');
+  lnk.download='DTF-45x100cm-'+dpiLabel+'-'+Date.now()+'.png';
+  lnk.href=finalUrl; lnk.click();
+}
+
+/* ═══════ HLSTEP ═══════ */
+function hlStep(n){
+  for(var i=1;i<=5;i++){
+    var el=document.getElementById('step'+i);
+    if(el) el.classList.toggle('on',i===n);
+  }
+}
+
+/* ═══════ SUBMIT ═══════ */
+function submitOrder(){
+  var f=document.getElementById('cmdFormule');
+  var fv=f?f.value:'business';
+  alert('Commande envoyee !\n\nFormule : '+fv.toUpperCase()+'\n\nNous vous contactons sous 24h.');
+}
+
+/* ═══════ DOM READY ═══════ */
+document.addEventListener('DOMContentLoaded',function(){
+  var nameEl=document.getElementById('fName');
+  if(nameEl){
+    nameEl.addEventListener('input',function(){this.dataset.custom=this.value.trim()?'1':'0';});
+    nameEl.addEventListener('blur',function(){if(!this.value.trim()){this.dataset.custom='0';autoName();}});
+  }
+  var colorEl=document.getElementById('fColor');
+  if(colorEl) colorEl.addEventListener('input',function(){var cp=document.getElementById('cprev');if(cp)cp.style.background=this.value;});
+  autoName();
+});
+
+/* ═══════ WINDOW EXPOSE ═══════ */
+
+/* ═══════ LOGO GALLERY ═══════ */
+var logoGalleryItems=[]; // {id, img, name, lw, lh, forme}
+
+function imgDominantColor(img){
+  // Sample center pixel for dominant color hint
+  var oc=document.createElement('canvas'); oc.width=1; oc.height=1;
+  var ox=oc.getContext('2d');
+  ox.drawImage(img,Math.floor(img.width/2),Math.floor(img.height/2),1,1,0,0,1,1);
+  var d=ox.getImageData(0,0,1,1).data;
+  // If pixel is too light (near white), use teal default
+  if(d[0]>220&&d[1]>220&&d[2]>220) return '#22a85a';
+  return 'rgba('+d[0]+','+d[1]+','+d[2]+',0.85)';
+}
+
+function addToLogoGallery(fmt){
+  // Avoid duplicates by img src
+  var exists=logoGalleryItems.find(function(l){return l.img&&fmt.img&&l.img.src===fmt.img.src;});
+  if(exists) return;
+  logoGalleryItems.push({id:fmt.id,img:fmt.img,name:fmt.name,lw:fmt.lw,lh:fmt.lh,forme:fmt.forme});
+  renderLogoGallery();
+}
+
+function renderLogoGallery(){
+  var el=document.getElementById('logoGallery'); if(!el) return;
+  if(!logoGalleryItems.length){
+    el.innerHTML='<div style="font-size:9px;color:var(--grey-lt);text-align:center;padding:12px 4px;grid-column:1/-1;border:1px dashed rgba(255,255,255,.1);border-radius:4px">Les logos upload&eacute;s apparaissent ici</div>';
+    return;
+  }
+  el.innerHTML=logoGalleryItems.map(function(it,idx){
+    var br=it.forme==='circle'?'50%':it.forme==='square'?'4px':'4px';
+    return '<div style="position:relative;cursor:pointer;group" title="'+it.name+' - '+it.lw+'x'+it.lh+'cm" onclick="applyLogoFromGallery('+idx+')">'
+      +'<img src="'+it.img.src+'" style="width:100%;aspect-ratio:1;object-fit:contain;border-radius:'+br+';background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);display:block">'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:7px;font-family:JetBrains Mono,monospace;color:#ccc;text-align:center;padding:2px;border-radius:0 0 4px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+it.lw+'x'+it.lh+'</div>'
+      +'<button onclick="event.stopPropagation();removeFromGallery('+idx+')" style="position:absolute;top:2px;right:2px;width:14px;height:14px;border-radius:50%;background:rgba(224,60,60,.85);border:none;color:#fff;font-size:8px;cursor:pointer;line-height:1;padding:0;display:flex;align-items:center;justify-content:center">x</button>'
+      +'</div>';
+  }).join('');
+}
+
+function applyLogoFromGallery(idx){
+  var it=logoGalleryItems[idx]; if(!it) return;
+  // Set as pendingImg and fill form fields
+  pendingImg=it.img;
+  var fW=document.getElementById('fW'), fH=document.getElementById('fH');
+  if(fW) fW.value=it.lw; if(fH) fH.value=it.lh;
+  if(typeof setForme==='function') setForme(it.forme);
+  var nameEl=document.getElementById('fName');
+  if(nameEl) nameEl.placeholder=it.name;
+  document.getElementById('imgFileName').textContent=it.name;
+  if(typeof checkImgRes==='function') setTimeout(checkImgRes,50);
+  if(typeof autoName==='function') autoName();
+}
+
+function removeFromGallery(idx){
+  logoGalleryItems.splice(idx,1);
+  renderLogoGallery();
+}
+
+function clearLogoGallery(){
+  if(logoGalleryItems.length&&!confirm('Effacer tous les logos de la galerie?')) return;
+  logoGalleryItems=[];
+  renderLogoGallery();
+}
+
+
+/* AUTO-OPEN TAB FROM URL */
+(function(){
+  var p = new URLSearchParams(window.location.search).get('tab');
+  if(p) window.addEventListener('load', function(){ goTab(p); });
+})();
+window.goTab=goTab; window.doCalc=doCalc; window.buildCfgTable=buildCfgTable;
+window.initCanvas=initCanvas; window.addFmt=addFmt; window.delFmt=delFmt; window.selFmt=selFmt;
+window.onImgLoad=onImgLoad; window.checkImgRes=checkImgRes;
+window.autoDetectFormat=autoDetectFormat; window.detectDpiFromFilename=detectDpiFromFilename;
+window.setForme=setForme; window.getActiveForme=getActiveForme;
+window.syncDims=syncDims;
+window.showRatioInfo=showRatioInfo; window.autoName=autoName; window.autoNameFor=autoNameFor;
+window.randomColor=randomColor; window.dz=dz; window.fitZoom=fitZoom;
+window.setTool=setTool; window.cvDown=cvDown; window.cvMove=cvMove;
+window.cvUp=cvUp; window.cvLeave=cvLeave; window.cvClick=cvClick;
+window.autoFill=autoFill; window.clearAll=clearAll;
+window.dupSel=dupSel; window.dupGrid=dupGrid; window.mvSel=mvSel; window.delSel=delSel;
+window.updatePricing=updatePricing; window.exportPng=exportPng;
+window.hlStep=hlStep; window.submitOrder=submitOrder;
+window.getHandles=getHandles;
+window.hitHandle=hitHandle;
+window.addToLogoGallery=addToLogoGallery;
+window.renderLogoGallery=renderLogoGallery;
+window.applyLogoFromGallery=applyLogoFromGallery;
+window.removeFromGallery=removeFromGallery;
+window.clearLogoGallery=clearLogoGallery;
+window.imgDominantColor=imgDominantColor;
+window.renderLib=renderLib; window.drawItem=drawItem; window.renderCv=renderCv;
+window.surfacePct=surfacePct; window.h2r=h2r; window.updSelBox=updSelBox;
+</script>
+</body>
+</html>

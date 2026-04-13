@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SignMaster PRO — Guide HCS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0a0a14;color:#e0e0f0;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #f0c040;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(240,192,64,.15)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:38px;height:38px;background:linear-gradient(135deg,#f0c040,#d4a020);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo h1{font-size:17px;color:#f0c040;font-weight:700}
+.logo p{font-size:11px;color:#666688;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:10px}
+.btn-nav{font-size:11px;color:#666688;text-decoration:none;background:#12122a;border:1px solid #1e1e3a;border-radius:7px;padding:5px 12px;transition:.2s;white-space:nowrap}
+.btn-nav:hover{color:#f0c040;border-color:#f0c040}
+.search-wrap{position:relative}
+#searchInput{background:#0d0d20;border:1px solid #1e1e3a;border-radius:20px;color:#e0e0f0;padding:6px 14px 6px 32px;font-size:12px;width:200px;outline:none;transition:.2s}
+#searchInput:focus{border-color:#f0c040;width:260px}
+.search-wrap::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1}
+
+/* ── SIDEBAR ── */
+nav{width:230px;min-width:230px;background:#0d0d1e;border-right:1px solid #1e1e3a;padding:16px 0;position:sticky;top:57px;height:calc(100vh - 57px);overflow-y:auto}
+.nav-section{padding:8px 16px 4px;font-size:10px;color:#444466;text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-top:8px}
+.nav-link{display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:12px;color:#8888aa;cursor:pointer;transition:.2s;border-left:3px solid transparent;text-decoration:none}
+.nav-link:hover{color:#e0e0f0;background:#12122a;border-left-color:#f0c040}
+.nav-link.active{color:#f0c040;background:#1a1a30;border-left-color:#f0c040}
+.nav-link .icon{font-size:14px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;font-size:9px;background:#1a1500;color:#f0c040;border:1px solid #4a3800;border-radius:8px;padding:1px 6px}
+
+/* ── MAIN CONTENT ── */
+main{flex:1;padding:24px 32px;max-width:980px;overflow-y:auto}
+.section{margin-bottom:48px;scroll-margin-top:72px}
+.section-title{font-size:20px;font-weight:700;color:#f0c040;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.section-sub{font-size:12px;color:#666688;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #1e1e3a}
+
+/* ── CARDS ── */
+.card{background:#12122a;border:1px solid #1e1e3a;border-radius:11px;padding:16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;color:#e0e0f0;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{font-size:12px;color:#8888aa;line-height:1.7}
+
+/* ── STEPS ── */
+.steps{display:flex;flex-direction:column;gap:12px}
+.step{display:flex;gap:14px;align-items:flex-start;background:#12122a;border:1px solid #1e1e3a;border-radius:10px;padding:14px}
+.step-num{width:32px;height:32px;min-width:32px;background:linear-gradient(135deg,#f0c040,#d4a020);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#1a1000}
+.step-body{flex:1}
+.step-title{font-size:13px;font-weight:600;color:#e0e0f0;margin-bottom:4px}
+.step-desc{font-size:12px;color:#8888aa;line-height:1.6}
+.step-tip{margin-top:6px;background:#1a1200;border-left:3px solid #f0c040;padding:6px 10px;font-size:11px;color:#c8a830;border-radius:0 6px 6px 0}
+
+/* ── INTERFACE MAP ── */
+.interface-map{background:#12122a;border:1px solid #1e1e3a;border-radius:11px;padding:20px}
+.ui-zones{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.ui-zone{background:#0d0d20;border-radius:8px;padding:12px;border-left:4px solid}
+.ui-zone.z1{border-left-color:#4a9eff}
+.ui-zone.z2{border-left-color:#f0c040}
+.ui-zone.z3{border-left-color:#4caf50}
+.ui-zone.z4{border-left-color:#ff9800}
+.ui-zone.z5{border-left-color:#ab47bc}
+.ui-zone.z6{border-left-color:#ef5350}
+.ui-zone-title{font-size:11px;font-weight:600;color:#e0e0f0;margin-bottom:4px}
+.ui-zone p{font-size:11px;color:#666688;line-height:1.5}
+
+/* ── MATERIAL TABLE ── */
+.mat-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.mat-table th{background:#0d0d20;color:#666688;padding:9px 12px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #1e1e3a}
+.mat-table td{padding:9px 12px;border-bottom:1px solid #0d0d20;color:#a0a0c0;vertical-align:middle}
+.mat-table tr:hover td{background:#0f0f22}
+.mat-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.mat-vinyl{background:#1a1500;color:#f0c040;border:1px solid #4a3800}
+.mat-flex{background:#0d1a2e;color:#4a9eff;border:1px solid #1a3a5a}
+.mat-flock{background:#0f2f0f;color:#4caf50;border:1px solid #2d7a2d}
+.mat-transfer{background:#2a1400;color:#ff9800;border:1px solid #5a3000}
+.mat-carton{background:#1a0a2e;color:#ce93d8;border:1px solid #4a1a6a}
+
+/* ── CALCULATOR ── */
+.calc-box{background:#12122a;border:1px solid #f0c040;border-radius:10px;padding:16px}
+.calc-title{font-size:13px;font-weight:600;color:#f0c040;margin-bottom:12px}
+.calc-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.calc-label{font-size:12px;color:#8888aa;width:100px}
+select.calc-sel,input.calc-inp{background:#0d0d20;border:1px solid #1e1e3a;border-radius:6px;color:#e0e0f0;padding:6px 10px;font-size:12px;font-family:inherit}
+.calc-result{background:#0d0d20;border-radius:8px;padding:12px;font-size:12px;color:#4caf50;margin-top:8px;display:none}
+.calc-result.show{display:block}
+.btn-calc{background:linear-gradient(135deg,#f0c040,#d4a020);color:#1a1000;border:none;border-radius:7px;padding:8px 20px;font-size:12px;font-weight:700;cursor:pointer}
+
+/* ── WORKFLOW ── */
+.flow{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin-bottom:16px}
+.flow-step{background:#12122a;border:1px solid #1e1e3a;border-radius:8px;padding:10px 14px;font-size:11px;text-align:center;min-width:90px}
+.flow-step .f-icon{font-size:18px;margin-bottom:4px}
+.flow-step .f-name{color:#e0e0f0;font-weight:600;font-size:11px}
+.flow-step .f-detail{color:#666688;font-size:10px;margin-top:2px}
+.flow-arrow{color:#f0c040;font-size:18px;padding:0 4px}
+.flow-note{background:#0d0d20;border-left:3px solid #4a9eff;padding:8px 12px;font-size:11px;color:#8888aa;border-radius:0 6px 6px 0;margin-top:8px}
+
+/* ── CONTOUR CUT ── */
+.contour-steps{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cs{background:#12122a;border:1px solid #1e1e3a;border-radius:9px;padding:12px}
+.cs-num{font-size:20px;font-weight:700;color:#f0c040;margin-bottom:4px}
+.cs-title{font-size:12px;font-weight:600;color:#e0e0f0;margin-bottom:4px}
+.cs-desc{font-size:11px;color:#666688;line-height:1.5}
+
+/* ── FORMATS ── */
+.format-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.fmt-card{background:#12122a;border:1px solid #1e1e3a;border-radius:9px;padding:12px;text-align:center}
+.fmt-ext{font-size:18px;font-weight:700;margin-bottom:4px}
+.fmt-name{font-size:10px;color:#666688;margin-bottom:6px}
+.fmt-tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.fmt-tag{font-size:9px;padding:2px 6px;border-radius:6px;background:#1e1e3a;color:#8888aa}
+.fmt-tag.rec{background:#0f2f0f;color:#4caf50;border:1px solid #2d7a2d}
+.fmt-tag.ok{background:#0d1a2e;color:#4a9eff}
+.fmt-tag.warn{background:#2a1400;color:#ff9800}
+
+/* ── SHORTCUTS ── */
+.shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shortcut-group{background:#12122a;border:1px solid #1e1e3a;border-radius:9px;padding:14px}
+.sg-title{font-size:11px;font-weight:600;color:#f0c040;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;border-bottom:1px solid #1e1e3a;padding-bottom:6px}
+.sc-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;border-bottom:1px solid #0d0d20}
+.sc-row:last-child{border-bottom:none}
+.sc-action{color:#a0a0c0}
+.sc-key{display:flex;gap:4px}
+.kbd{background:#1a1a30;border:1px solid #2e2e4a;border-bottom:3px solid #2e2e4a;border-radius:4px;padding:2px 6px;font-size:10px;color:#e0e0f0;font-family:monospace}
+.btn-print{background:#1e1e3a;border:1px solid #2e2e4a;color:#a0a0c0;border-radius:7px;padding:7px 16px;font-size:11px;cursor:pointer;margin-bottom:12px;transition:.2s}
+.btn-print:hover{color:#f0c040;border-color:#f0c040}
+
+/* ── TROUBLESHOOT ── */
+.trouble-table{width:100%;border-collapse:collapse;font-size:12px}
+.trouble-table th{background:#0d0d20;color:#666688;padding:9px 12px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #1e1e3a}
+.trouble-table td{padding:10px 12px;border-bottom:1px solid #0d0d20;color:#a0a0c0;vertical-align:top}
+.trouble-table tr:hover td{background:#0f0f22}
+.prob{color:#ef5350;font-weight:600}
+.cause{color:#ff9800}
+.solution{color:#4caf50}
+.sev{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.sev-high{background:#ef5350}
+.sev-med{background:#ff9800}
+.sev-low{background:#4caf50}
+
+/* ── PLOTTER CONFIG ── */
+.config-steps{display:flex;flex-direction:column;gap:8px}
+.cfg{display:flex;gap:12px;align-items:flex-start;background:#12122a;border:1px solid #1e1e3a;border-radius:9px;padding:12px}
+.cfg-n{width:24px;height:24px;min-width:24px;background:#f0c040;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1a1000}
+.cfg-body{flex:1}
+.cfg-title{font-size:12px;font-weight:600;color:#e0e0f0;margin-bottom:3px}
+.cfg-desc{font-size:11px;color:#8888aa;line-height:1.5}
+code{background:#0d0d20;border:1px solid #1e1e3a;border-radius:4px;padding:1px 6px;font-size:11px;color:#4a9eff;font-family:monospace}
+
+/* ── SEARCH HIGHLIGHT ── */
+.highlight{background:#4a3800;border-radius:2px}
+.hidden-search{display:none!important}
+
+/* ── PRINT ── */
+@media print{
+  header,nav,.btn-print,.btn-calc,.search-wrap{display:none!important}
+  body{background:#fff;color:#000}
+  main{padding:0}
+  .section-title{color:#000}
+  .card,.step,.mat-table,.shortcut-group,.cs,.cfg{background:#f5f5f5;border:1px solid #ccc}
+  .kbd{background:#eee;border-color:#aaa}
+  code{background:#eee}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">✂️</div>
+    <div>
+      <h1>SignMaster PRO — Guide de référence</h1>
+      <p>High Coffee Shirt · Papeete · 3 traceurs vinyle</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="search-wrap">
+      <input id="searchInput" type="text" placeholder="Rechercher..." oninput="doSearch(this.value)">
+    </div>
+    <a href="stock-dashboard.html" class="btn-nav">📦 Agent 4</a>
+    <a href="../../hcs-hub.html" class="btn-nav">← Hub HCS</a>
+    <button class="btn-nav" onclick="window.print()">🖨️ Imprimer</button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="nav-section">Navigation</div>
+    <a class="nav-link active" href="#start" onclick="setActive(this)"><span class="icon">🚀</span>Démarrage rapide<span class="nav-badge">5 étapes</span></a>
+    <a class="nav-link" href="#interface" onclick="setActive(this)"><span class="icon">🖥️</span>Interface</a>
+    <a class="nav-link" href="#materiaux" onclick="setActive(this)"><span class="icon">🎨</span>Matériaux<span class="nav-badge">5 types</span></a>
+    <a class="nav-link" href="#workflow" onclick="setActive(this)"><span class="icon">🔄</span>Workflow HCS</a>
+    <a class="nav-link" href="#contour" onclick="setActive(this)"><span class="icon">✂️</span>Contour Cut</a>
+    <a class="nav-link" href="#formats" onclick="setActive(this)"><span class="icon">📁</span>Formats fichiers</a>
+    <a class="nav-link" href="#shortcuts" onclick="setActive(this)"><span class="icon">⌨️</span>Raccourcis</a>
+    <a class="nav-link" href="#depannage" onclick="setActive(this)"><span class="icon">🔧</span>Dépannage</a>
+    <div class="nav-section">Configuration</div>
+    <a class="nav-link" href="#config" onclick="setActive(this)"><span class="icon">⚙️</span>Config. plotter</a>
+    <div class="nav-section">Liens HCS</div>
+    <a class="nav-link" href="../agent3_visuel/picwish-pipeline.html"><span class="icon">🎨</span>Agent 3 — Visuel</a>
+    <a class="nav-link" href="stock-dashboard.html"><span class="icon">📦</span>Agent 4 — Stock</a>
+    <a class="nav-link" href="../../hcs-hub.html"><span class="icon">🏠</span>Hub HCS</a>
+  </nav>
+
+  <!-- MAIN -->
+  <main id="mainContent">
+
+    <!-- ═══ 1. DÉMARRAGE RAPIDE ═══ -->
+    <section class="section" id="start">
+      <div class="section-title">🚀 Démarrage rapide</div>
+      <div class="section-sub">Première découpe en 5 étapes — de l'ouverture du logiciel à la pièce découpée</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Lancer SignMaster PRO</div>
+            <div class="step-desc">Double-cliquer sur l'icône bureau ou <strong>Démarrer → SignMaster PRO</strong>. Attendre le chargement complet de l'interface (barre d'outils + zone de travail visibles).</div>
+            <div class="step-tip">💡 Si le logiciel demande une clé de licence au démarrage, elle est sur l'autocollant du CD original ou dans le dossier <code>C:\HCS\Licences\</code></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Créer ou importer un document</div>
+            <div class="step-desc"><strong>Nouveau :</strong> <code>Fichier → Nouveau</code> — définir largeur = largeur de votre rouleau (ex. 500 mm) et hauteur libre.<br>
+            <strong>Importer :</strong> <code>Fichier → Importer</code> ou glisser-déposer un fichier SVG/AI/EPS/PDF directement dans la zone de travail.</div>
+            <div class="step-tip">💡 Toujours vérifier l'unité (mm) dans <strong>Options → Paramètres document</strong> avant de commencer.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Préparer les tracés de découpe</div>
+            <div class="step-desc">Sélectionner tous les objets à découper. Vérifier que les chemins sont des <strong>contours fermés</strong> (pas de remplissage uniquement). Utiliser <strong>Objet → Vectoriser</strong> si besoin pour convertir un bitmap.<br>Affecter la couleur <strong>Registration (noir pur)</strong> aux lignes de coupe.</div>
+            <div class="step-tip">💡 Pour le vinyle flocage : prévoir au minimum <strong>5 mm de marge</strong> entre les lettres pour faciliter le désherbage.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Configurer les paramètres de coupe</div>
+            <div class="step-desc">Cliquer sur l'icône ✂️ <strong>Envoyer au traceur</strong> dans la barre d'outils (ou <code>Fichier → Découper/Tracer</code>).<br>
+            Dans la fenêtre qui s'ouvre : sélectionner votre modèle de plotter, régler <strong>Vitesse</strong> et <strong>Pression</strong> selon le matériau (voir section Matériaux).</div>
+            <div class="step-tip">💡 Toujours faire un <strong>test de coupe</strong> sur un coin du vinyle avant de lancer la découpe complète.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Lancer la découpe & désherber</div>
+            <div class="step-desc">Cliquer sur <strong>Envoyer</strong>. Le plotter commence à découper. Une fois terminé :<br>
+            1. Retirer le rouleau du plotter<br>
+            2. Couper la pièce avec le couteau rotatif<br>
+            3. Désherbager (retirer le vinyle excédentaire) avec le crochet de désherbage<br>
+            4. Appliquer le masque de transfert si nécessaire</div>
+            <div class="step-tip">💡 Si les coins sont arrondis ou si la lame saute, consulter la section Dépannage.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 2. INTERFACE ═══ -->
+    <section class="section" id="interface">
+      <div class="section-title">🖥️ Interface SignMaster PRO</div>
+      <div class="section-sub">Carte des zones clés de l'interface — repères rapides pour travailler efficacement</div>
+      <div class="interface-map">
+        <div class="ui-zones">
+          <div class="ui-zone z1">
+            <div class="ui-zone-title">🔵 Barre de menus</div>
+            <p>Fichier · Édition · Affichage · Objet · Texte · Effets · Découpe · Aide — accès à toutes les fonctions avancées</p>
+          </div>
+          <div class="ui-zone z2">
+            <div class="ui-zone-title">🟡 Barre d'outils principale</div>
+            <p>Sélection · Nœuds · Texte · Forme · Zoom · Couleur · ✂️ Envoyer au traceur — outils les plus utilisés au quotidien</p>
+          </div>
+          <div class="ui-zone z3">
+            <div class="ui-zone-title">🟢 Zone de travail</div>
+            <p>Surface blanche = zone de découpe correspondant à la largeur du vinyle. Les objets hors zone ne seront pas découpés.</p>
+          </div>
+          <div class="ui-zone z4">
+            <div class="ui-zone-title">🟠 Panneau Propriétés (droite)</div>
+            <p>Position X/Y · Dimensions · Rotation · Couleur de remplissage/contour · Épaisseur de trait</p>
+          </div>
+          <div class="ui-zone z5">
+            <div class="ui-zone-title">🟣 Palette couleurs (bas)</div>
+            <p>Couleurs standards + palettes vinyle fabricants (Oracal, Avery, Ritrama). Clic gauche = remplissage. Clic droit = contour.</p>
+          </div>
+          <div class="ui-zone z6">
+            <div class="ui-zone-title">🔴 Fenêtre Découpe</div>
+            <p>S'ouvre via ✂️ — Sélection plotter · Vitesse · Pression · Surcoupe · Mode origin · Test de coupe · Envoyer</p>
+          </div>
+        </div>
+        <div class="flow-note">
+          ⌨️ Astuce navigation : <code>Ctrl+Molette</code> pour zoomer · <code>Espace + clic-glisser</code> pour déplacer la vue · <code>Ctrl+Shift+A</code> pour tout sélectionner · <code>F8</code> pour afficher/masquer la grille
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. MATÉRIAUX ═══ -->
+    <section class="section" id="materiaux">
+      <div class="section-title">🎨 Paramètres matériaux</div>
+      <div class="section-sub">Réglages recommandés pour chaque type de vinyle — à ajuster selon votre lame et votre plotter</div>
+
+      <table class="mat-table">
+        <thead>
+          <tr>
+            <th>Matériau</th>
+            <th>Vitesse (cm/s)</th>
+            <th>Pression (g)</th>
+            <th>Passes</th>
+            <th>Surcoupe</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mat-badge mat-vinyl">Vinyle autocollant</span></td>
+            <td>35 – 45</td><td>80 – 120</td><td>1</td><td>0.5 mm</td>
+            <td>Lame standard 45°. Ne pas couper le support papier.</td>
+          </tr>
+          <tr>
+            <td><span class="mat-badge mat-flex">Flex / HTV</span></td>
+            <td>25 – 35</td><td>100 – 150</td><td>1</td><td>1.0 mm</td>
+            <td>Lame 45°. Côté mat vers le haut sur le plateau.</td>
+          </tr>
+          <tr>
+            <td><span class="mat-badge mat-flock">Flocage vinyle</span></td>
+            <td>15 – 25</td><td>150 – 200</td><td>1 – 2</td><td>1.5 mm</td>
+            <td>Lame 60°. Vitesse lente, pression élevée. Côté velours vers le haut.</td>
+          </tr>
+          <tr>
+            <td><span class="mat-badge mat-transfer">Papier transfert</span></td>
+            <td>40 – 50</td><td>60 – 80</td><td>1</td><td>0.5 mm</td>
+            <td>Lame 45°. Attention : éviter pression trop forte (déchire le papier).</td>
+          </tr>
+          <tr>
+            <td><span class="mat-badge mat-carton">Carton / Rhinestone</span></td>
+            <td>10 – 20</td><td>200 – 300</td><td>2 – 3</td><td>2.0 mm</td>
+            <td>Lame 60° ou 45° renforcée. Grille de coupe recommandée.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="calc-box">
+        <div class="calc-title">🧮 Calculateur de réglages</div>
+        <div class="calc-row">
+          <span class="calc-label">Matériau :</span>
+          <select class="calc-sel" id="cMat">
+            <option value="vinyl">Vinyle autocollant</option>
+            <option value="flex">Flex / HTV</option>
+            <option value="flock">Flocage vinyle</option>
+            <option value="transfer">Papier transfert</option>
+            <option value="carton">Carton / Rhinestone</option>
+          </select>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">Épaisseur :</span>
+          <select class="calc-sel" id="cThick">
+            <option value="thin">Fine (< 0.1 mm)</option>
+            <option value="med" selected>Moyenne (0.1 – 0.2 mm)</option>
+            <option value="thick">Épaisse (> 0.2 mm)</option>
+          </select>
+        </div>
+        <div class="calc-row">
+          <span class="calc-label">Détail :</span>
+          <select class="calc-sel" id="cDetail">
+            <option value="big">Grandes formes (> 30 mm)</option>
+            <option value="med" selected>Formes moyennes</option>
+            <option value="small">Petits détails (< 10 mm)</option>
+          </select>
+        </div>
+        <button class="btn-calc" onclick="calcSettings()">Calculer les réglages</button>
+        <div class="calc-result" id="calcResult"></div>
+      </div>
+    </section>
+
+    <!-- ═══ 4. WORKFLOW HCS ═══ -->
+    <section class="section" id="workflow">
+      <div class="section-title">🔄 Workflow HCS complet</div>
+      <div class="section-sub">De la commande client au produit fini — processus adapté à High Coffee Shirt</div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;color:#8888aa;margin-bottom:10px">Flux de production vinyle :</div>
+        <div class="flow">
+          <div class="flow-step"><div class="f-icon">📥</div><div class="f-name">Commande</div><div class="f-detail">Gmail / Messenger</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">🎨</div><div class="f-name">Design</div><div class="f-detail">Illustrator / Canva</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">💾</div><div class="f-name">Export</div><div class="f-detail">SVG ou AI</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">📂</div><div class="f-name">Import SM</div><div class="f-detail">Glisser-déposer</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">⚙️</div><div class="f-name">Réglages</div><div class="f-detail">Matériau + taille</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">✂️</div><div class="f-name">Découpe</div><div class="f-detail">Envoyer traceur</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">🪡</div><div class="f-name">Désherbage</div><div class="f-detail">Retirer excédent</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><div class="f-icon">👕</div><div class="f-name">Pressage</div><div class="f-detail">Presse à chaud</div></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="card">
+          <div class="card-title">✅ Bonnes pratiques design</div>
+          <p>• Travailler en <strong>mm</strong> dès Illustrator<br>
+          • Vectoriser tout texte (<code>Texte → Vectoriser</code>)<br>
+          • Supprimer les contours doubles avant export<br>
+          • Nommer les calques : <strong>COUPE</strong> / <strong>IMPRESSION</strong><br>
+          • Garder une copie source en .AI avant export SVG</p>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ Points d'attention HCS</div>
+          <p>• Toujours vérifier le sens d'enroulement du vinyle (lisse vers le bas sur le plotter)<br>
+          • Pour le flocage : miroir horizontal obligatoire (<code>Objet → Retourner H</code>)<br>
+          • Taille minimale texte lisible : <strong>8 mm de hauteur</strong> en vinyle, <strong>12 mm</strong> en flocage<br>
+          • Archiver le fichier SignMaster dans Dropbox <code>/HCS/2026/Production/</code></p>
+        </div>
+        <div class="card">
+          <div class="card-title">🎯 Optimisation mise en page</div>
+          <p>• Regrouper les pièces similaires sur la même bande (<code>Édition → Imbriquer</code>)<br>
+          • Laisser <strong>10 mm de marge</strong> en haut du vinyle (bord de saisie plotter)<br>
+          • Trier par couleur pour minimiser les changements de vinyle<br>
+          • Utiliser <strong>Répéter</strong> (<code>Ctrl+D</code>) pour les séries</p>
+        </div>
+        <div class="card">
+          <div class="card-title">📦 Après découpe</div>
+          <p>• Étiqueter chaque pièce avec nom client + N° commande Odoo<br>
+          • Stocker les restes de vinyle roulés (pas aplatis)<br>
+          • Logger la découpe dans <strong>Agent 4 Stock</strong> (consommation vinyle)<br>
+          • Scanner les pièces terminées avec Agent 9 OCR si facture fournisseur</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. CONTOUR CUT ═══ -->
+    <section class="section" id="contour">
+      <div class="section-title">✂️ Contour Cut (Print & Cut)</div>
+      <div class="section-sub">Découpe après impression — pour stickers, étiquettes, badges personnalisés</div>
+      <div class="contour-steps">
+        <div class="cs"><div class="cs-num">01</div><div class="cs-title">Préparer le fichier</div><div class="cs-desc">Créer deux calques : <strong>IMPRESSION</strong> (couleurs) et <strong>COUPE</strong> (contour noir). Le calque COUPE définit le tracé de découpe autour du motif imprimé.</div></div>
+        <div class="cs"><div class="cs-num">02</div><div class="cs-title">Ajouter les marques de repérage</div><div class="cs-desc">Dans SignMaster : <strong>Découpe → Ajouter marques ARMS</strong>. Minimum 3 marques, une en haut-gauche, une en haut-droite, une en bas-gauche.</div></div>
+        <div class="cs"><div class="cs-num">03</div><div class="cs-title">Imprimer avec les marques</div><div class="cs-desc">Imprimer le calque IMPRESSION + les marques via votre imprimante. Les marques doivent être visibles et non coupées sur la feuille imprimée.</div></div>
+        <div class="cs"><div class="cs-num">04</div><div class="cs-title">Charger dans le plotter</div><div class="cs-desc">Placer la feuille imprimée dans le plotter. S'assurer qu'elle est bien droite et maintenue par les rouleaux de pression.</div></div>
+        <div class="cs"><div class="cs-num">05</div><div class="cs-title">Calibration ARMS / Laser</div><div class="cs-desc">Dans SignMaster : <strong>Découpe → Calibrer marques</strong>. Le plotter scanne les marques automatiquement. Si laser pointer : ajuster le décalage X/Y dans les paramètres plotter.</div></div>
+        <div class="cs"><div class="cs-num">06</div><div class="cs-title">Lancer la découpe de contour</div><div class="cs-desc">Cliquer <strong>Envoyer au traceur</strong> en sélectionnant uniquement le calque COUPE. Vérifier que le mode <strong>Contour Cut</strong> est activé dans les options.</div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-title">🔧 Réglage offset lame pour Contour Cut</div>
+        <p>L'offset lame (blade offset) compense la distance entre la pointe de la lame et son axe de rotation. <br>
+        Valeur standard : <code>0.25 mm</code> pour lame 45° · <code>0.5 mm</code> pour lame 60°<br>
+        Pour calibrer : découper un carré de 20×20 mm et mesurer. Si les coins sont arrondis, augmenter l'offset de 0.05 mm.</p>
+      </div>
+    </section>
+
+    <!-- ═══ 6. FORMATS ═══ -->
+    <section class="section" id="formats">
+      <div class="section-title">📁 Formats de fichiers</div>
+      <div class="section-sub">Compatibilité import/export SignMaster PRO</div>
+      <div style="font-size:12px;color:#8888aa;margin-bottom:12px">Formats d'import :</div>
+      <div class="format-grid" style="margin-bottom:20px">
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#f0c040">.SVG</div>
+          <div class="fmt-name">Scalable Vector Graphics</div>
+          <div class="fmt-tags"><span class="fmt-tag rec">Recommandé</span><span class="fmt-tag ok">Illustrator</span><span class="fmt-tag ok">Inkscape</span><span class="fmt-tag ok">Canva</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#4a9eff">.AI</div>
+          <div class="fmt-name">Adobe Illustrator</div>
+          <div class="fmt-tags"><span class="fmt-tag rec">Recommandé</span><span class="fmt-tag ok">Version CS5+</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#4caf50">.EPS</div>
+          <div class="fmt-name">Encapsulated PostScript</div>
+          <div class="fmt-tags"><span class="fmt-tag ok">Compatible</span><span class="fmt-tag warn">Vérifier polices</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#ce93d8">.PDF</div>
+          <div class="fmt-name">Portable Document Format</div>
+          <div class="fmt-tags"><span class="fmt-tag ok">Compatible</span><span class="fmt-tag warn">Vectorisé requis</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#ff9800">.DXF</div>
+          <div class="fmt-name">Drawing Exchange Format</div>
+          <div class="fmt-tags"><span class="fmt-tag ok">AutoCAD</span><span class="fmt-tag warn">Unités à vérifier</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#ef5350">.BMP .PNG</div>
+          <div class="fmt-name">Images bitmap</div>
+          <div class="fmt-tags"><span class="fmt-tag warn">Vectoriser d'abord</span><span class="fmt-tag ok">Outil Trace</span></div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#8888aa;margin-bottom:12px">Formats d'export vers plotter :</div>
+      <div class="format-grid">
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#4caf50">.PLT</div>
+          <div class="fmt-name">HPGL/2 Plot</div>
+          <div class="fmt-tags"><span class="fmt-tag rec">Standard plotters</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#4a9eff">.GCode</div>
+          <div class="fmt-name">G-Code CNC</div>
+          <div class="fmt-tags"><span class="fmt-tag ok">Plotters CNC</span></div>
+        </div>
+        <div class="fmt-card">
+          <div class="fmt-ext" style="color:#f0c040">.CUT</div>
+          <div class="fmt-name">Fichier découpe SM</div>
+          <div class="fmt-tags"><span class="fmt-tag ok">Archive SM</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 7. RACCOURCIS ═══ -->
+    <section class="section" id="shortcuts">
+      <div class="section-title">⌨️ Raccourcis clavier</div>
+      <div class="section-sub">Cheat sheet complet SignMaster PRO — à imprimer et afficher au poste</div>
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimer cette section</button>
+      <div class="shortcut-grid">
+        <div class="shortcut-group">
+          <div class="sg-title">📁 Fichiers</div>
+          <div class="sc-row"><span class="sc-action">Nouveau document</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">N</span></span></div>
+          <div class="sc-row"><span class="sc-action">Ouvrir</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">O</span></span></div>
+          <div class="sc-row"><span class="sc-action">Enregistrer</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">S</span></span></div>
+          <div class="sc-row"><span class="sc-action">Importer fichier</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">I</span></span></div>
+          <div class="sc-row"><span class="sc-action">Envoyer au traceur</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">P</span></span></div>
+          <div class="sc-row"><span class="sc-action">Imprimer</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">P</span></span></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="sg-title">✏️ Édition</div>
+          <div class="sc-row"><span class="sc-action">Annuler</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Z</span></span></div>
+          <div class="sc-row"><span class="sc-action">Rétablir</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Y</span></span></div>
+          <div class="sc-row"><span class="sc-action">Copier</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">C</span></span></div>
+          <div class="sc-row"><span class="sc-action">Coller</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">V</span></span></div>
+          <div class="sc-row"><span class="sc-action">Dupliquer</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">D</span></span></div>
+          <div class="sc-row"><span class="sc-action">Tout sélectionner</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">A</span></span></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="sg-title">🔍 Navigation / Vue</div>
+          <div class="sc-row"><span class="sc-action">Zoom +</span><span class="sc-key"><span class="kbd">+</span> ou <span class="kbd">Ctrl</span><span class="kbd">↑</span></span></div>
+          <div class="sc-row"><span class="sc-action">Zoom -</span><span class="sc-key"><span class="kbd">-</span> ou <span class="kbd">Ctrl</span><span class="kbd">↓</span></span></div>
+          <div class="sc-row"><span class="sc-action">Ajuster à la page</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">F</span></span></div>
+          <div class="sc-row"><span class="sc-action">Déplacer la vue</span><span class="sc-key"><span class="kbd">Espace</span> + glisser</span></div>
+          <div class="sc-row"><span class="sc-action">Afficher/Grille</span><span class="sc-key"><span class="kbd">F8</span></span></div>
+          <div class="sc-row"><span class="sc-action">Zoom sur sélection</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">Z</span></span></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="sg-title">📐 Objets</div>
+          <div class="sc-row"><span class="sc-action">Grouper</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">G</span></span></div>
+          <div class="sc-row"><span class="sc-action">Dégrouper</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">U</span></span></div>
+          <div class="sc-row"><span class="sc-action">Aligner gauche</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">L</span></span></div>
+          <div class="sc-row"><span class="sc-action">Aligner centré H</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">E</span></span></div>
+          <div class="sc-row"><span class="sc-action">Retourner H (miroir)</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">F</span></span></div>
+          <div class="sc-row"><span class="sc-action">Vectoriser texte</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Q</span></span></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="sg-title">🖊️ Outils</div>
+          <div class="sc-row"><span class="sc-action">Outil Sélection</span><span class="sc-key"><span class="kbd">F1</span></span></div>
+          <div class="sc-row"><span class="sc-action">Outil Nœuds</span><span class="sc-key"><span class="kbd">F2</span></span></div>
+          <div class="sc-row"><span class="sc-action">Outil Texte</span><span class="sc-key"><span class="kbd">F4</span></span></div>
+          <div class="sc-row"><span class="sc-action">Outil Rectangle</span><span class="sc-key"><span class="kbd">F6</span></span></div>
+          <div class="sc-row"><span class="sc-action">Outil Ellipse</span><span class="sc-key"><span class="kbd">F7</span></span></div>
+          <div class="sc-row"><span class="sc-action">Outil Courbe de Bézier</span><span class="sc-key"><span class="kbd">F5</span></span></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="sg-title">✂️ Découpe</div>
+          <div class="sc-row"><span class="sc-action">Envoyer au traceur</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">P</span></span></div>
+          <div class="sc-row"><span class="sc-action">Contour automatique</span><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">C</span></span></div>
+          <div class="sc-row"><span class="sc-action">Test de coupe</span><span class="sc-key">Bouton dans fenêtre découpe</span></div>
+          <div class="sc-row"><span class="sc-action">Origine plotter</span><span class="sc-key">Bouton <strong>Origin</strong> sur plotter</span></div>
+          <div class="sc-row"><span class="sc-action">Pause découpe</span><span class="sc-key">Bouton <strong>Pause</strong> sur plotter</span></div>
+          <div class="sc-row"><span class="sc-action">Stop découpe</span><span class="sc-key">Bouton <strong>Stop/ESC</strong> plotter</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 8. DÉPANNAGE ═══ -->
+    <section class="section" id="depannage">
+      <div class="section-title">🔧 Dépannage</div>
+      <div class="section-sub">Problèmes courants — causes et solutions</div>
+      <table class="trouble-table">
+        <thead>
+          <tr><th></th><th>Problème</th><th>Cause probable</th><th>Solution</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="sev sev-high"></span></td>
+            <td class="prob">Coins arrondis / pas nets</td>
+            <td class="cause">Offset lame trop faible ou vitesse trop élevée</td>
+            <td class="solution">Augmenter l'offset lame (+0.05 mm) · Réduire la vitesse de 5 cm/s</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-high"></span></td>
+            <td class="prob">La lame coupe le support (papier backing)</td>
+            <td class="cause">Pression trop élevée ou lame trop sortie</td>
+            <td class="solution">Réduire la pression de 20 g · Rentrer la lame de 0.1 mm dans le porte-lame</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-high"></span></td>
+            <td class="prob">Le vinyle se soulève pendant la découpe</td>
+            <td class="cause">Mauvaise adhérence sur le plateau ou vitesse trop élevée</td>
+            <td class="solution">Nettoyer le plateau · Utiliser une grille de coupe · Réduire la vitesse</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-med"></span></td>
+            <td class="prob">La lame « saute » sur le vinyle</td>
+            <td class="cause">Pression insuffisante ou lame usée</td>
+            <td class="solution">Augmenter la pression de 20 g · Remplacer la lame (durée de vie ~100 m)</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-med"></span></td>
+            <td class="prob">Décalage entre impression et contour cut</td>
+            <td class="cause">Mauvaise calibration ARMS ou marques mal imprimées</td>
+            <td class="solution">Recalibrer les marques ARMS · Vérifier que les marques ne sont pas rognées à l'impression</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-med"></span></td>
+            <td class="prob">Plotter non reconnu dans SignMaster</td>
+            <td class="cause">Port COM/USB non configuré ou driver absent</td>
+            <td class="solution">Vérifier le port dans Gestionnaire de périphériques · Réinstaller le driver USB</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-low"></span></td>
+            <td class="prob">Fichier SVG importé vide</td>
+            <td class="cause">SVG en mode pixel ou tracés non fusionnés</td>
+            <td class="solution">Dans Illustrator : <code>Fichier → Enregistrer sous → SVG</code> + cocher "Vectoriser les polices"</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-low"></span></td>
+            <td class="prob">Texte déformé après import</td>
+            <td class="cause">Police non vectorisée dans le fichier source</td>
+            <td class="solution">Dans Illustrator : sélectionner tout le texte → <code>Texte → Vectoriser</code> avant d'exporter</td>
+          </tr>
+          <tr>
+            <td><span class="sev sev-low"></span></td>
+            <td class="prob">Découpe trop lente / PC qui rame</td>
+            <td class="cause">Fichier trop complexe (trop de nœuds)</td>
+            <td class="solution">Dans SignMaster : <code>Chemin → Simplifier le tracé</code> (réduire nœuds de 30%)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:8px;font-size:11px;color:#444466;display:flex;gap:16px">
+        <span><span class="sev sev-high" style="display:inline-block"></span> Critique — arrêt de production</span>
+        <span><span class="sev sev-med" style="display:inline-block"></span> Important — qualité impactée</span>
+        <span><span class="sev sev-low" style="display:inline-block"></span> Mineur — contournement possible</span>
+      </div>
+    </section>
+
+    <!-- ═══ 9. CONFIG PLOTTER ═══ -->
+    <section class="section" id="config">
+      <div class="section-title">⚙️ Configuration du plotter</div>
+      <div class="section-sub">Ajouter et configurer votre traceur dans SignMaster PRO</div>
+      <div class="config-steps">
+        <div class="cfg"><div class="cfg-n">1</div><div class="cfg-body"><div class="cfg-title">Brancher le plotter</div><div class="cfg-desc">Connecter en USB ou en série (RS-232). Allumer le plotter AVANT de lancer SignMaster. Sur Windows : vérifier que le port apparaît dans <strong>Gestionnaire de périphériques → Ports (COM et LPT)</strong>. Noter le numéro de port COM (ex: <code>COM3</code>).</div></div></div>
+        <div class="cfg"><div class="cfg-n">2</div><div class="cfg-body"><div class="cfg-title">Ajouter le plotter dans SignMaster</div><div class="cfg-desc">Aller dans <strong>Configuration → Paramètres plotter → Ajouter</strong>. Dans la liste des modèles, chercher votre marque. Si votre modèle exact n'est pas listé, choisir le modèle le plus proche de même marque, ou sélectionner <strong>Generic HPGL/2</strong> comme base.</div></div></div>
+        <div class="cfg"><div class="cfg-n">3</div><div class="cfg-body"><div class="cfg-title">Configurer le port de communication</div><div class="cfg-desc">Sélectionner le port : <code>USB</code> (recommandé) ou <code>COM3</code> (série). Pour le port série : vitesse <code>9600</code> ou <code>38400</code> bauds selon votre plotter. Bits de données : <code>8</code> · Parité : <code>Aucune</code> · Bits d'arrêt : <code>1</code>.</div></div></div>
+        <div class="cfg"><div class="cfg-n">4</div><div class="cfg-body"><div class="cfg-title">Définir la largeur de découpe</div><div class="cfg-desc">Entrer la largeur utile de votre plotter (entre les roulettes de pression). Exemple : pour un plotter 630 mm, entrer <code>580 mm</code> (laisser 25 mm de chaque côté). Cette valeur définit la zone de travail dans SignMaster.</div></div></div>
+        <div class="cfg"><div class="cfg-n">5</div><div class="cfg-body"><div class="cfg-title">Test de connexion</div><div class="cfg-desc">Cliquer <strong>Tester la connexion</strong>. Le plotter doit émettre un bip ou bouger légèrement la tête. Si pas de réaction : vérifier le câble, relancer SignMaster, ou réinstaller le driver USB depuis le CD du plotter.</div></div></div>
+        <div class="cfg"><div class="cfg-n">6</div><div class="cfg-body"><div class="cfg-title">Test de coupe</div><div class="cfg-desc">Charger un bout de vinyle. Dans la fenêtre découpe, cliquer <strong>Test de coupe</strong>. SignMaster trace un petit triangle dans un cercle. Si la découpe est nette, la configuration est correcte. Ajuster l'offset lame si les coins sont arrondis.</div></div></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Navigation active
+function setActive(el){
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Scroll spy
+const sections = document.querySelectorAll('.section');
+const navLinks = document.querySelectorAll('nav .nav-link[href^="#"]');
+window.addEventListener('scroll', ()=>{
+  let current='';
+  sections.forEach(s=>{
+    if(window.scrollY >= s.offsetTop - 80) current=s.id;
+  });
+  navLinks.forEach(l=>{
+    l.classList.toggle('active', l.getAttribute('href')==='#'+current);
+  });
+}, {passive:true});
+
+// Recherche
+function doSearch(q){
+  const term=q.trim().toLowerCase();
+  if(!term){
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('hidden-search'));
+    document.querySelectorAll('.highlight').forEach(el=>{
+      el.outerHTML=el.innerHTML;
+    });
+    return;
+  }
+  document.querySelectorAll('.section').forEach(s=>{
+    const text=s.textContent.toLowerCase();
+    s.classList.toggle('hidden-search', !text.includes(term));
+  });
+}
+
+// Calculateur matériaux
+const MAT_DATA={
+  vinyl:  {thin:[40,90],med:[38,110],thick:[35,130]},
+  flex:   {thin:[30,110],med:[28,130],thick:[25,160]},
+  flock:  {thin:[22,160],med:[18,180],thick:[15,210]},
+  transfer:{thin:[48,65],med:[45,75],thick:[40,90]},
+  carton: {thin:[18,220],med:[14,260],thick:[10,300]},
+};
+const DETAIL_MOD={big:[1.1,0.85],med:[1,1],small:[0.85,1.15]};
+const MAT_LABELS={vinyl:'Vinyle autocollant',flex:'Flex / HTV',flock:'Flocage vinyle',transfer:'Papier transfert',carton:'Carton / Rhinestone'};
+const PASSES={vinyl:1,flex:1,flock:1,transfer:1,carton:2};
+
+function calcSettings(){
+  const mat=document.getElementById('cMat').value;
+  const thick=document.getElementById('cThick').value;
+  const detail=document.getElementById('cDetail').value;
+  const [baseV, baseP] = MAT_DATA[mat][thick];
+  const [vMod, pMod] = DETAIL_MOD[detail];
+  const vitesse=Math.round(baseV*vMod);
+  const pression=Math.round(baseP*pMod/10)*10;
+  const passes=PASSES[mat]+(thick==='thick'?1:0);
+  const surcoupe={vinyl:'0.5',flex:'1.0',flock:'1.5',transfer:'0.5',carton:'2.0'}[mat];
+  const lame={vinyl:'45°',flex:'45°',flock:'60°',transfer:'45°',carton:'60°'}[mat];
+  const res=document.getElementById('calcResult');
+  res.innerHTML=`<strong style="color:#f0c040">${MAT_LABELS[mat]}</strong><br>
+    <table style="margin-top:8px;width:100%;font-size:11px"><tbody>
+    <tr><td style="color:#666688;padding:2px 0;width:130px">🏎️ Vitesse</td><td style="color:#4caf50;font-weight:600">${vitesse} cm/s</td></tr>
+    <tr><td style="color:#666688;padding:2px 0">💪 Pression</td><td style="color:#4caf50;font-weight:600">${pression} g</td></tr>
+    <tr><td style="color:#666688;padding:2px 0">🔁 Passes</td><td style="color:#4caf50;font-weight:600">${passes}</td></tr>
+    <tr><td style="color:#666688;padding:2px 0">↩️ Surcoupe</td><td style="color:#4caf50;font-weight:600">${surcoupe} mm</td></tr>
+    <tr><td style="color:#666688;padding:2px 0">🔪 Lame</td><td style="color:#4caf50;font-weight:600">${lame}</td></tr>
+    </tbody></table>
+    <div style="margin-top:8px;font-size:10px;color:#666688">⚠️ Valeurs indicatives — toujours faire un test de coupe avant la production.</div>`;
+  res.className='calc-result show';
+}
+</script>
+</body>
+</html>

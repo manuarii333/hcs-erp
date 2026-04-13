@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Generator HCS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background-color: #0a0a0a; color: #e5e7eb; min-height: 100vh; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FF6B00; }
+    .tab-btn { padding: 10px 20px; border-bottom: 2px solid transparent; color: #9ca3af; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; background: none; border-left: none; border-right: none; border-top: none; font-size: 14px; }
+    .tab-btn:hover { color: #e5e7eb; border-bottom-color: #444; }
+    .tab-btn.active { color: #FF6B00; border-bottom-color: #FF6B00; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .hcs-input { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: #e5e7eb; padding: 10px 14px; font-size: 14px; width: 100%; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s, box-shadow 0.2s; resize: vertical; }
+    .hcs-input:focus { border-color: #FF6B00; box-shadow: 0 0 0 3px rgba(255,107,0,0.15); }
+    .hcs-input::placeholder { color: #4b5563; }
+    select.hcs-input { resize: none; }
+    .btn-primary { background: #FF6B00; color: white; font-weight: 600; padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; border: none; transition: background 0.2s, transform 0.1s, box-shadow 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary:hover:not(:disabled) { background: #e05e00; box-shadow: 0 0 16px rgba(255,107,0,0.4); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: #1a1a1a; color: #e5e7eb; font-weight: 500; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid #333; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-secondary:hover:not(:disabled) { background: #222; border-color: #FF6B00; color: #fff; }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .panel { background: #111111; border: 1px solid #222222; border-radius: 12px; padding: 24px; }
+    .result-box { background: #0d0d0d; border: 1px solid #222; border-radius: 10px; padding: 16px; font-size: 14px; line-height: 1.7; color: #d1d5db; min-height: 120px; white-space: pre-wrap; word-break: break-word; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,107,0,0.3); border-top-color: #FF6B00; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .badge-platform { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge-tiktok   { background: rgba(0,0,0,0.6); color: #fff; border: 1px solid #555; }
+    .badge-instagram{ background: rgba(225,48,108,0.15); color: #e1306c; border: 1px solid rgba(225,48,108,0.3); }
+    .badge-facebook { background: rgba(24,119,242,0.15); color: #1877f2; border: 1px solid rgba(24,119,242,0.3); }
+    .error-box { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 12px 16px; color: #fca5a5; font-size: 13px; }
+    .config-box { background: rgba(255,107,0,0.07); border: 1px solid rgba(255,107,0,0.25); border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #d97706; }
+    .collapsible-header { cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #161616; border-radius: 8px; border: 1px solid #222; transition: background 0.2s; }
+    .collapsible-header:hover { background: #1c1c1c; }
+    .collapsible-body { display: none; padding: 12px 16px; border: 1px solid #222; border-top: none; border-radius: 0 0 8px 8px; background: #111; }
+    .collapsible-body.open { display: block; }
+    .woo-copy-btn { background:rgba(255,107,0,0.12); color:#FF6B00; border:1px solid rgba(255,107,0,0.3); border-radius:6px; padding:2px 8px; font-size:10px; font-weight:600; cursor:pointer; margin-right:8px; transition:.15s; }
+    .woo-copy-btn:hover { background:rgba(255,107,0,0.25); }
+    .woo-hist-item { background:#0d0d0d; border:1px solid #222; border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; transition:.15s; }
+    .woo-hist-item:hover { border-color:#FF6B0055; }
+    .token-counter { font-size: 11px; color: #555; }
+    .img-generated { max-width: 100%; border-radius: 10px; border: 1px solid #222; }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 12px; }
+    .gallery-item { border-radius: 8px; overflow: hidden; border: 1px solid #222; cursor: pointer; transition: border-color 0.2s; }
+    .gallery-item:hover { border-color: #FF6B00; }
+    .gallery-item img { width: 100%; height: 80px; object-fit: cover; display: block; }
+    .btn-publish { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; white-space: nowrap; }
+    .btn-publish:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .btn-publish-fb  { background: #1877f2; color: #fff; }
+    .btn-publish-fb:hover  { background: #1565d8; }
+    .btn-publish-ig  { background: linear-gradient(135deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); color: #fff; }
+    .btn-publish-tt  { background: #010101; color: #fff; border: 1px solid #444; }
+    .btn-publish-tt:hover  { background: #1a1a1a; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     CONFIGURATION — VERSION PRODUCTION SECURISEE
+     AUCUNE cle API dans ce fichier.
+     Les secrets sont stockes dans le Cloudflare Worker (cote serveur).
+     ============================================================ -->
+<script>
+const CONFIG = {
+  // URL de votre Cloudflare Worker proxy
+  PROXY_BASE_URL:  'https://hcs-proxy.highcoffeeshirt.workers.dev',
+
+  // Token partage avec le Worker (doit correspondre au secret WORKER_SECRET)
+  WORKER_SECRET:   'a62235492324bf7ea0f62b7fd55683d5fec2dea517447d1b666dfeb3ece0bdaa',
+
+  // Chemin de base Dropbox (non sensible)
+  DROPBOX_BASE_PATH: 'HCS/2026',
+
+  // Contexte metier HCS (non sensible)
+  HCS_CONTEXT: "High Coffee Shirt est une boutique d'impression textile DTF et flocage vinyle a Papeete, Polynesie Francaise. Concept unique : boutique + cafe. Artisan passionne, ambiance locale polynesienne chaleureuse."
+};
+</script>
+
+<!-- HEADER -->
+<header style="background:#111111;border-bottom:1px solid #222222;" class="sticky top-0 z-40">
+  <div class="max-w-screen-xl mx-auto px-6">
+    <div class="flex items-center h-14 gap-6">
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <span class="text-xl">✨</span>
+        <span class="font-bold text-white tracking-tight">Content Generator <span style="color:#FF6B00">HCS</span></span>
+      </div>
+      <nav class="flex items-center overflow-x-auto flex-1">
+        <button class="tab-btn active" onclick="switchTab('social',this)">📱 Réseaux Sociaux</button>
+        <button class="tab-btn" onclick="switchTab('logo',this)">🎨 Générateur Logo DTF</button>
+        <button class="tab-btn" onclick="switchTab('landing',this)">🏠 Landing Page</button>
+        <button class="tab-btn" onclick="switchTab('woo',this)">🛒 Produit WooCommerce</button>
+      </nav>
+      <div class="flex-shrink-0 token-counter hidden lg:block" id="token-display">0 tokens utilisés (estimation)</div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-screen-xl mx-auto px-6 py-6">
+
+  <!-- ONGLET 1 — RÉSEAUX SOCIAUX -->
+  <div id="tab-social" class="tab-content active">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="panel flex flex-col gap-5">
+        <h2 class="font-bold text-white text-base">📱 Générateur de posts réseaux sociaux</h2>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Sujet / Idée du post</label>
+          <textarea class="hcs-input" id="social-sujet" rows="4" placeholder="Ex: Nouvelle collection de casquettes polynésiennes en coton, parfaites pour l'été..."></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Plateforme</label>
+            <select class="hcs-input" id="social-plateforme">
+              <option value="TikTok">TikTok</option>
+              <option value="Instagram">Instagram</option>
+              <option value="Facebook">Facebook</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Longueur</label>
+            <select class="hcs-input" id="social-longueur">
+              <option value="court">Court (1-2 phrases)</option>
+              <option value="moyen" selected>Moyen (3 paragraphes)</option>
+              <option value="long">Long (5 paragraphes)</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="social-hashtags" checked class="w-4 h-4 accent-orange-500" />
+            <span class="text-sm text-gray-300">Inclure les hashtags</span>
+          </label>
+        </div>
+        <button id="btn-social-gen" class="btn-primary w-full justify-center py-3 text-base" onclick="genererPost()">
+          <span id="social-spinner" class="spinner hidden"></span>
+          Générer le post
+        </button>
+        <div id="social-error" class="error-box hidden"></div>
+        <div id="social-config-warn" class="config-box hidden">⚠ Configurez PROXY_BASE_URL et WORKER_SECRET dans le bloc CONFIG.</div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="panel flex flex-col gap-4" id="social-result-panel" style="display:none!important;">
+          <div class="flex items-center justify-between">
+            <span id="social-platform-badge" class="badge-platform"></span>
+            <div class="flex gap-2">
+              <button class="btn-secondary" onclick="copierPost()">📋 Copier</button>
+              <button class="btn-secondary" onclick="genererPost()">🔄 Régénérer</button>
+            </div>
+          </div>
+          <div class="result-box" id="social-result-text"></div>
+          <div style="border-top:1px solid #222;padding-top:12px;">
+            <p class="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wide">Publier sur :</p>
+            <div class="flex gap-2 flex-wrap">
+              <button class="btn-publish btn-publish-fb" onclick="publierSur('facebook')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.026 1.791-4.697 4.533-4.697 1.313 0 2.686.235 2.686.235v2.97h-1.514c-1.491 0-1.956.93-1.956 1.886v2.266h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/></svg>
+                Facebook
+              </button>
+              <button class="btn-publish btn-publish-ig" onclick="publierSur('instagram')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                Instagram
+              </button>
+              <button class="btn-publish btn-publish-tt" onclick="publierSur('tiktok')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.27 8.27 0 004.84 1.55V6.79a4.85 4.85 0 01-1.07-.1z"/></svg>
+                TikTok
+              </button>
+            </div>
+            <p class="text-xs text-gray-600 mt-2">Le texte sera copié automatiquement — collez-le dans votre post</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">Historique (5 derniers)</h3>
+          <div id="social-history" class="flex flex-col gap-2 text-xs text-gray-600">
+            <p>Aucun post généré dans cette session.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONGLET 2 — GÉNÉRATEUR LOGO DTF -->
+  <div id="tab-logo" class="tab-content">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="panel flex flex-col gap-5">
+        <h2 class="font-bold text-white text-base">🎨 Générateur de logos DTF via DALL-E 3</h2>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Description du logo</label>
+          <textarea class="hcs-input" id="logo-desc" rows="4" placeholder="Ex: Hibiscus polynésien stylisé avec texte 'HCS' en dessous, style tatouage maori..."></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Style</label>
+            <select class="hcs-input" id="logo-style">
+              <option value="Polynésien traditionnel">Polynésien</option>
+              <option value="Minimaliste moderne">Minimaliste</option>
+              <option value="Vintage rétro">Vintage</option>
+              <option value="Moderne contemporain">Moderne</option>
+              <option value="Cartoon coloré">Cartoon</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Couleurs</label>
+            <select class="hcs-input" id="logo-couleurs">
+              <option value="monochrome noir et blanc">Monochrome (noir)</option>
+              <option value="bicolore">Bicolore</option>
+              <option value="multicolore vibrant">Multicolore</option>
+            </select>
+          </div>
+        </div>
+        <div class="config-box text-xs">🖨️ Fond blanc, haute résolution 1024×1024 px, adapté pour impression DTF</div>
+        <button id="btn-logo-gen" class="btn-primary w-full justify-center py-3 text-base" onclick="genererLogo()">
+          <span id="logo-spinner" class="spinner hidden"></span>
+          Générer le logo
+        </button>
+        <div id="logo-error" class="error-box hidden"></div>
+        <div id="logo-config-warn" class="config-box hidden">⚠ Configurez PROXY_BASE_URL et WORKER_SECRET dans le bloc CONFIG.</div>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div class="panel" id="logo-result-panel" style="display:none;">
+          <img id="logo-result-img" class="img-generated mx-auto" alt="Logo généré" />
+          <div class="flex gap-2 mt-4 flex-wrap">
+            <button class="btn-primary" onclick="telechargerLogo()">⬇ Télécharger PNG</button>
+            <button class="btn-secondary" onclick="archiverLogoDropbox()">
+              <span id="logo-dropbox-spinner" class="spinner hidden"></span>
+              ☁ Archiver Dropbox
+            </button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">Galerie de la session</h3>
+          <div id="logo-gallery" class="gallery-grid">
+            <p class="text-xs text-gray-600 col-span-full">Aucun logo généré.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONGLET 3 — LANDING PAGE -->
+  <div id="tab-landing" class="tab-content">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="panel flex flex-col gap-5">
+        <h2 class="font-bold text-white text-base">🏠 Landing Page & Templates</h2>
+        <div style="background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;padding:20px;text-align:center;">
+          <div class="text-4xl mb-3">🏗️</div>
+          <p class="text-white font-semibold mb-2">HCS Builder v2</p>
+          <p class="text-sm text-gray-500 mb-4">Interface complète de création de landing pages publicitaires</p>
+          <a href="../../../hcs-builder-v2-fixed.html" target="_blank" class="btn-primary" style="text-decoration:none;display:inline-flex;">
+            Ouvrir HCS Builder v2 →
+          </a>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">Générer un template rapide</h3>
+          <div class="flex flex-col gap-2">
+            <button class="btn-secondary w-full justify-center" onclick="genererTemplate('promo_dtf')">
+              <span id="tmpl-spinner-promo_dtf" class="spinner hidden"></span>
+              🏷️ Promo DTF
+            </button>
+            <button class="btn-secondary w-full justify-center" onclick="genererTemplate('presentation')">
+              <span id="tmpl-spinner-presentation" class="spinner hidden"></span>
+              🪟 Présentation boutique
+            </button>
+            <button class="btn-secondary w-full justify-center" onclick="genererTemplate('evenement')">
+              <span id="tmpl-spinner-evenement" class="spinner hidden"></span>
+              🎉 Offre événementielle
+            </button>
+          </div>
+        </div>
+        <div id="landing-error" class="error-box hidden"></div>
+        <div id="landing-config-warn" class="config-box hidden">⚠ Configurez PROXY_BASE_URL et WORKER_SECRET dans le bloc CONFIG.</div>
+      </div>
+      <div class="panel flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide">Contenu généré</h3>
+          <button id="btn-copy-template" class="btn-secondary hidden" onclick="copierTemplate()">📋 Copier HTML</button>
+        </div>
+        <div id="landing-result-wrap" class="hidden flex flex-col gap-3">
+          <div style="background:#0d0d0d;border:1px solid #1a5;border-radius:8px;padding:12px;" id="landing-preview"></div>
+          <div>
+            <p class="text-xs text-gray-500 mb-2">HTML prêt à copier :</p>
+            <div class="result-box text-xs font-mono" id="landing-html-output" style="max-height:300px;overflow-y:auto;"></div>
+          </div>
+        </div>
+        <div id="landing-empty" class="flex flex-col items-center justify-center py-16" style="background:#0d0d0d;border:1px solid #1a1a1a;border-radius:10px;">
+          <p class="text-gray-600 text-sm">Choisissez un template pour générer le contenu</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONGLET 4 — PRODUIT WOOCOMMERCE -->
+  <div id="tab-woo" class="tab-content">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="panel flex flex-col gap-5">
+        <h2 class="font-bold text-white text-base">🛒 Générateur fiche produit WooCommerce</h2>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Nom du produit</label>
+          <input type="text" class="hcs-input" id="woo-nom" placeholder="Ex: T-Shirt Hibiscus Polynésien DTF" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Prix (XPF)</label>
+            <input type="number" class="hcs-input" id="woo-prix" placeholder="1500" min="0" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Catégorie</label>
+            <select class="hcs-input" id="woo-categorie">
+              <option value="T-Shirts">T-Shirts</option>
+              <option value="Casquettes">Casquettes</option>
+              <option value="Polos">Polos</option>
+              <option value="Accessoires">Accessoires</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Description courte <span class="text-gray-600 font-normal normal-case">(optionnel)</span></label>
+          <textarea class="hcs-input" id="woo-desc" rows="3" placeholder="Ex: T-shirt coton avec motif hibiscus imprimé DTF haute qualité..."></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Matière</label>
+            <select class="hcs-input" id="woo-matiere">
+              <option value="Coton 100%">Coton 100%</option>
+              <option value="Polyester 100%">Polyester 100%</option>
+              <option value="Coton/Polyester 50/50">Coton/Poly 50/50</option>
+              <option value="Polyester performance">Polyester performance</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Type impression</label>
+            <select class="hcs-input" id="woo-impression">
+              <option value="DTF (Direct To Film)">DTF (Direct To Film)</option>
+              <option value="Flocage vinyle">Flocage vinyle</option>
+              <option value="Découpe vinyle">Découpe vinyle</option>
+              <option value="Broderie">Broderie</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Couleurs disponibles <span class="text-gray-600 font-normal normal-case">(optionnel)</span></label>
+          <input type="text" class="hcs-input" id="woo-couleurs" placeholder="Ex: Blanc, Noir, Marine, Rouge bordeaux">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">Tailles</label>
+            <input type="text" class="hcs-input" id="woo-tailles" placeholder="Ex: XS, S, M, L, XL, XXL">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wide">SKU / Référence</label>
+            <input type="text" class="hcs-input" id="woo-sku" placeholder="Ex: HCS-TSH-001">
+          </div>
+        </div>
+        <button id="btn-woo-gen" class="btn-primary w-full justify-center py-3 text-base" onclick="genererFicheProduit()">
+          <span id="woo-spinner" class="spinner hidden"></span>
+          Générer description SEO
+        </button>
+        <div id="woo-error" class="error-box hidden"></div>
+        <div id="woo-config-warn" class="config-box hidden">⚠ Configurez PROXY_BASE_URL et WORKER_SECRET dans le bloc CONFIG.</div>
+      </div>
+
+      <div class="flex flex-col gap-3" id="woo-result-wrap" style="display:none!important;">
+        <div class="collapsible-header" onclick="toggleSection('woo-titre')">
+          <span class="text-sm font-semibold text-white flex-1">📝 Titre SEO</span>
+          <button onclick="event.stopPropagation();copierSection('woo-result-titre')" class="woo-copy-btn">📋 Copier</button>
+          <span class="text-gray-500 text-xs" id="woo-titre-arrow">▶</span>
+        </div>
+        <div class="collapsible-body" id="woo-titre">
+          <p id="woo-result-titre" class="text-sm text-gray-300"></p>
+        </div>
+        <div class="collapsible-header" onclick="toggleSection('woo-shortdesc')">
+          <span class="text-sm font-semibold text-white flex-1">📄 Description courte</span>
+          <button onclick="event.stopPropagation();copierSection('woo-result-short')" class="woo-copy-btn">📋 Copier</button>
+          <span class="text-gray-500 text-xs" id="woo-shortdesc-arrow">▶</span>
+        </div>
+        <div class="collapsible-body" id="woo-shortdesc">
+          <div id="woo-result-short" class="text-sm text-gray-300 prose prose-invert max-w-none"></div>
+        </div>
+        <div class="collapsible-header" onclick="toggleSection('woo-longdesc')">
+          <span class="text-sm font-semibold text-white flex-1">📖 Description longue</span>
+          <button onclick="event.stopPropagation();copierSection('woo-result-long')" class="woo-copy-btn">📋 Copier</button>
+          <span class="text-gray-500 text-xs" id="woo-longdesc-arrow">▶</span>
+        </div>
+        <div class="collapsible-body" id="woo-longdesc">
+          <div id="woo-result-long" class="text-sm text-gray-300 prose prose-invert max-w-none"></div>
+        </div>
+        <div class="collapsible-header" onclick="toggleSection('woo-meta')">
+          <span class="text-sm font-semibold text-white flex-1">🏷️ Tags & Meta description</span>
+          <button onclick="event.stopPropagation();copierSection('woo-result-meta')" class="woo-copy-btn">📋 Copier</button>
+          <span class="text-gray-500 text-xs" id="woo-meta-arrow">▶</span>
+        </div>
+        <div class="collapsible-body" id="woo-meta">
+          <div class="flex flex-wrap gap-2 mb-3" id="woo-result-tags"></div>
+          <p class="text-xs text-gray-500 mb-1">Meta description :</p>
+          <p id="woo-result-meta" class="text-sm text-gray-300 italic"></p>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn-primary flex-1 justify-center" onclick="exporterWooJSON()">⬇ Export JSON</button>
+          <button onclick="toutCopierWoo()" style="background:rgba(255,107,0,0.15);color:#FF6B00;border:1px solid rgba(255,107,0,0.4);border-radius:8px;padding:10px 16px;font-weight:600;font-size:13px;cursor:pointer;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;">📋 Tout copier</button>
+          <a href="https://highcoffeeshirts.com/wp-admin/post-new.php?post_type=product" target="_blank" style="background:#1a1a2a;color:#aaa;border:1px solid #333;border-radius:8px;padding:10px 12px;font-weight:600;font-size:13px;cursor:pointer;text-decoration:none;display:flex;align-items:center;white-space:nowrap;">🔗 Admin WP</a>
+        </div>
+      </div>
+
+      <div id="woo-empty" style="display:none;" class="panel flex flex-col items-center justify-center py-16">
+        <p class="text-gray-600 text-sm">Remplissez le formulaire et cliquez sur "Générer"</p>
+      </div>
+    </div>
+
+    <div class="panel mt-6" id="woo-history-section" style="display:none;">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-white text-sm">📚 Historique des fiches générées</h3>
+        <button onclick="effacerHistoriqueWoo()" class="text-xs text-gray-600 hover:text-red-400">Effacer tout</button>
+      </div>
+      <div id="woo-history-list" class="flex flex-col gap-2"></div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
+
+<script>
+/* ============================================================
+   ÉTAT GLOBAL
+   ============================================================ */
+let tokenTotal = 0;
+const socialHistory = [];
+const logoGallery   = [];
+let wooData = null;
+let logoCurrentUrl  = null;
+let templateData    = null;
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const proxyUnconfigured = !CONFIG.PROXY_BASE_URL ||
+    CONFIG.PROXY_BASE_URL.includes('votre-user') ||
+    !CONFIG.WORKER_SECRET ||
+    CONFIG.WORKER_SECRET === 'VOTRE_WORKER_SECRET_ICI';
+  if (proxyUnconfigured) {
+    ['social','logo','landing','woo'].forEach(p => {
+      const el = document.getElementById(`${p}-config-warn`);
+      if (el) { el.textContent = '⚠ Configurez PROXY_BASE_URL et WORKER_SECRET dans le bloc CONFIG.'; el.classList.remove('hidden'); }
+    });
+  }
+  majTokens(0);
+  renderHistoriqueWoo();
+});
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function switchTab(nom, btn) {
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-${nom}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ============================================================
+   APPEL PROXY CLOUDFLARE WORKER
+   ============================================================ */
+function proxyHeaders() {
+  return { 'Content-Type': 'application/json', 'X-Worker-Secret': CONFIG.WORKER_SECRET };
+}
+
+function checkProxyConfig() {
+  if (!CONFIG.PROXY_BASE_URL || CONFIG.PROXY_BASE_URL.includes('votre-user') ||
+      !CONFIG.WORKER_SECRET  || CONFIG.WORKER_SECRET === 'VOTRE_WORKER_SECRET_ICI') {
+    throw new Error('Proxy non configuré. Renseignez PROXY_BASE_URL et WORKER_SECRET dans CONFIG.');
+  }
+}
+
+async function appelOpenAI(messages, model='gpt-4o', maxTokens=800) {
+  checkProxyConfig();
+  const rep = await fetch(`${CONFIG.PROXY_BASE_URL}/api/chat`, {
+    method: 'POST', headers: proxyHeaders(),
+    body: JSON.stringify({ messages, model, max_tokens: maxTokens })
+  });
+  if (!rep.ok) { const err = await rep.json().catch(() => ({ error: `HTTP ${rep.status}` })); throw new Error(err.error || `Proxy HTTP ${rep.status}`); }
+  const data = await rep.json();
+  majTokens(data.usage?.total_tokens || 0);
+  return data.choices[0].message.content;
+}
+
+/* ============================================================
+   ONGLET 1 — RÉSEAUX SOCIAUX
+   ============================================================ */
+async function genererPost() {
+  const sujet = document.getElementById('social-sujet').value.trim();
+  if (!sujet) { toast('Saisissez un sujet pour le post','error'); return; }
+  const plateforme = document.getElementById('social-plateforme').value;
+  const longueur = document.getElementById('social-longueur').value;
+  const hashtags = document.getElementById('social-hashtags').checked;
+  const longueurLabel = { court:'1-2 phrases courtes', moyen:'3 paragraphes de taille moyenne', long:'5 paragraphes développés' }[longueur];
+  const btn=document.getElementById('btn-social-gen'), spinner=document.getElementById('social-spinner');
+  btn.disabled=true; spinner.classList.remove('hidden');
+  document.getElementById('social-error').classList.add('hidden');
+  try {
+    const texte = await appelOpenAI([
+      { role:'system', content:`Tu es expert en marketing textile pour la Polynésie française. Tu crées des posts ${plateforme} pour High Coffee Shirt, boutique DTF et café à Papeete. Style local, authentique, chaleureux, avec émojis adaptés. Langue : français. ${CONFIG.HCS_CONTEXT}` },
+      { role:'user',   content:`Génère un post ${plateforme} sur : "${sujet}". Longueur : ${longueurLabel}.${hashtags?' Inclure 5-8 hashtags pertinents en fin de post.':''}` }
+    ], 'gpt-4o', 600);
+    document.getElementById('social-result-text').textContent = texte;
+    const panel = document.getElementById('social-result-panel');
+    panel.style.removeProperty('display'); panel.style.display='block';
+    const badge = document.getElementById('social-platform-badge');
+    badge.textContent=plateforme; badge.className=`badge-platform badge-${plateforme.toLowerCase()}`;
+    socialHistory.unshift({ plateforme, sujet:sujet.slice(0,40)+'…', texte });
+    if (socialHistory.length>5) socialHistory.pop();
+    majHistorique();
+  } catch(e) {
+    document.getElementById('social-error').textContent=e.message;
+    document.getElementById('social-error').classList.remove('hidden');
+  } finally { btn.disabled=false; spinner.classList.add('hidden'); }
+}
+
+function copierPost() {
+  const t=document.getElementById('social-result-text').textContent;
+  navigator.clipboard.writeText(t).then(()=>toast('Post copié','success')).catch(()=>toast('Impossible de copier','error'));
+}
+
+function publierSur(platform) {
+  const texte=document.getElementById('social-result-text').textContent;
+  if (!texte) { toast("Générez un post d'abord",'error'); return; }
+  const urls={facebook:'https://www.facebook.com/highcoffeeshirt/',instagram:'https://www.instagram.com/',tiktok:'https://www.tiktok.com/@highcoffeeshirt1'};
+  const noms={facebook:'Facebook',instagram:'Instagram',tiktok:'TikTok'};
+  navigator.clipboard.writeText(texte).then(()=>{ window.open(urls[platform],'_blank'); toast(`Texte copié ! Collez-le dans votre post ${noms[platform]}`, 'success', 7000); }).catch(()=>toast('Impossible de copier','error'));
+}
+
+function majHistorique() {
+  const el=document.getElementById('social-history');
+  if (!socialHistory.length) { el.innerHTML='<p>Aucun post généré dans cette session.</p>'; return; }
+  el.innerHTML=socialHistory.map((h,i)=>`<div style="background:#161616;border:1px solid #222;border-radius:6px;padding:8px 10px;cursor:pointer;" onclick="document.getElementById('social-result-text').textContent=socialHistory[${i}].texte;document.getElementById('social-result-panel').style.display='block';"><span style="color:#FF6B00;font-weight:700;font-size:11px">${esc(h.plateforme)}</span> <span style="color:#6b7280;font-size:11px">${esc(h.sujet)}</span></div>`).join('');
+}
+
+/* ============================================================
+   ONGLET 2 — LOGO DTF
+   ============================================================ */
+async function genererLogo() {
+  const desc=document.getElementById('logo-desc').value.trim();
+  if (!desc) { toast('Décrivez le logo à générer','error'); return; }
+  checkProxyConfig();
+  const style=document.getElementById('logo-style').value;
+  const couleurs=document.getElementById('logo-couleurs').value;
+  const btn=document.getElementById('btn-logo-gen'), sp=document.getElementById('logo-spinner');
+  btn.disabled=true; sp.classList.remove('hidden');
+  document.getElementById('logo-error').classList.add('hidden');
+  try {
+    const prompt=`Logo design for clothing brand, style: ${style}, description: ${desc}, colors: ${couleurs}, pure white background, high resolution, crisp clean lines, suitable for DTF heat transfer printing, professional apparel brand logo, High Coffee Shirt Papeete Polynesia, no text unless specified`;
+    const rep=await fetch(`${CONFIG.PROXY_BASE_URL}/api/images`,{method:'POST',headers:proxyHeaders(),body:JSON.stringify({prompt,size:'1024x1024',quality:'hd'})});
+    if (!rep.ok) { const err=await rep.json().catch(()=>({error:`HTTP ${rep.status}`})); throw new Error(err.error||`Proxy DALL-E HTTP ${rep.status}`); }
+    const data=await rep.json();
+    const url=data.data[0].url;
+    logoCurrentUrl=url;
+    document.getElementById('logo-result-img').src=url;
+    document.getElementById('logo-result-panel').style.display='block';
+    logoGallery.unshift({url,desc:desc.slice(0,30)});
+    majGalerie(); majTokens(Math.ceil(prompt.length/4));
+  } catch(e) { document.getElementById('logo-error').textContent=e.message; document.getElementById('logo-error').classList.remove('hidden'); }
+  finally { btn.disabled=false; sp.classList.add('hidden'); }
+}
+
+function telechargerLogo() {
+  if (!logoCurrentUrl) return;
+  const a=document.createElement('a'); a.href=logoCurrentUrl; a.download='logo_dtf_hcs.png'; a.target='_blank';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  toast('Téléchargement lancé','success');
+}
+
+async function archiverLogoDropbox() {
+  if (!logoCurrentUrl) return; checkProxyConfig();
+  const sp=document.getElementById('logo-dropbox-spinner'); sp.classList.remove('hidden');
+  try {
+    const mois=['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+    const fileName=`logo_${Date.now()}.png`;
+    const rep=await fetch(`${CONFIG.PROXY_BASE_URL}/api/dropbox/upload`,{method:'POST',headers:proxyHeaders(),body:JSON.stringify({imageUrl:logoCurrentUrl,fileName,folder:`${mois[new Date().getMonth()]}/logos_dtf`})});
+    if (!rep.ok) { const err=await rep.json().catch(()=>({error:`HTTP ${rep.status}`})); throw new Error(err.error||`Proxy Dropbox HTTP ${rep.status}`); }
+    const result=await rep.json(); toast(`Logo archivé : ${result.path}`,'success',6000);
+  } catch(e) { toast(`Erreur Dropbox : ${e.message}`,'error',6000); }
+  finally { sp.classList.add('hidden'); }
+}
+
+function majGalerie() {
+  const el=document.getElementById('logo-gallery');
+  if (!logoGallery.length) { el.innerHTML='<p class="text-xs text-gray-600 col-span-full">Aucun logo généré.</p>'; return; }
+  el.innerHTML=logoGallery.map((g,i)=>`<div class="gallery-item" onclick="logoCurrentUrl=logoGallery[${i}].url;document.getElementById('logo-result-img').src=logoGallery[${i}].url;document.getElementById('logo-result-panel').style.display='block';"><img src="${esc(g.url)}" alt="${esc(g.desc)}" /></div>`).join('');
+}
+
+/* ============================================================
+   ONGLET 3 — LANDING PAGE
+   ============================================================ */
+async function genererTemplate(type) {
+  checkProxyConfig();
+  const labels={promo_dtf:'une offre promotionnelle pour impression DTF',presentation:'une page de présentation de la boutique HCS',evenement:'une offre spéciale événementielle (fêtes, anniversaire, team building)'};
+  const sp=document.getElementById(`tmpl-spinner-${type}`); sp.classList.remove('hidden');
+  document.getElementById('landing-error').classList.add('hidden');
+  try {
+    const rep=await appelOpenAI([
+      {role:'system',content:'Tu es expert en copywriting et marketing digital pour boutiques locales polynésiennes. Tu génères du contenu HTML pour landing pages.'},
+      {role:'user',content:`Génère le contenu de ${labels[type]} pour High Coffee Shirt. Retourne uniquement un JSON valide avec les clés : {"title":"string","subtitle":"string","arguments":["string","string","string"],"cta":"string","trust_text":"string"}. ${CONFIG.HCS_CONTEXT}`}
+    ],'gpt-4o',500);
+    let data; try { const m=rep.match(/\{[\s\S]*\}/); data=JSON.parse(m?m[0]:rep); } catch { throw new Error('Réponse invalide (pas du JSON). Réessayez.'); }
+    templateData=data;
+    const html=genererHTMLTemplate(data);
+    document.getElementById('landing-preview').innerHTML=`<h3 style="color:white;font-weight:700;font-size:1rem;margin-bottom:4px">${esc(data.title)}</h3><p style="color:#9ca3af;font-size:.85rem;margin-bottom:10px">${esc(data.subtitle)}</p><ul style="font-size:.85rem;color:#d1d5db;margin-bottom:10px;list-style:none;padding:0">${(data.arguments||[]).map(a=>`<li>✓ ${esc(a)}</li>`).join('')}</ul><div style="color:#FF6B00;font-weight:600;font-size:.8rem">${esc(data.cta)}</div>`;
+    document.getElementById('landing-html-output').textContent=html;
+    document.getElementById('landing-result-wrap').classList.remove('hidden');
+    document.getElementById('landing-empty').style.display='none';
+    document.getElementById('btn-copy-template').classList.remove('hidden');
+  } catch(e) { document.getElementById('landing-error').textContent=e.message; document.getElementById('landing-error').classList.remove('hidden'); }
+  finally { sp.classList.add('hidden'); }
+}
+
+function genererHTMLTemplate(d) {
+  return `<!-- Landing Page HCS — Généré par Content Generator -->\n<section style="background:#0a0a0a;color:#fff;padding:60px 20px;font-family:Inter,sans-serif;text-align:center;">\n  <h1 style="color:#FF6B00;font-size:2.5rem;margin-bottom:12px;">${esc(d.title||'')}</h1>\n  <p style="color:#9ca3af;font-size:1.1rem;margin-bottom:32px;">${esc(d.subtitle||'')}</p>\n  <ul style="list-style:none;padding:0;display:inline-block;text-align:left;margin-bottom:32px;">\n    ${(d.arguments||[]).map(a=>`<li style="margin:10px 0;"><span style="color:#FF6B00;margin-right:8px;">✓</span>${esc(a)}</li>`).join('\n    ')}\n  </ul>\n  <div><a href="https://highcoffeeshirts.com" style="background:#FF6B00;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:1rem;">${esc(d.cta||'Commander')}</a></div>\n  <p style="color:#555;font-size:0.8rem;margin-top:24px;">${esc(d.trust_text||'')}</p>\n</section>`;
+}
+
+function copierTemplate() {
+  const html=document.getElementById('landing-html-output').textContent;
+  navigator.clipboard.writeText(html).then(()=>toast('HTML copié','success')).catch(()=>toast('Impossible de copier','error'));
+}
+
+/* ============================================================
+   ONGLET 4 — WOOCOMMERCE
+   ============================================================ */
+async function genererFicheProduit() {
+  const nom=document.getElementById('woo-nom').value.trim();
+  const prix=document.getElementById('woo-prix').value;
+  const cat=document.getElementById('woo-categorie').value;
+  const desc=document.getElementById('woo-desc').value.trim();
+  const matiere=document.getElementById('woo-matiere').value;
+  const impression=document.getElementById('woo-impression').value;
+  const couleurs=document.getElementById('woo-couleurs').value.trim();
+  const tailles=document.getElementById('woo-tailles').value.trim();
+  if (!nom||!prix) { toast('Nom et prix sont requis','error'); return; }
+  const btn=document.getElementById('btn-woo-gen'), sp=document.getElementById('woo-spinner');
+  btn.disabled=true; sp.classList.remove('hidden');
+  document.getElementById('woo-error').classList.add('hidden');
+  try {
+    const extras=[matiere?`Matière : ${matiere}`:'',impression?`Type impression : ${impression}`:'',couleurs?`Couleurs disponibles : ${couleurs}`:'',tailles?`Tailles disponibles : ${tailles}`:'',desc?`Notes : ${desc}`:''].filter(Boolean).join('\n');
+    const rep=await appelOpenAI([
+      {role:'system',content:'Tu es expert en SEO et e-commerce WooCommerce pour boutiques locales polynésiennes. Tu génères des fiches produits optimisées, engageantes et en français.'},
+      {role:'user',content:`Génère une fiche produit WooCommerce SEO complète pour :\nNom : ${nom}\nPrix : ${prix} XPF\nCatégorie : ${cat}\n${extras}\nBoutique : High Coffee Shirt, Papeete, Polynésie Française — spécialiste impression textile personnalisée (DTF, flocage vinyle).\nRetourne UNIQUEMENT un JSON valide : {"title":"max 60 chars","short_description":"HTML 2-3 phrases avec mots-clés","description":"HTML 3-5 paragraphes avec bénéfices produit","tags":["tag1","tag2","tag3","tag4","tag5","tag6"],"meta_description":"max 155 chars"}`}
+    ],'gpt-4o',900);
+    let data; try { const m=rep.match(/\{[\s\S]*\}/); data=JSON.parse(m?m[0]:rep); } catch { throw new Error('Réponse invalide. Réessayez.'); }
+    wooData=data;
+    document.getElementById('woo-result-titre').textContent=data.title||'';
+    document.getElementById('woo-result-short').innerHTML=data.short_description||'';
+    document.getElementById('woo-result-long').innerHTML=data.description||'';
+    document.getElementById('woo-result-meta').textContent=data.meta_description||'';
+    document.getElementById('woo-result-tags').innerHTML=(data.tags||[]).map(t=>`<span style="background:rgba(255,107,0,0.15);color:#FF6B00;border:1px solid rgba(255,107,0,0.3);padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;">${esc(t)}</span>`).join('');
+    const wrap=document.getElementById('woo-result-wrap');
+    wrap.style.removeProperty('display'); wrap.style.display='flex'; wrap.style.flexDirection='column';
+    document.getElementById('woo-empty').style.display='none';
+    toggleSection('woo-titre');
+    sauvegarderHistoriqueWoo({nom,prix,cat,matiere,impression,data});
+  } catch(e) { document.getElementById('woo-error').textContent=e.message; document.getElementById('woo-error').classList.remove('hidden'); }
+  finally { btn.disabled=false; sp.classList.add('hidden'); }
+}
+
+function exporterWooJSON() {
+  if (!wooData) return;
+  const nom=document.getElementById('woo-nom').value.trim();
+  const prix=document.getElementById('woo-prix').value;
+  const cat=document.getElementById('woo-categorie').value;
+  const sku=document.getElementById('woo-sku').value.trim();
+  const tailles=document.getElementById('woo-tailles').value.trim();
+  const couleurs=document.getElementById('woo-couleurs').value.trim();
+  const matiere=document.getElementById('woo-matiere').value;
+  const impression=document.getElementById('woo-impression').value;
+  const json={name:wooData.title||nom,type:tailles||couleurs?'variable':'simple',status:'draft',sku:sku||'',description:wooData.description||'',short_description:wooData.short_description||'',regular_price:String(prix),categories:[{name:cat}],tags:(wooData.tags||[]).map(t=>({name:t})),attributes:[...(couleurs?[{name:'Couleur',visible:true,variation:true,options:couleurs.split(',').map(s=>s.trim())}]:[]),...(tailles?[{name:'Taille',visible:true,variation:true,options:tailles.split(',').map(s=>s.trim())}]:[])],meta_data:[{key:'_yoast_wpseo_metadesc',value:wooData.meta_description||''},{key:'_matiere',value:matiere},{key:'_impression',value:impression}]};
+  const blob=new Blob([JSON.stringify(json,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=`produit_${nom.replace(/\s+/g,'_').slice(0,30)}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('Export JSON WooCommerce téléchargé','success');
+}
+
+function copierSection(id) {
+  const el=document.getElementById(id); if (!el) return;
+  navigator.clipboard.writeText((el.innerText||el.textContent||'').trim()).then(()=>toast('Copié ✓','success'));
+}
+
+function toutCopierWoo() {
+  if (!wooData) return;
+  const txt=['=== TITRE SEO ===',document.getElementById('woo-result-titre').textContent,'','=== DESCRIPTION COURTE ===',document.getElementById('woo-result-short').innerText,'','=== DESCRIPTION LONGUE ===',document.getElementById('woo-result-long').innerText,'','=== META DESCRIPTION ===',document.getElementById('woo-result-meta').textContent,'','=== TAGS ===',(wooData.tags||[]).join(', ')].join('\n');
+  navigator.clipboard.writeText(txt).then(()=>toast('Tout copié ✓','success'));
+}
+
+function sauvegarderHistoriqueWoo(entry) {
+  const hist=JSON.parse(localStorage.getItem('hcs_woo_history')||'[]');
+  hist.unshift({...entry,date:new Date().toLocaleDateString('fr-FR')});
+  if (hist.length>5) hist.length=5;
+  localStorage.setItem('hcs_woo_history',JSON.stringify(hist));
+  renderHistoriqueWoo();
+}
+
+function renderHistoriqueWoo() {
+  const hist=JSON.parse(localStorage.getItem('hcs_woo_history')||'[]');
+  const section=document.getElementById('woo-history-section');
+  const list=document.getElementById('woo-history-list');
+  if (!hist.length) { section.style.display='none'; return; }
+  section.style.display='block';
+  list.innerHTML=hist.map((h,i)=>`<div class="woo-hist-item" onclick="chargerHistoriqueWoo(${i})"><div style="flex:1;"><div style="font-size:.88rem;font-weight:600;color:#e0e0e0;">${h.nom}</div><div style="font-size:.72rem;color:#888;">${h.cat} · ${h.prix} XPF · ${h.matiere} · ${h.date}</div></div><div style="font-size:.72rem;color:#555;">Charger →</div></div>`).join('');
+}
+
+function chargerHistoriqueWoo(i) {
+  const hist=JSON.parse(localStorage.getItem('hcs_woo_history')||'[]');
+  const h=hist[i]; if (!h) return;
+  document.getElementById('woo-nom').value=h.nom;
+  document.getElementById('woo-prix').value=h.prix;
+  document.getElementById('woo-categorie').value=h.cat;
+  document.getElementById('woo-matiere').value=h.matiere||'Coton 100%';
+  if (h.data) {
+    wooData=h.data;
+    document.getElementById('woo-result-titre').textContent=h.data.title||'';
+    document.getElementById('woo-result-short').innerHTML=h.data.short_description||'';
+    document.getElementById('woo-result-long').innerHTML=h.data.description||'';
+    document.getElementById('woo-result-meta').textContent=h.data.meta_description||'';
+    document.getElementById('woo-result-tags').innerHTML=(h.data.tags||[]).map(t=>`<span style="background:rgba(255,107,0,0.15);color:#FF6B00;border:1px solid rgba(255,107,0,0.3);padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;">${esc(t)}</span>`).join('');
+    const wrap=document.getElementById('woo-result-wrap');
+    wrap.style.removeProperty('display'); wrap.style.display='flex'; wrap.style.flexDirection='column';
+    document.getElementById('woo-empty').style.display='none';
+  }
+  toast("Fiche chargée depuis l'historique",'success');
+}
+
+function effacerHistoriqueWoo() {
+  localStorage.removeItem('hcs_woo_history');
+  document.getElementById('woo-history-section').style.display='none';
+  toast('Historique effacé','success');
+}
+
+/* ============================================================
+   UTILITAIRES
+   ============================================================ */
+function majTokens(n) {
+  tokenTotal+=n;
+  document.getElementById('token-display').textContent=`~${tokenTotal.toLocaleString('fr-FR')} tokens utilisés`;
+}
+
+function toggleSection(id) {
+  const body=document.getElementById(id); const arrow=document.getElementById(`${id}-arrow`);
+  if (body.classList.contains('open')) { body.classList.remove('open'); if(arrow)arrow.textContent='▶'; }
+  else { body.classList.add('open'); if(arrow)arrow.textContent='▼'; }
+}
+
+function esc(s) {
+  if (!s) return '';
+  const d=document.createElement('div'); d.appendChild(document.createTextNode(String(s))); return d.innerHTML;
+}
+
+/* Toast */
+const _ts=document.createElement('style');
+_ts.textContent='@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}';
+document.head.appendChild(_ts);
+
+function toast(msg, type='info', duree=4000) {
+  const c={success:{b:'rgba(34,197,94,0.4)',i:'✓',c:'#22c55e'},error:{b:'rgba(239,68,68,0.4)',i:'✗',c:'#ef4444'},warning:{b:'rgba(251,191,36,0.4)',i:'⚠',c:'#fbbf24'},info:{b:'rgba(96,165,250,0.4)',i:'ℹ',c:'#60a5fa'}};
+  const s=c[type]||c.info;
+  const el=document.createElement('div');
+  el.style.cssText=`background:#111;border:1px solid ${s.b};border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;min-width:260px;max-width:360px;animation:slideIn 0.3s ease;box-shadow:0 4px 24px rgba(0,0,0,0.5);`;
+  el.innerHTML=`<span style="color:${s.c};font-size:14px;flex-shrink:0">${s.i}</span><span style="font-size:13px;color:#e5e7eb;line-height:1.4">${esc(msg)}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>{el.style.animation='slideOut 0.3s ease';setTimeout(()=>{if(el.parentNode)el.parentNode.removeChild(el);},300);},duree);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCS — Routines Quotidiennes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0a0a0a; color: #e5e5e5; }
+    .card { background: #111111; border: 1px solid #222222; border-radius: 12px; }
+    .accent { color: #FF6B00; }
+    .btn-primary { background: #FF6B00; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-primary:hover { background: #e05a00; }
+    .btn-ghost { background: #1a1a1a; color: #aaa; border: 1px solid #333; border-radius: 8px; padding: 7px 16px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-ghost:hover { border-color: #FF6B00; color: #FF6B00; }
+    .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.1s; border-radius: 6px; }
+    .task-item:last-child { border-bottom: none; }
+    .task-item:hover { background: #141414; }
+    .task-item.done .task-label { text-decoration: line-through; color: #4b5563; }
+    .task-item.done .task-time { color: #374151; }
+    .task-check { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #333; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; margin-top: 1px; }
+    .task-check.checked { background: #FF6B00; border-color: #FF6B00; }
+    .task-time { font-size: 11px; color: #666; font-weight: 500; }
+    .task-label { font-size: 14px; color: #d1d5db; flex: 1; }
+    .task-link { font-size: 11px; color: #FF6B00; text-decoration: none; margin-left: auto; white-space: nowrap; }
+    .task-link:hover { text-decoration: underline; }
+    .section-header { padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+    .section-matin { background: #1a1400; color: #fbbf24; border: 1px solid #2d2000; }
+    .section-journee { background: #0d1a0d; color: #4ade80; border: 1px solid #0d2210; }
+    .section-soir { background: #0d0d1a; color: #818cf8; border: 1px solid #1e1b4b; }
+    .section-hebdo { background: #1a0d10; color: #f472b6; border: 1px solid #2d0d18; }
+    .section-mensuel { background: #0f1a1a; color: #2dd4bf; border: 1px solid #0d2020; }
+    .score-ring { position: relative; width: 90px; height: 90px; }
+    .score-ring canvas { position: absolute; top: 0; left: 0; }
+    .score-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .streak-badge { background: linear-gradient(135deg, #FF6B00, #ff8c00); border-radius: 10px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px; }
+    .badge { border-radius: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+    .badge-bronze { background: #4a2c0d; color: #cd7f32; }
+    .badge-argent { background: #1a1a1a; color: #c0c0c0; }
+    .badge-or { background: #2d2000; color: #ffd700; }
+    .hist-day { width: 20px; height: 20px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+    .nav-link { color: #888; text-decoration: none; font-size: 13px; }
+    .nav-link:hover { color: #FF6B00; }
+    .tab-btn { padding: 7px 18px; border-radius: 8px; cursor: pointer; font-weight: 500; border: 1px solid transparent; transition: all 0.2s; font-size: 13px; }
+    .tab-btn.active { background: #FF6B00; color: #fff; }
+    .tab-btn:not(.active) { color: #888; }
+    .tab-btn:not(.active):hover { border-color: #FF6B00; color: #FF6B00; }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+
+<!-- Navigation -->
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#FF6B00">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <h1 class="text-xl font-bold text-white">Routines Quotidiennes</h1>
+      <p class="text-xs text-gray-500 mt-0.5" id="date-affichage">Chargement...</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3 flex-wrap">
+    <a href="finance-dashboard.html" class="nav-link">💰 Finance</a>
+    <a href="ocr-scanner.html" class="nav-link">📄 Scanner</a>
+    <a href="rapport-pl.html" class="nav-link">📊 P&L</a>
+    <button onclick="reinitialiserJour()" class="btn-ghost text-xs">🔄 Reset aujourd'hui</button>
+  </div>
+</div>
+
+<!-- Gamification : Score + Streak + Badges -->
+<div class="card p-5 mb-5">
+  <div class="flex items-center gap-6 flex-wrap">
+    <!-- Score du jour -->
+    <div class="flex items-center gap-4">
+      <div class="score-ring">
+        <canvas id="score-canvas" width="90" height="90"></canvas>
+        <div class="score-text">
+          <p class="text-xl font-bold text-white" id="score-pct">0%</p>
+          <p class="text-xs text-gray-500">score</p>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500">Tâches complétées</p>
+        <p class="text-2xl font-bold text-white"><span id="score-nb">0</span>/<span id="score-total">0</span></p>
+        <p class="text-xs text-gray-500 mt-1" id="score-msg">Commencez votre journée !</p>
+      </div>
+    </div>
+
+    <!-- Streak -->
+    <div class="streak-badge">
+      <span class="text-2xl">🔥</span>
+      <div>
+        <p class="text-white font-bold text-xl" id="streak-count">0</p>
+        <p class="text-orange-200 text-xs">jours consécutifs</p>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div>
+      <p class="text-xs text-gray-500 mb-2">Badges</p>
+      <div class="flex gap-2 flex-wrap" id="badges-container">
+        <span class="badge badge-bronze">🥉 Débutant</span>
+      </div>
+    </div>
+
+    <!-- Heure actuelle -->
+    <div class="ml-auto text-right">
+      <p class="text-3xl font-bold text-white" id="horloge">00:00</p>
+      <p class="text-xs text-gray-500" id="jour-semaine">Jeudi</p>
+    </div>
+  </div>
+</div>
+
+<!-- Onglets -->
+<div class="flex gap-2 mb-5 flex-wrap">
+  <button class="tab-btn active" onclick="switchTab('quotidien', this)">📅 Aujourd'hui</button>
+  <button class="tab-btn" onclick="switchTab('hebdo', this)">📊 Hebdo</button>
+  <button class="tab-btn" onclick="switchTab('mensuel', this)">📈 Mensuel</button>
+  <button class="tab-btn" onclick="switchTab('historique', this)">🗓 Historique</button>
+</div>
+
+<!-- ONGLET QUOTIDIEN -->
+<div id="tab-quotidien">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+    <!-- Matin -->
+    <div class="card p-4">
+      <div class="section-header section-matin mb-3">☀️ Matin — Ouverture</div>
+      <div id="tasks-matin"></div>
+    </div>
+
+    <!-- Journée -->
+    <div class="card p-4">
+      <div class="section-header section-journee mb-3">🏭 En journée — Production</div>
+      <div id="tasks-journee"></div>
+    </div>
+
+    <!-- Soir -->
+    <div class="card p-4">
+      <div class="section-header section-soir mb-3">🌙 Soir — Clôture</div>
+      <div id="tasks-soir"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ONGLET HEBDO -->
+<div id="tab-hebdo" class="hidden">
+  <div class="card p-5">
+    <div class="section-header section-hebdo mb-4">📊 Routine Hebdomadaire — Lundi matin</div>
+    <div id="tasks-hebdo"></div>
+    <div class="mt-4 p-3 rounded-lg text-sm" style="background:#111;border:1px solid #222">
+      <p class="text-gray-400 font-semibold mb-2">Semaine du <span id="semaine-label"></span></p>
+      <div class="grid grid-cols-2 gap-3 mt-3">
+        <div>
+          <p class="text-xs text-gray-500">Progression semaine</p>
+          <div class="w-full bg-gray-800 rounded-full h-2 mt-1">
+            <div id="bar-hebdo" class="h-2 rounded-full" style="background:#FF6B00;width:0%"></div>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Score</p>
+          <p class="font-bold accent" id="score-hebdo">0%</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ONGLET MENSUEL -->
+<div id="tab-mensuel" class="hidden">
+  <div class="card p-5">
+    <div class="section-header section-mensuel mb-4">📈 Routine Mensuelle — 1er du mois</div>
+    <div id="tasks-mensuel"></div>
+  </div>
+</div>
+
+<!-- ONGLET HISTORIQUE -->
+<div id="tab-historique" class="hidden">
+  <div class="card p-5">
+    <h3 class="text-base font-semibold text-white mb-4">🗓 Historique 30 jours</h3>
+    <div id="grille-historique" class="flex flex-wrap gap-1.5 mb-4"></div>
+    <div class="flex gap-3 text-xs text-gray-500 flex-wrap">
+      <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded inline-block" style="background:#FF6B00"></span> 100%</span>
+      <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded inline-block" style="background:#7c3d00"></span> 50-99%</span>
+      <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded inline-block" style="background:#1a1a1a;border:1px solid #333"></span> 0-49%</span>
+      <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded inline-block" style="background:#0d0d0d;border:1px solid #1a1a1a"></span> Pas encore</span>
+    </div>
+    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="card p-3" style="background:#0d0d0d">
+        <p class="text-xs text-gray-500">Meilleur streak</p>
+        <p class="text-xl font-bold accent" id="best-streak">0 🔥</p>
+      </div>
+      <div class="card p-3" style="background:#0d0d0d">
+        <p class="text-xs text-gray-500">Score moyen 30j</p>
+        <p class="text-xl font-bold text-white" id="avg-score">0%</p>
+      </div>
+      <div class="card p-3" style="background:#0d0d0d">
+        <p class="text-xs text-gray-500">Jours 100%</p>
+        <p class="text-xl font-bold text-green-400" id="jours-parfaits">0</p>
+      </div>
+      <div class="card p-3" style="background:#0d0d0d">
+        <p class="text-xs text-gray-500">Total tâches</p>
+        <p class="text-xl font-bold text-white" id="total-taches-hist">0</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 text-center text-xs text-gray-700">
+  High Coffee Shirt — Agent 9 Routines v1.0 — Discipline = Résultats
+</div>
+
+<script>
+// ===== DÉFINITION DES TÂCHES =====
+const TACHES = {
+  matin: [
+    { id: 'mat1', heure: '08h00', label: 'Consulter les commandes du jour', lien: '../agent7_supervision/', lienLabel: 'Agent 7' },
+    { id: 'mat2', heure: '08h05', label: 'Vérifier les messages clients (Gmail + Messenger)', lien: 'https://mail.google.com', lienLabel: 'Gmail' },
+    { id: 'mat3', heure: '08h10', label: 'Valider les devis en attente', lien: 'https://www.odoo.com', lienLabel: 'Odoo' },
+    { id: 'mat4', heure: '08h15', label: 'Vérifier les alertes stock', lien: '../agent4_stock/stock-dashboard.html', lienLabel: 'Agent 4' },
+  ],
+  journee: [
+    { id: 'jou1', heure: '', label: 'Traiter les commandes selon le planning de production' },
+    { id: 'jou2', heure: '', label: 'Capturer photos/vidéos de la production (pour réseaux)' },
+    { id: 'jou3', heure: '', label: 'Répondre aux clients sous 2h maximum' },
+    { id: 'jou4', heure: '', label: 'Vérifier les impressions DTF en cours' },
+  ],
+  soir: [
+    { id: 'soi1', heure: '17h30', label: 'Scanner les factures/tickets du jour', lien: 'ocr-scanner.html', lienLabel: 'Scanner OCR' },
+    { id: 'soi2', heure: '17h40', label: 'Valider les réservations de stock pour demain', lien: '../agent4_stock/stock-dashboard.html', lienLabel: 'Agent 4' },
+    { id: 'soi3', heure: '17h45', label: 'Vérifier le tracking DTF (Heat Transfer 4 You)' },
+    { id: 'soi4', heure: '17h50', label: 'Saisir le CA du jour', lien: 'finance-dashboard.html', lienLabel: 'Finance' },
+    { id: 'soi5', heure: '18h00', label: 'Mettre à jour le planning de production' },
+  ]
+};
+
+const TACHES_HEBDO = [
+  { id: 'heb1', label: 'Rapport des revenus de la semaine précédente', lien: 'rapport-pl.html', lienLabel: 'P&L' },
+  { id: 'heb2', label: 'Commander le groupage DTF (Heat Transfer 4 You)', lien: '../agent4_stock/dtf-plaques-transfert.html', lienLabel: 'DTF' },
+  { id: 'heb3', label: 'Vérifier les niveaux de stock Taaroa Stock + Anémone', lien: '../agent4_stock/stock-dashboard.html', lienLabel: 'Stock' },
+  { id: 'heb4', label: 'Planifier le contenu marketing de la semaine', lien: '../agent6_contenu/content-generator.html', lienLabel: 'Contenu' },
+];
+
+const TACHES_MENSUEL = [
+  { id: 'men1', label: 'Générer le rapport P&L mensuel', lien: 'rapport-pl.html', lienLabel: 'P&L' },
+  { id: 'men2', label: 'Réconciliation comptable Odoo', lien: 'https://www.odoo.com', lienLabel: 'Odoo' },
+  { id: 'men3', label: 'Analyser les KPI boutique + réseaux sociaux' },
+  { id: 'men4', label: 'Planifier les campagnes publicitaires Facebook/Google' },
+  { id: 'men5', label: 'Valider la commande mensuelle fournisseurs' },
+];
+
+const BADGES_CONFIG = [
+  { id: 'debutant', label: '🥉 Débutant', classe: 'badge-bronze', condition: s => s >= 1 },
+  { id: 'regulier', label: '🥈 Régulier', classe: 'badge-argent', condition: s => s >= 7 },
+  { id: 'champion', label: '🥇 Champion', classe: 'badge-or', condition: s => s >= 30 },
+  { id: 'parfait',  label: '💎 Parfait', classe: 'badge-or', condition: (s, jours) => jours >= 5 },
+];
+
+// ===== CLÉS LOCALSTORAGE =====
+const KEY_HIST = 'hcs_routines_hist';   // {YYYY-MM-DD: {taskId: timestamp}}
+const KEY_STREAK = 'hcs_streak';
+const KEY_BEST_STREAK = 'hcs_best_streak';
+
+// ===== DATE =====
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function formatDate(d) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+}
+function getWeekStart() {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const mon = new Date(now); mon.setDate(now.getDate() - day + 1);
+  return mon.toISOString().split('T')[0];
+}
+
+// ===== PERSISTANCE =====
+function getHist() { try { return JSON.parse(localStorage.getItem(KEY_HIST) || '{}'); } catch { return {}; } }
+function setHist(h) { localStorage.setItem(KEY_HIST, JSON.stringify(h)); }
+function getTodayData() { const h = getHist(); return h[todayStr()] || {}; }
+function setTodayData(d) { const h = getHist(); h[todayStr()] = d; setHist(h); }
+
+// ===== RENDU TÂCHES =====
+function renderTaches(containerId, taches, prefix) {
+  const container = document.getElementById(containerId);
+  const todayData = getTodayData();
+  container.innerHTML = '';
+  taches.forEach(t => {
+    const isDone = !!todayData[prefix + '_' + t.id];
+    const div = document.createElement('div');
+    div.className = 'task-item px-2' + (isDone ? ' done' : '');
+    div.id = 'task-item-' + prefix + '_' + t.id;
+    div.onclick = () => toggleTache(prefix + '_' + t.id, div, taches.map(x => prefix + '_' + x.id));
+    div.innerHTML = `
+      <div class="task-check ${isDone ? 'checked' : ''}">
+        ${isDone ? '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+      </div>
+      <div class="flex-1 min-w-0">
+        ${t.heure ? `<p class="task-time">${t.heure}</p>` : ''}
+        <p class="task-label">${t.label}</p>
+      </div>
+      ${t.lien ? `<a href="${t.lien}" class="task-link" onclick="event.stopPropagation()" target="${t.lien.startsWith('http') ? '_blank' : '_self'}">${t.lienLabel} →</a>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function renderTachesHebdo() {
+  const container = document.getElementById('tasks-hebdo');
+  const key = 'hebdo_' + getWeekStart();
+  const data = JSON.parse(localStorage.getItem(key) || '{}');
+  container.innerHTML = '';
+  TACHES_HEBDO.forEach(t => {
+    const isDone = !!data[t.id];
+    const div = document.createElement('div');
+    div.className = 'task-item px-2' + (isDone ? ' done' : '');
+    div.onclick = () => {
+      const newData = JSON.parse(localStorage.getItem(key) || '{}');
+      if (newData[t.id]) delete newData[t.id];
+      else newData[t.id] = Date.now();
+      localStorage.setItem(key, JSON.stringify(newData));
+      renderTachesHebdo();
+      mettreAJourScoreHebdo();
+    };
+    div.innerHTML = `
+      <div class="task-check ${isDone ? 'checked' : ''}">
+        ${isDone ? '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+      </div>
+      <div class="flex-1">
+        <p class="task-label">${t.label}</p>
+      </div>
+      ${t.lien ? `<a href="${t.lien}" class="task-link" onclick="event.stopPropagation()">${t.lienLabel} →</a>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function renderTachesMensuel() {
+  const container = document.getElementById('tasks-mensuel');
+  const key = 'mensuel_' + todayStr().substring(0, 7);
+  const data = JSON.parse(localStorage.getItem(key) || '{}');
+  container.innerHTML = '';
+  TACHES_MENSUEL.forEach(t => {
+    const isDone = !!data[t.id];
+    const div = document.createElement('div');
+    div.className = 'task-item px-2' + (isDone ? ' done' : '');
+    div.onclick = () => {
+      const newData = JSON.parse(localStorage.getItem(key) || '{}');
+      if (newData[t.id]) delete newData[t.id];
+      else newData[t.id] = Date.now();
+      localStorage.setItem(key, JSON.stringify(newData));
+      renderTachesMensuel();
+    };
+    div.innerHTML = `
+      <div class="task-check ${isDone ? 'checked' : ''}">
+        ${isDone ? '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+      </div>
+      <div class="flex-1">
+        <p class="task-label">${t.label}</p>
+      </div>
+      ${t.lien ? `<a href="${t.lien}" class="task-link" onclick="event.stopPropagation()">${t.lienLabel} →</a>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ===== TOGGLE TÂCHE =====
+function toggleTache(fullId, itemEl, allIds) {
+  const todayData = getTodayData();
+  if (todayData[fullId]) {
+    delete todayData[fullId];
+    itemEl.classList.remove('done');
+    itemEl.querySelector('.task-check').classList.remove('checked');
+    itemEl.querySelector('.task-check').innerHTML = '';
+  } else {
+    todayData[fullId] = Date.now();
+    itemEl.classList.add('done');
+    const check = itemEl.querySelector('.task-check');
+    check.classList.add('checked');
+    check.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+  }
+  setTodayData(todayData);
+  mettreAJourScore();
+}
+
+// ===== CALCUL SCORE =====
+function calculerScoreJour(dateStr) {
+  const h = getHist();
+  const data = h[dateStr] || {};
+  const allTasks = [
+    ...TACHES.matin.map(t => 'matin_' + t.id),
+    ...TACHES.journee.map(t => 'journee_' + t.id),
+    ...TACHES.soir.map(t => 'soir_' + t.id)
+  ];
+  const done = allTasks.filter(id => !!data[id]).length;
+  return { done, total: allTasks.length, pct: allTasks.length > 0 ? Math.round((done / allTasks.length) * 100) : 0 };
+}
+
+function mettreAJourScore() {
+  const { done, total, pct } = calculerScoreJour(todayStr());
+  document.getElementById('score-nb').textContent = done;
+  document.getElementById('score-total').textContent = total;
+  document.getElementById('score-pct').textContent = pct + '%';
+
+  // Message dynamique
+  const msgs = [
+    [0, 0, 'Commencez votre journée !'],
+    [1, 30, 'Bien démarré ! Continuez 💪'],
+    [31, 60, 'Vous êtes dans le rythme !'],
+    [61, 90, 'Presque parfait ! Encore un effort !'],
+    [91, 100, 'Journée parfaite ! 🎉']
+  ];
+  const msg = msgs.find(([min, max]) => pct >= min && pct <= max);
+  document.getElementById('score-msg').textContent = msg ? msg[2] : '';
+
+  dessinerScoreRing(pct);
+  mettreAJourStreak();
+  mettreAJourBadges();
+  mettreAJourHistorique();
+}
+
+// ===== ANNEAU SCORE =====
+function dessinerScoreRing(pct) {
+  const canvas = document.getElementById('score-canvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = 38;
+  ctx.clearRect(0, 0, w, h);
+  // Fond
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 7; ctx.stroke();
+  // Progression
+  if (pct > 0) {
+    const angle = (pct / 100) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, angle);
+    ctx.strokeStyle = pct === 100 ? '#22c55e' : '#FF6B00';
+    ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.stroke();
+  }
+}
+
+// ===== STREAK =====
+function mettreAJourStreak() {
+  const hist = getHist();
+  const today = todayStr();
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const ds = d.toISOString().split('T')[0];
+    const { pct } = calculerScoreJourHist(hist, ds);
+    if (ds === today && pct < 100) { d.setDate(d.getDate() - 1); continue; }
+    if (pct === 100) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+    if (streak > 365) break;
+  }
+  localStorage.setItem(KEY_STREAK, streak);
+  const best = Math.max(streak, +(localStorage.getItem(KEY_BEST_STREAK) || 0));
+  localStorage.setItem(KEY_BEST_STREAK, best);
+  document.getElementById('streak-count').textContent = streak;
+  document.getElementById('best-streak').textContent = best + ' 🔥';
+}
+
+function calculerScoreJourHist(hist, ds) {
+  const data = hist[ds] || {};
+  const allTasks = [
+    ...TACHES.matin.map(t => 'matin_' + t.id),
+    ...TACHES.journee.map(t => 'journee_' + t.id),
+    ...TACHES.soir.map(t => 'soir_' + t.id)
+  ];
+  const done = allTasks.filter(id => !!data[id]).length;
+  return { done, total: allTasks.length, pct: allTasks.length > 0 ? Math.round((done / allTasks.length) * 100) : -1 };
+}
+
+// ===== BADGES =====
+function mettreAJourBadges() {
+  const streak = +(localStorage.getItem(KEY_STREAK) || 0);
+  const hist = getHist();
+  const joursParfaits = Object.keys(hist).filter(ds => calculerScoreJourHist(hist, ds).pct === 100).length;
+
+  const container = document.getElementById('badges-container');
+  container.innerHTML = '';
+  BADGES_CONFIG.forEach(b => {
+    if (b.condition(streak, joursParfaits)) {
+      const span = document.createElement('span');
+      span.className = 'badge ' + b.classe;
+      span.textContent = b.label;
+      container.appendChild(span);
+    }
+  });
+  if (container.children.length === 0) {
+    container.innerHTML = '<span class="text-xs text-gray-600">Complétez des journées pour débloquer des badges</span>';
+  }
+}
+
+// ===== HISTORIQUE 30 JOURS =====
+function mettreAJourHistorique() {
+  const hist = getHist();
+  const grille = document.getElementById('grille-historique');
+  grille.innerHTML = '';
+  let totalDone = 0, totalPossible = 0, jours100 = 0, scores = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    const { done, total, pct } = calculerScoreJourHist(hist, ds);
+    const isFuture = ds > todayStr();
+    if (!isFuture && pct >= 0) {
+      totalDone += done; totalPossible += total; scores.push(pct);
+      if (pct === 100) jours100++;
+    }
+    let bg = isFuture ? '#050505' : (pct < 0 ? '#0d0d0d' : pct === 100 ? '#FF6B00' : pct >= 50 ? '#7c3d00' : '#1a1a1a');
+    let border = isFuture ? '1px solid #111' : '1px solid #2a2a2a';
+    const day = document.createElement('div');
+    day.className = 'hist-day';
+    day.style.cssText = `background:${bg};border:${border};`;
+    day.title = ds + (pct >= 0 && !isFuture ? ` — ${pct}%` : '');
+    if (pct === 100 && !isFuture) day.textContent = '✓';
+    grille.appendChild(day);
+  }
+
+  const avg = scores.length > 0 ? Math.round(scores.reduce((a,b) => a+b, 0) / scores.length) : 0;
+  document.getElementById('avg-score').textContent = avg + '%';
+  document.getElementById('jours-parfaits').textContent = jours100;
+  document.getElementById('total-taches-hist').textContent = totalDone;
+}
+
+// ===== SCORE HEBDO =====
+function mettreAJourScoreHebdo() {
+  const key = 'hebdo_' + getWeekStart();
+  const data = JSON.parse(localStorage.getItem(key) || '{}');
+  const done = TACHES_HEBDO.filter(t => !!data[t.id]).length;
+  const pct = Math.round((done / TACHES_HEBDO.length) * 100);
+  document.getElementById('bar-hebdo').style.width = pct + '%';
+  document.getElementById('score-hebdo').textContent = pct + '%';
+}
+
+// ===== RESET =====
+function reinitialiserJour() {
+  if (!confirm('Réinitialiser toutes les tâches d\'aujourd\'hui ?')) return;
+  const h = getHist();
+  delete h[todayStr()];
+  setHist(h);
+  tout();
+}
+
+// ===== HORLOGE =====
+function mettreAJourHorloge() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2, '0');
+  const m = now.getMinutes().toString().padStart(2, '0');
+  document.getElementById('horloge').textContent = h + ':' + m;
+  const jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  document.getElementById('jour-semaine').textContent = jours[now.getDay()];
+}
+
+// ===== ONGLETS =====
+function switchTab(name, btn) {
+  ['quotidien','hebdo','mensuel','historique'].forEach(t => {
+    document.getElementById('tab-' + t).classList.add('hidden');
+  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  btn.classList.add('active');
+  if (name === 'hebdo') { renderTachesHebdo(); mettreAJourScoreHebdo(); }
+  if (name === 'mensuel') renderTachesMensuel();
+  if (name === 'historique') mettreAJourHistorique();
+}
+
+// ===== INIT ÉTIQUETTE SEMAINE =====
+function initSemaineLabel() {
+  const ws = getWeekStart();
+  const we = new Date(ws); we.setDate(we.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+  document.getElementById('semaine-label').textContent = fmt(new Date(ws)) + ' au ' + fmt(we);
+}
+
+// ===== RENDU GLOBAL =====
+function tout() {
+  const t = todayStr();
+  document.getElementById('date-affichage').textContent = formatDate(t);
+  renderTaches('tasks-matin', TACHES.matin, 'matin');
+  renderTaches('tasks-journee', TACHES.journee, 'journee');
+  renderTaches('tasks-soir', TACHES.soir, 'soir');
+  mettreAJourScore();
+  initSemaineLabel();
+}
+
+// Lancement
+tout();
+mettreAJourHorloge();
+setInterval(mettreAJourHorloge, 10000);
+setInterval(() => {
+  // Recharger automatiquement à minuit
+  if (new Date().getHours() === 0 && new Date().getMinutes() === 0) tout();
+}, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent 7 — Supervision HCS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: #fff; margin: 0; min-height: 100vh; }
+    :root { --orange: #FF6B00; --bg: #0a0a0a; --card: #111; --border: #222; --muted: #666; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+    .kpi-val { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .b-red   { background: #3b000033; color: #ff5555; border: 1px solid #ff555533; }
+    .b-orange{ background: #3b200033; color: #ff9900; border: 1px solid #ff990033; }
+    .b-green { background: #003b1a33; color: #00cc66; border: 1px solid #00cc6633; }
+    .b-blue  { background: #001a3b33; color: #4499ff; border: 1px solid #4499ff33; }
+    .b-purple{ background: #1a003b33; color: #aa44ff; border: 1px solid #aa44ff33; }
+    .b-gray  { background: #22222233; color: #888; border: 1px solid #44444433; }
+    .tab-btn { padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 500; transition: all 0.18s; color: #666; border: none; background: none; }
+    .tab-btn.active { background: var(--orange); color: #fff; }
+    .tab-btn:hover:not(.active) { color: #ccc; background: #1a1a1a; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+    .bar-bg { background: #1c1c1c; border-radius: 4px; height: 7px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    .alert-item { border-left: 3px solid; padding: 10px 14px; background: #0f0f0f; border-radius: 0 8px 8px 0; }
+    .alert-high   { border-color: #ff5555; }
+    .alert-medium { border-color: #ff9900; }
+    .alert-low    { border-color: #4499ff; }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0f0f0f; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; color: #000; font-size: 11px; }
+      .card { border: 1px solid #ddd; background: #fff; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header class="border-b border-gray-800 px-6 py-3 flex items-center justify-between no-print sticky top-0 z-50" style="background:#0a0a0a;">
+  <div class="flex items-center gap-4">
+    <div class="text-xl font-black tracking-tight" style="color:var(--orange)">HCS</div>
+    <div class="text-gray-700">|</div>
+    <div>
+      <div class="text-sm font-semibold">Agent 7 — Supervision &amp; Qualité</div>
+      <div class="text-xs text-gray-600">Tableau de bord de pilotage global</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <div id="lastUpdate" class="text-xs text-gray-600">Chargement...</div>
+    <span id="refreshDot" class="w-2 h-2 rounded-full bg-green-500 pulse" title="Auto-actualisation toutes les 30s"></span>
+    <button onclick="loadAll()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-orange-500 hover:text-orange-400 transition-all">↺ Actualiser</button>
+    <button onclick="printRapport()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-orange-500 hover:text-orange-400 transition-all">📄 Rapport</button>
+    <a href="../agent5_planning/planning-dashboard.html" class="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-blue-500 hover:text-blue-400 transition-all">📋 Planning</a>
+    <a href="../agent9_finances/finance-dashboard.html"  class="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:border-green-500 hover:text-green-400 transition-all">💰 Finances</a>
+  </div>
+</header>
+
+<!-- ═══ TAB NAV ═══ -->
+<div class="px-6 py-2.5 border-b border-gray-800 flex gap-1 no-print" style="background:#080808;">
+  <button class="tab-btn active" onclick="showTab('global',this)">📊 Vue Globale</button>
+  <button class="tab-btn" onclick="showTab('commandes',this)">📋 Commandes</button>
+  <button class="tab-btn" onclick="showTab('finances',this)">💰 Finances</button>
+  <button class="tab-btn" onclick="showTab('machines',this)">⚙️ Machines</button>
+  <button class="tab-btn" onclick="showTab('alertes',this)">
+    🔔 Alertes
+    <span id="alertBadge" class="ml-1 px-1.5 py-0.5 rounded text-xs font-bold hidden" style="background:#ff5555;color:#fff;"></span>
+  </button>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<main class="p-5">
+
+  <!-- ── TAB: VUE GLOBALE ── -->
+  <div id="pane-global" class="tab-pane active space-y-5">
+
+    <!-- KPI Row -->
+    <div class="grid grid-cols-4 gap-4">
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">Commandes actives</div>
+        <div class="kpi-val" style="color:var(--orange)" id="g-active">—</div>
+        <div class="text-xs text-gray-600 mt-1">en cours de traitement</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">Alertes critiques</div>
+        <div class="kpi-val text-red-400" id="g-alerts">—</div>
+        <div class="text-xs text-gray-600 mt-1">nécessitent action immédiate</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">CA aujourd'hui</div>
+        <div class="kpi-val text-green-400" id="g-ca">—</div>
+        <div class="text-xs text-gray-600 mt-1" id="g-ca-obj">— XPF objectif</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">En retard</div>
+        <div class="kpi-val text-yellow-400" id="g-late">—</div>
+        <div class="text-xs text-gray-600 mt-1">commandes dépassées</div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="card p-4">
+      <div class="text-sm font-semibold text-gray-300 mb-4">Pipeline de production</div>
+      <div class="grid grid-cols-5 gap-4" id="g-pipeline"><!-- js --></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-gray-300 mb-3">Répartition par statut</div>
+        <canvas id="chartStatus" height="210"></canvas>
+      </div>
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-gray-300 mb-3">CA — 7 derniers jours</div>
+        <canvas id="chartCA7" height="210"></canvas>
+      </div>
+    </div>
+
+    <!-- Feed + Top clients -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-gray-300 mb-3">Activité récente</div>
+        <div id="g-feed" class="space-y-1.5 max-h-56 overflow-y-auto text-xs"></div>
+      </div>
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-gray-300 mb-3">Top clients — mois en cours</div>
+        <div id="g-topclients" class="space-y-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: COMMANDES ── -->
+  <div id="pane-commandes" class="tab-pane">
+    <div class="card p-4">
+      <!-- Filtres -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <input id="f-search" type="text" placeholder="Rechercher client, ref..." oninput="renderCommandes()"
+          class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white flex-1 min-w-40">
+        <select id="f-col" onchange="renderCommandes()" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300">
+          <option value="">Tous les statuts</option>
+          <option value="attente">À planifier</option>
+          <option value="matiere">Attente matière</option>
+          <option value="prod">En production</option>
+          <option value="qualite">Contrôle qualité</option>
+          <option value="pret">Prêt / Livré</option>
+        </select>
+        <select id="f-type" onchange="renderCommandes()" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300">
+          <option value="">Tous les types</option>
+          <option value="dtf">DTF</option>
+          <option value="vinyle">Vinyle</option>
+          <option value="casquette">Casquette</option>
+          <option value="multi">Multi</option>
+        </select>
+        <select id="f-priority" onchange="renderCommandes()" class="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300">
+          <option value="">Toutes priorités</option>
+          <option value="express">Express</option>
+          <option value="urgent">Urgent</option>
+          <option value="normal">Normal</option>
+        </select>
+        <span id="f-count" class="text-xs text-gray-500 ml-2"></span>
+      </div>
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-800 text-xs text-gray-500">
+              <th class="text-left py-2 pr-3 font-medium">Réf</th>
+              <th class="text-left py-2 pr-3 font-medium">Client</th>
+              <th class="text-left py-2 pr-3 font-medium">Type</th>
+              <th class="text-left py-2 pr-3 font-medium">Qté</th>
+              <th class="text-left py-2 pr-3 font-medium">Machine</th>
+              <th class="text-left py-2 pr-3 font-medium">Deadline</th>
+              <th class="text-left py-2 pr-3 font-medium">Statut</th>
+              <th class="text-left py-2 pr-3 font-medium">Délai</th>
+              <th class="text-left py-2 font-medium">Canal</th>
+            </tr>
+          </thead>
+          <tbody id="cmd-tbody">
+            <tr><td colspan="9" class="py-6 text-center text-gray-600 text-xs">Chargement...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: FINANCES ── -->
+  <div id="pane-finances" class="tab-pane space-y-4">
+    <!-- KPIs -->
+    <div class="grid grid-cols-4 gap-4">
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">CA du jour</div>
+        <div class="kpi-val text-green-400" id="fin-ca-j">—</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">CA du mois</div>
+        <div class="kpi-val" style="color:var(--orange)" id="fin-ca-m">—</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">Dépenses du mois</div>
+        <div class="kpi-val text-red-400" id="fin-chg-m">—</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-gray-500 mb-2">Résultat net mois</div>
+        <div class="kpi-val" id="fin-net-m">—</div>
+      </div>
+    </div>
+    <!-- Charts -->
+    <div class="grid grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-gray-300 mb-3">Revenus par canal</div>
+        <canvas id="chartCanal" height="220"></canvas>
+      </div>
+      <div class="card p-4">
+        <div class="text-sm font-semibold text-gray-300 mb-3">CA vs Dépenses — 30 jours</div>
+        <canvas id="chartTrend" height="220"></canvas>
+      </div>
+    </div>
+    <!-- Table -->
+    <div class="card p-4">
+      <div class="text-sm font-semibold text-gray-300 mb-3">Dernières transactions</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-800 text-xs text-gray-500">
+              <th class="text-left py-2 pr-3 font-medium">Date</th>
+              <th class="text-left py-2 pr-3 font-medium">Type</th>
+              <th class="text-left py-2 pr-3 font-medium">Description</th>
+              <th class="text-left py-2 pr-3 font-medium">Canal / Catégorie</th>
+              <th class="text-right py-2 font-medium">Montant</th>
+            </tr>
+          </thead>
+          <tbody id="fin-tbody">
+            <tr><td colspan="5" class="py-4 text-center text-gray-600 text-xs">Aucune donnée — ouvre Agent 9 Finance pour alimenter</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: MACHINES ── -->
+  <div id="pane-machines" class="tab-pane space-y-4">
+    <div class="grid grid-cols-3 gap-4" id="machine-grid"><!-- js --></div>
+    <div class="card p-4">
+      <div class="text-sm font-semibold text-gray-300 mb-3">Charge globale par machine</div>
+      <canvas id="chartMachines" height="140"></canvas>
+    </div>
+  </div>
+
+  <!-- ── TAB: ALERTES ── -->
+  <div id="pane-alertes" class="tab-pane space-y-3">
+    <div class="flex items-center justify-between mb-2">
+      <div class="text-sm text-gray-500" id="alert-summary">—</div>
+      <button onclick="loadAll()" class="text-xs px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-orange-400 transition-all">↺ Actualiser</button>
+    </div>
+    <div id="alert-list"></div>
+  </div>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<script>
+// ═══ CONFIG ═══════════════════════════════════════════════════════════
+const MACHINES = [
+  { name:'Presse T-shirt 1',   icon:'👕', type:'tshirt' },
+  { name:'Presse T-shirt 2',   icon:'👕', type:'tshirt' },
+  { name:'Presse Casquette 1', icon:'🧢', type:'casquette' },
+  { name:'Presse Casquette 2', icon:'🧢', type:'casquette' },
+  { name:'Plotter Vinyle 1',   icon:'✂️', type:'vinyle' },
+  { name:'Plotter Vinyle 2',   icon:'✂️', type:'vinyle' },
+  { name:'Plotter Vinyle 3',   icon:'✂️', type:'vinyle' }
+];
+const COL_KEYS   = ['attente','matiere','prod','qualite','pret'];
+const COL_LABELS = { attente:'À planifier', matiere:'Attente matière', prod:'En production', qualite:'Contrôle qualité', pret:'Prêt / Livré' };
+const COL_COLORS = { attente:'#4499ff', matiere:'#ff9900', prod:'#FF6B00', qualite:'#aa44ff', pret:'#00cc66' };
+const CANAL_LABELS = { gmail:'Gmail', messenger:'Messenger', whatsapp:'WhatsApp', instagram:'Instagram', boutique:'Boutique', woocommerce:'WooCommerce', tiktok:'TikTok' };
+const CANAL_ICONS  = { gmail:'📧', messenger:'💬', whatsapp:'📱', instagram:'📸', boutique:'🏪', woocommerce:'🛒', tiktok:'🎵', 'Gmail':'📧' };
+const OBJECTIF_CA  = 50000; // XPF/jour
+
+// ═══ DEMO DATA ════════════════════════════════════════════════════════
+function dd(offset) { const d = new Date(); d.setDate(d.getDate()+offset); d.setHours(17,0,0,0); return d.toISOString(); }
+function ds(offset) { const d = new Date(); d.setDate(d.getDate()+offset); return d.toISOString().split('T')[0]; }
+
+const DEMO_PLANNING = [
+  { id:'D001', client:'Mairie de Papeete',     ref:'DEV-2026-038', canal:'Gmail',    desc:'50 t-shirts événement DTF', type:'dtf',       machine:'Presse T-shirt 1',   qty:50,  deadline:dd(1),  priority:'urgent', col:'prod',    createdAt:dd(-1) },
+  { id:'D002', client:'Tahiti Pearl Resort',   ref:'DEV-2026-039', canal:'email',    desc:'30 polos brodés',           type:'casquette', machine:'Presse Casquette 1', qty:30,  deadline:dd(2),  priority:'normal', col:'attente', createdAt:dd(0)  },
+  { id:'D003', client:'Air Tahiti Nui',        ref:'DEV-2026-040', canal:'messenger',desc:'200 t-shirts uniforme',     type:'dtf',       machine:'Presse T-shirt 2',   qty:200, deadline:dd(-1), priority:'express',col:'qualite', createdAt:dd(-3) },
+  { id:'D004', client:'Festival Heiva',        ref:'DEV-2026-041', canal:'instagram',desc:'500 stickers vinyle',       type:'vinyle',    machine:'Plotter Vinyle 1',   qty:500, deadline:dd(3),  priority:'normal', col:'matiere', createdAt:dd(-1) },
+  { id:'D005', client:'Carrefour Papeete',     ref:'DEV-2026-042', canal:'whatsapp', desc:'30 t-shirts pub',           type:'dtf',       machine:'Presse T-shirt 1',   qty:30,  deadline:dd(-2), priority:'normal', col:'pret',    createdAt:dd(-5) },
+  { id:'D006', client:'Lycée Taravao',         ref:'DEV-2026-043', canal:'Gmail',    desc:'60 casquettes logo',        type:'casquette', machine:'Presse Casquette 2', qty:60,  deadline:dd(1),  priority:'normal', col:'prod',    createdAt:dd(-2) },
+  { id:'D007', client:'Snack Miti',            ref:'DEV-2026-044', canal:'boutique', desc:'T-shirt personnalisé',      type:'dtf',       machine:'Presse T-shirt 2',   qty:5,   deadline:dd(0),  priority:'express',col:'attente', createdAt:dd(0)  }
+];
+
+function genDemo() {
+  const trans = [], chgs = [];
+  const canals  = ['gmail','messenger','whatsapp','instagram','boutique','woocommerce'];
+  const cats    = ['fournisseur','encres','loyer','charges_fixes','dtf_usa'];
+  const clients = ['Mairie de Papeete','Pearl Resort','Air Tahiti Nui','Festival Heiva','Lycée Taravao','Carrefour'];
+  for (let i = 0; i < 30; i++) {
+    const d = ds(-i);
+    const n = Math.floor(Math.random()*3)+1;
+    for (let j = 0; j < n; j++) {
+      trans.push({ id:'T'+i+j, date:d, canal:canals[Math.floor(Math.random()*canals.length)],
+        description:'Vente commande #'+(Math.floor(Math.random()*999)+100),
+        montant: Math.floor(Math.random()*28000)+4000, nb: Math.floor(Math.random()*5)+1,
+        client: clients[Math.floor(Math.random()*clients.length)] });
+    }
+    if (Math.random() > 0.55) {
+      chgs.push({ id:'C'+i, date:d, categorie:cats[Math.floor(Math.random()*cats.length)],
+        fournisseur:'Fournisseur '+(Math.floor(Math.random()*3)+1),
+        montant: Math.floor(Math.random()*12000)+1500, facture:'FAC-'+i, statut:'payée' });
+    }
+  }
+  return { trans, chgs };
+}
+const { trans: DEMO_TRANS, chgs: DEMO_CHARGES } = genDemo();
+
+// ═══ STATE ════════════════════════════════════════════════════════════
+let state = { planning:[], transactions:[], charges:[], alerts:[] };
+let charts = {};
+
+// ═══ TABS ═════════════════════════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══ LOAD ═════════════════════════════════════════════════════════════
+function tryParse(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+
+function loadAll() {
+  const dot = document.getElementById('refreshDot');
+  dot.style.background = '#ff9900';
+
+  let planning = tryParse('hcs_planning', []);
+  let transactions = tryParse('hcs_transactions', []);
+  let charges = tryParse('hcs_charges', []);
+
+  // Fallback démo
+  if (!planning.length) planning = DEMO_PLANNING;
+  if (!transactions.length) { transactions = DEMO_TRANS; charges = DEMO_CHARGES; }
+
+  state = { planning, transactions, charges, alerts: [] };
+  state.alerts = calcAlerts();
+
+  // Badge alertes
+  const high = state.alerts.filter(a => a.severity === 'high').length;
+  const badge = document.getElementById('alertBadge');
+  if (high > 0) { badge.textContent = high; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+
+  renderGlobal();
+  renderCommandes();
+  renderFinances();
+  renderMachines();
+  renderAlertes();
+
+  document.getElementById('lastUpdate').textContent = 'Mis à jour : ' + new Date().toLocaleTimeString('fr-FR');
+  dot.style.background = '#00cc66';
+}
+
+// ═══ ALERTS ════════════════════════════════════════════════════════════
+function calcAlerts() {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const alerts = [];
+
+  // Retards commandes
+  state.planning.forEach(cmd => {
+    if (cmd.col === 'pret') return;
+    const dl = new Date(cmd.deadline);
+    const diffH = (dl - now) / 3600000;
+    if (diffH < 0) {
+      alerts.push({ severity:'high', type:'Retard', icon:'🔴',
+        msg:`${cmd.ref} — ${cmd.client} — RETARD ${Math.abs(Math.round(diffH))}h`,
+        detail:`Deadline : ${dl.toLocaleString('fr-FR')} | Statut : ${COL_LABELS[cmd.col]}` });
+    } else if (diffH < 6 && cmd.col !== 'qualite' && cmd.col !== 'pret') {
+      alerts.push({ severity:'high', type:'Urgent', icon:'🟠',
+        msg:`${cmd.ref} — ${cmd.client} — ${Math.round(diffH)}h restantes`,
+        detail:`Type : ${cmd.type?.toUpperCase()} | Machine : ${cmd.machine || '—'}` });
+    } else if (diffH < 24 && cmd.col === 'attente') {
+      alerts.push({ severity:'medium', type:'À planifier', icon:'🟡',
+        msg:`${cmd.ref} — ${cmd.client} — non planifié, deadline dans ${Math.round(diffH)}h`,
+        detail:`Deadline : ${dl.toLocaleString('fr-FR')}` });
+    }
+  });
+
+  // Alerte CA journalier
+  const caJ = state.transactions.filter(r => r.date === today).reduce((s,r) => s + (+r.montant||0), 0);
+  if (caJ < OBJECTIF_CA * 0.5 && now.getHours() >= 14) {
+    alerts.push({ severity:'medium', type:'Finances', icon:'💰',
+      msg:`CA du jour faible : ${fmt(caJ)} XPF (objectif : ${fmt(OBJECTIF_CA)} XPF)`,
+      detail:`${now.getHours()}h — ${state.transactions.filter(r=>r.date===today).length} transaction(s) enregistrée(s)` });
+  }
+
+  // Tri : high en premier
+  alerts.sort((a,b) => { const o={high:0,medium:1,low:2}; return o[a.severity]-o[b.severity]; });
+  return alerts;
+}
+
+// ═══ RENDER: VUE GLOBALE ══════════════════════════════════════════════
+function renderGlobal() {
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const thisMonth = today.substring(0,7);
+
+  const active = state.planning.filter(c => c.col !== 'pret');
+  const late   = state.planning.filter(c => c.col !== 'pret' && new Date(c.deadline) < now);
+  const caJ    = state.transactions.filter(r => r.date === today).reduce((s,r) => s + (+r.montant||0), 0);
+  const highAl = state.alerts.filter(a => a.severity === 'high');
+
+  document.getElementById('g-active').textContent = active.length;
+  document.getElementById('g-alerts').textContent = highAl.length;
+  document.getElementById('g-ca').textContent     = fmt(caJ) + ' XPF';
+  document.getElementById('g-ca-obj').textContent = `/ objectif ${fmt(OBJECTIF_CA)} XPF`;
+  document.getElementById('g-late').textContent   = late.length;
+
+  // Pipeline
+  const pipe = document.getElementById('g-pipeline');
+  pipe.innerHTML = COL_KEYS.map(col => {
+    const count = state.planning.filter(c => c.col === col).length;
+    const pct = state.planning.length > 0 ? Math.round(count / state.planning.length * 100) : 0;
+    return `<div class="text-center">
+      <div class="text-2xl font-bold mb-1" style="color:${COL_COLORS[col]}">${count}</div>
+      <div class="text-xs text-gray-500 mb-2 leading-tight">${COL_LABELS[col]}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${COL_COLORS[col]}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Chart Donut status
+  const colCounts = COL_KEYS.map(c => state.planning.filter(x => x.col === c).length);
+  if (charts.status) charts.status.destroy();
+  charts.status = new Chart(document.getElementById('chartStatus'), {
+    type: 'doughnut',
+    data: { labels: COL_KEYS.map(c => COL_LABELS[c]), datasets: [{ data: colCounts, backgroundColor: COL_KEYS.map(c => COL_COLORS[c]), borderWidth: 0 }] },
+    options: { responsive:true, cutout:'68%', plugins:{ legend:{ position:'bottom', labels:{ color:'#777', font:{size:10}, padding:12 } } } }
+  });
+
+  // Chart CA 7 jours
+  const days7 = [], ca7 = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds7 = d.toISOString().split('T')[0];
+    days7.push(d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'}));
+    ca7.push(state.transactions.filter(r => r.date === ds7).reduce((s,r) => s + (+r.montant||0), 0));
+  }
+  if (charts.ca7) charts.ca7.destroy();
+  charts.ca7 = new Chart(document.getElementById('chartCA7'), {
+    type: 'line',
+    data: { labels:days7, datasets:[{ data:ca7, borderColor:'#FF6B00', backgroundColor:'rgba(255,107,0,0.12)', fill:true, tension:0.4, pointRadius:4, pointBackgroundColor:'#FF6B00', borderWidth:2 }] },
+    options: { responsive:true, plugins:{ legend:{display:false} }, scales:{
+      x:{ ticks:{color:'#555',font:{size:10}}, grid:{color:'#1c1c1c'} },
+      y:{ ticks:{color:'#555',font:{size:10},callback:v=>fmtK(v)}, grid:{color:'#1c1c1c'} }
+    }}
+  });
+
+  // Activité récente
+  const recent = [...state.planning].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)).slice(0,8);
+  document.getElementById('g-feed').innerHTML = recent.map(cmd => {
+    const icon = cmd.type==='dtf'?'👕':cmd.type==='casquette'?'🧢':'✂️';
+    return `<div class="flex items-start gap-2 py-1.5 border-b border-gray-900 last:border-0">
+      <span class="text-base leading-none mt-0.5">${icon}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-white font-medium truncate">${cmd.client}</div>
+        <div class="text-gray-500">${cmd.ref} · <span style="color:${COL_COLORS[cmd.col]}">${COL_LABELS[cmd.col]}</span> · ${timeDiff(new Date(cmd.createdAt))}</div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="text-gray-600">Aucune commande</div>';
+
+  // Top clients
+  const clientMap = {};
+  state.transactions.filter(r => getMonth(r.date) === thisMonth).forEach(r => {
+    const name = r.client || r.description || '—';
+    clientMap[name] = (clientMap[name]||0) + (+r.montant||0);
+  });
+  const topC = Object.entries(clientMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxCA = topC[0]?.[1] || 1;
+  document.getElementById('g-topclients').innerHTML = topC.length
+    ? topC.map(([n,ca]) => `<div class="flex items-center gap-2">
+        <div class="text-xs text-gray-300 w-36 truncate">${n}</div>
+        <div class="flex-1 bar-bg"><div class="bar-fill" style="width:${Math.round(ca/maxCA*100)}%;background:var(--orange)"></div></div>
+        <div class="text-xs text-gray-400 text-right w-24">${fmt(ca)} XPF</div>
+      </div>`).join('')
+    : '<div class="text-xs text-gray-600">Aucune donnée Finance</div>';
+}
+
+// ═══ RENDER: COMMANDES ════════════════════════════════════════════════
+function renderCommandes() {
+  const search = (document.getElementById('f-search')?.value||'').toLowerCase();
+  const fCol  = document.getElementById('f-col')?.value||'';
+  const fType = document.getElementById('f-type')?.value||'';
+  const fPrio = document.getElementById('f-priority')?.value||'';
+  const now   = new Date();
+
+  let list = state.planning.filter(c => {
+    if (fCol  && c.col      !== fCol)  return false;
+    if (fType && c.type     !== fType) return false;
+    if (fPrio && c.priority !== fPrio) return false;
+    if (search && !c.client.toLowerCase().includes(search) && !c.ref.toLowerCase().includes(search)) return false;
+    return true;
+  }).sort((a,b) => new Date(a.deadline)-new Date(b.deadline));
+
+  document.getElementById('f-count').textContent = list.length + ' commande(s)';
+
+  const tbody = document.getElementById('cmd-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-gray-600 text-xs">Aucune commande trouvée</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(cmd => {
+    const dl   = new Date(cmd.deadline);
+    const diffH = (dl - now) / 3600000;
+    const urgBadge = diffH < 0      ? `<span class="badge b-red">⚠ RETARD ${Math.abs(Math.round(diffH))}h</span>`
+                   : diffH < 6      ? `<span class="badge b-red">${Math.round(diffH)}h restantes</span>`
+                   : diffH < 24     ? `<span class="badge b-orange">${Math.round(diffH)}h</span>`
+                   :                  `<span class="badge b-green">${Math.ceil(diffH/24)}j</span>`;
+    const colBadge   = `<span class="badge" style="background:${COL_COLORS[cmd.col]}22;color:${COL_COLORS[cmd.col]};border:1px solid ${COL_COLORS[cmd.col]}33">${COL_LABELS[cmd.col]}</span>`;
+    const typeBadge  = cmd.type==='dtf'?`<span class="badge b-blue">DTF</span>`:cmd.type==='vinyle'?`<span class="badge b-green">VINYLE</span>`:cmd.type==='casquette'?`<span class="badge b-purple">CASQ.</span>`:`<span class="badge b-gray">MULTI</span>`;
+    const prioBadge  = cmd.priority==='express'?`<span class="badge b-red">Express</span>`:cmd.priority==='urgent'?`<span class="badge b-orange">Urgent</span>`:`<span class="badge b-gray">Normal</span>`;
+    const machine    = cmd.machine ? cmd.machine.replace('Presse ','P.').replace('Plotter ','Plt.') : '—';
+    const canalIcon  = CANAL_ICONS[cmd.canal] || '📨';
+
+    return `<tr class="border-b border-gray-900 hover:bg-white/[0.02] transition-colors text-sm">
+      <td class="py-2 pr-3 font-mono text-xs text-gray-400">${cmd.ref||cmd.id}</td>
+      <td class="py-2 pr-3 font-medium text-white">${cmd.client}</td>
+      <td class="py-2 pr-3">${typeBadge}</td>
+      <td class="py-2 pr-3 text-gray-300">${cmd.qty}</td>
+      <td class="py-2 pr-3 text-xs text-gray-500">${machine}</td>
+      <td class="py-2 pr-3 text-xs text-gray-400">${dl.toLocaleDateString('fr-FR')} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td>
+      <td class="py-2 pr-3">${colBadge}</td>
+      <td class="py-2 pr-3">${urgBadge}</td>
+      <td class="py-2 text-base">${canalIcon}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══ RENDER: FINANCES ═════════════════════════════════════════════════
+function renderFinances() {
+  const now = new Date();
+  const today     = now.toISOString().split('T')[0];
+  const thisMonth = today.substring(0,7);
+
+  const caJ   = state.transactions.filter(r => r.date === today).reduce((s,r) => s + (+r.montant||0), 0);
+  const caM   = state.transactions.filter(r => getMonth(r.date) === thisMonth).reduce((s,r) => s + (+r.montant||0), 0);
+  const chgM  = state.charges.filter(r => getMonth(r.date) === thisMonth).reduce((s,r) => s + (+r.montant||0), 0);
+  const netM  = caM - chgM;
+
+  document.getElementById('fin-ca-j').textContent  = fmt(caJ)  + ' XPF';
+  document.getElementById('fin-ca-m').textContent  = fmt(caM)  + ' XPF';
+  document.getElementById('fin-chg-m').textContent = fmt(chgM) + ' XPF';
+  const netEl = document.getElementById('fin-net-m');
+  netEl.textContent = fmt(netM) + ' XPF';
+  netEl.className   = 'kpi-val ' + (netM >= 0 ? 'text-green-400' : 'text-red-400');
+
+  // Chart canal
+  const canalMap = {};
+  state.transactions.forEach(r => { canalMap[r.canal] = (canalMap[r.canal]||0) + (+r.montant||0); });
+  const canals = Object.entries(canalMap).sort((a,b)=>b[1]-a[1]);
+  if (charts.canal) charts.canal.destroy();
+  charts.canal = new Chart(document.getElementById('chartCanal'), {
+    type: 'bar',
+    data: { labels: canals.map(([c]) => CANAL_LABELS[c]||c), datasets:[{ data:canals.map(([,v])=>v), backgroundColor:'#FF6B00', borderRadius:6, borderSkipped:false }] },
+    options: { responsive:true, plugins:{legend:{display:false}}, scales:{
+      x:{ ticks:{color:'#555',font:{size:11}}, grid:{color:'#1c1c1c'} },
+      y:{ ticks:{color:'#555',font:{size:10},callback:v=>fmtK(v)}, grid:{color:'#1c1c1c'} }
+    }}
+  });
+
+  // Chart 30j trend
+  const labels30=[], rev30=[], chg30=[];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const dStr = d.toISOString().split('T')[0];
+    labels30.push(i%5===0||i===0 ? d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) : '');
+    rev30.push(state.transactions.filter(r=>r.date===dStr).reduce((s,r)=>s+(+r.montant||0),0));
+    chg30.push(state.charges.filter(r=>r.date===dStr).reduce((s,r)=>s+(+r.montant||0),0));
+  }
+  if (charts.trend) charts.trend.destroy();
+  charts.trend = new Chart(document.getElementById('chartTrend'), {
+    type: 'line',
+    data: { labels:labels30, datasets:[
+      { label:'CA', data:rev30, borderColor:'#00cc66', backgroundColor:'rgba(0,204,102,0.08)', fill:true, tension:0.4, pointRadius:0, borderWidth:2 },
+      { label:'Dépenses', data:chg30, borderColor:'#ff5555', backgroundColor:'rgba(255,85,85,0.05)', fill:true, tension:0.4, pointRadius:0, borderWidth:2 }
+    ]},
+    options: { responsive:true, plugins:{ legend:{ labels:{ color:'#888', font:{size:11} } } }, scales:{
+      x:{ ticks:{color:'#555',font:{size:10}}, grid:{color:'#1c1c1c'} },
+      y:{ ticks:{color:'#555',font:{size:10},callback:v=>fmtK(v)}, grid:{color:'#1c1c1c'} }
+    }}
+  });
+
+  // Table transactions (dernières 10)
+  const all = [
+    ...state.transactions.map(r => ({ ...r, kind:'revenue' })),
+    ...state.charges.map(r => ({ ...r, kind:'expense' }))
+  ].sort((a,b) => b.date.localeCompare(a.date)).slice(0,12);
+
+  document.getElementById('fin-tbody').innerHTML = all.length
+    ? all.map(r => `<tr class="border-b border-gray-900 hover:bg-white/[0.02]">
+        <td class="py-2 pr-3 text-xs text-gray-500">${r.date}</td>
+        <td class="py-2 pr-3"><span class="badge ${r.kind==='revenue'?'b-green':'b-red'}">${r.kind==='revenue'?'Entrée':'Sortie'}</span></td>
+        <td class="py-2 pr-3 text-sm text-gray-300 max-w-xs truncate">${r.description||r.fournisseur||r.categorie||'—'}</td>
+        <td class="py-2 pr-3 text-xs text-gray-500">${r.kind==='revenue'?(CANAL_LABELS[r.canal]||r.canal||'—'):(r.categorie||'—')}</td>
+        <td class="py-2 text-right font-semibold ${r.kind==='revenue'?'text-green-400':'text-red-400'}">${r.kind==='revenue'?'+':'-'}${fmt(r.montant)} XPF</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="py-4 text-center text-xs text-gray-600">Aucune donnée — ouvre Agent 9 Finance pour alimenter</td></tr>';
+}
+
+// ═══ RENDER: MACHINES ════════════════════════════════════════════════
+function renderMachines() {
+  const now = new Date();
+  const grid = document.getElementById('machine-grid');
+
+  grid.innerHTML = MACHINES.map(m => {
+    const assigned  = state.planning.filter(c => c.machine === m.name && c.col !== 'pret');
+    const inProd    = assigned.filter(c => c.col === 'prod');
+    const load      = Math.min(assigned.length / 3 * 100, 100);
+    const loadColor = load < 34 ? '#00cc66' : load < 67 ? '#ff9900' : '#ff5555';
+    const status    = inProd.length > 0 ? 'En production' : assigned.length > 0 ? 'Planifiée' : 'Libre';
+    const stColor   = status==='En production' ? '#FF6B00' : status==='Planifiée' ? '#4499ff' : '#00cc66';
+
+    return `<div class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">${m.icon}</span>
+          <div>
+            <div class="text-sm font-semibold text-white">${m.name}</div>
+            <div class="text-xs" style="color:${stColor}">${status}</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-lg font-bold" style="color:${loadColor}">${Math.round(load)}%</div>
+          <div class="text-xs text-gray-600">charge</div>
+        </div>
+      </div>
+      <div class="bar-bg mb-3"><div class="bar-fill" style="width:${load}%;background:${loadColor}"></div></div>
+      <div class="space-y-1">
+        ${assigned.slice(0,3).map(c => `<div class="text-xs text-gray-500 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:${COL_COLORS[c.col]}"></span>
+          <span class="truncate">${c.client} (${c.qty} pcs)</span>
+        </div>`).join('')}
+        ${assigned.length > 3 ? `<div class="text-xs text-gray-600">+${assigned.length-3} autres...</div>` : ''}
+        ${assigned.length === 0 ? '<div class="text-xs text-gray-700">Aucune commande assignée</div>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Bar chart machines
+  const loads = MACHINES.map(m => {
+    const n = state.planning.filter(c => c.machine === m.name && c.col !== 'pret').length;
+    return Math.min(n * 33, 100);
+  });
+  if (charts.machines) charts.machines.destroy();
+  charts.machines = new Chart(document.getElementById('chartMachines'), {
+    type: 'bar',
+    data: {
+      labels: MACHINES.map(m => m.icon + ' ' + m.name.replace('Presse ','').replace('Plotter ','Plt.')),
+      datasets: [{ data:loads, backgroundColor:loads.map(l=>l<34?'#00cc66':l<67?'#ff9900':'#ff5555'), borderRadius:6, borderSkipped:false }]
+    },
+    options: { responsive:true, plugins:{legend:{display:false}},
+      scales:{
+        x:{ ticks:{color:'#555',font:{size:10}}, grid:{color:'#1c1c1c'} },
+        y:{ min:0, max:100, ticks:{color:'#555',font:{size:10},callback:v=>v+'%'}, grid:{color:'#1c1c1c'} }
+      }
+    }
+  });
+}
+
+// ═══ RENDER: ALERTES ══════════════════════════════════════════════════
+function renderAlertes() {
+  const alerts = state.alerts;
+  const high   = alerts.filter(a=>a.severity==='high');
+  const medium = alerts.filter(a=>a.severity==='medium');
+
+  document.getElementById('alert-summary').textContent =
+    `${alerts.length} alerte(s) — ${high.length} critique(s) · ${medium.length} moyenne(s)`;
+
+  if (!alerts.length) {
+    document.getElementById('alert-list').innerHTML = `<div class="card p-10 text-center">
+      <div class="text-5xl mb-4">✅</div>
+      <div class="text-green-400 font-semibold text-lg">Tout est en ordre</div>
+      <div class="text-gray-600 text-sm mt-2">Aucune alerte active pour le moment</div>
+    </div>`;
+    return;
+  }
+
+  document.getElementById('alert-list').innerHTML = alerts.map(a => `
+    <div class="alert-item alert-${a.severity}">
+      <div class="flex items-start gap-3">
+        <span class="text-xl flex-shrink-0">${a.icon}</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white">${a.msg}</div>
+          ${a.detail ? `<div class="text-xs text-gray-500 mt-0.5">${a.detail}</div>` : ''}
+        </div>
+        <span class="badge ${a.severity==='high'?'b-red':a.severity==='medium'?'b-orange':'b-blue'} flex-shrink-0">${a.type}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ═══ RAPPORT JOURNALIER ═══════════════════════════════════════════════
+function printRapport() {
+  const now   = new Date();
+  const today = now.toISOString().split('T')[0];
+  const caJ   = state.transactions.filter(r=>r.date===today).reduce((s,r)=>s+(+r.montant||0),0);
+  const active = state.planning.filter(c=>c.col!=='pret');
+  const late   = state.planning.filter(c=>c.col!=='pret'&&new Date(c.deadline)<now);
+  const pret   = state.planning.filter(c=>c.col==='pret');
+
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8"><title>Rapport HCS — ${today}</title>
+    <style>body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#111;}
+    h1{color:#FF6B00;border-bottom:3px solid #FF6B00;padding-bottom:8px;font-size:1.4rem;}
+    h2{font-size:1rem;color:#333;margin-top:28px;border-bottom:1px solid #eee;padding-bottom:4px;}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0;}
+    .kpi{background:#f8f8f8;border:1px solid #e5e5e5;border-radius:8px;padding:12px;text-align:center;}
+    .kv{font-size:1.6rem;font-weight:700;color:#FF6B00;}.kl{font-size:0.7rem;color:#888;margin-top:2px;}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.83rem;}
+    th{background:#f0f0f0;padding:7px 8px;text-align:left;font-size:0.75rem;color:#555;}
+    td{padding:7px 8px;border-bottom:1px solid #f0f0f0;}
+    .late{color:#cc0000;font-weight:600;}.ok{color:#009933;}
+    footer{margin-top:40px;font-size:0.7rem;color:#aaa;text-align:center;border-top:1px solid #f0f0f0;padding-top:12px;}
+    @media print{footer{position:fixed;bottom:10px;width:100%;}}
+    </style></head><body>
+    <h1>📊 Rapport Journalier — High Coffee Shirt</h1>
+    <p style="color:#888;font-size:0.82rem;">Généré le ${now.toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} à ${now.toLocaleTimeString('fr-FR')}</p>
+    <div class="kpis">
+      <div class="kpi"><div class="kv">${fmt(caJ)} XPF</div><div class="kl">CA du jour</div></div>
+      <div class="kpi"><div class="kv">${active.length}</div><div class="kl">Commandes actives</div></div>
+      <div class="kpi"><div class="kv">${late.length}</div><div class="kl">Retards</div></div>
+      <div class="kpi"><div class="kv">${pret.length}</div><div class="kl">Prêtes / Livrées</div></div>
+    </div>
+    <h2>Commandes en cours (${active.length})</h2>
+    <table><tr><th>Réf</th><th>Client</th><th>Type</th><th>Qté</th><th>Deadline</th><th>Statut</th></tr>
+    ${active.sort((a,b)=>new Date(a.deadline)-new Date(b.deadline)).map(c=>{
+      const dl=new Date(c.deadline); const late=dl<now;
+      return `<tr><td>${c.ref||c.id}</td><td>${c.client}</td><td>${c.type?.toUpperCase()}</td><td>${c.qty}</td>
+      <td class="${late?'late':'ok'}">${dl.toLocaleDateString('fr-FR')} ${dl.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}${late?' ⚠':''}</td>
+      <td>${COL_LABELS[c.col]||c.col}</td></tr>`;
+    }).join('')}
+    </table>
+    <h2>Alertes (${state.alerts.length})</h2>
+    <table><tr><th>Sévérité</th><th>Message</th><th>Détail</th></tr>
+    ${state.alerts.map(a=>`<tr><td>${a.icon} ${a.severity}</td><td>${a.msg}</td><td style="color:#888;font-size:0.78rem">${a.detail||''}</td></tr>`).join('')
+      || '<tr><td colspan="3" style="color:#888">Aucune alerte</td></tr>'}
+    </table>
+    <footer>Rapport généré par Agent 7 — Supervision HCS · ${now.toISOString()}</footer>
+    </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+}
+
+// ═══ UTILS ════════════════════════════════════════════════════════════
+function fmt(n)   { return Math.round(n||0).toLocaleString('fr-FR'); }
+function fmtK(n)  { return n >= 1000 ? Math.round(n/1000)+'k' : Math.round(n||0)+''; }
+function getMonth(d) { return d ? d.substring(0,7) : ''; }
+function timeDiff(date) {
+  const diff = (new Date() - date) / 60000;
+  if (diff < 2)    return 'à l\'instant';
+  if (diff < 60)   return Math.round(diff) + ' min';
+  if (diff < 1440) return Math.round(diff/60) + 'h';
+  return Math.round(diff/1440) + 'j';
+}
+
+// ═══ INIT + AUTO-REFRESH ══════════════════════════════════════════════
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

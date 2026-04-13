@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HCS ERP</title>
+
+  <!-- Google Fonts : Inter (moderne, premium) + JetBrains Mono (code/montants) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- CSS dans l'ordre : tokens → layout → composants → formulaires → kanban → chat -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <link rel="stylesheet" href="css/kanban.css" />
+  <link rel="stylesheet" href="css/chat.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <link rel="stylesheet" href="css/accounting.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       ÉCRAN DE CONNEXION (affiché par défaut, masqué après login)
+       ============================================================ -->
+  <div id="login-screen"></div>
+
+  <!-- ============================================================
+       SHELL PRINCIPAL ERP (masqué jusqu'à la connexion)
+       ============================================================ -->
+  <div id="app-shell" style="display:none;">
+
+    <!-- TOPBAR : navigation entre les 9 applications -->
+    <header id="topbar">
+      <!-- Burger sidebar (visible tablette/mobile) -->
+      <button id="sidebar-toggle" aria-label="Menu" title="Ouvrir/fermer le menu">☰</button>
+
+      <div class="topbar-brand">
+        <span class="brand-logo">⬡</span>
+        <span class="brand-name">HCS ERP</span>
+      </div>
+
+      <!-- Menu des applications (switch Odoo-style) -->
+      <nav id="app-menu" class="app-menu"></nav>
+
+      <!-- Zone droite : utilisateur + thème + déconnexion -->
+      <div class="topbar-right">
+        <span id="user-badge" class="user-badge"></span>
+        <!-- Bouton bascule mode sombre -->
+        <button id="btn-theme" class="btn-ghost btn-sm" title="Basculer mode sombre / clair"
+          style="font-size:1rem;padding:4px 8px;min-width:32px;">🌙</button>
+        <button class="btn-ghost btn-sm" id="btn-logout">⏻ Déconnexion</button>
+      </div>
+    </header>
+
+    <!-- CORPS : sidebar + contenu -->
+    <div class="shell-body">
+
+      <!-- Overlay mobile derrière la sidebar -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+      <!-- SIDEBAR : sous-menus du module actif -->
+      <aside id="sidebar">
+        <div id="sidebar-title" class="sidebar-title"></div>
+        <nav id="sidebar-menu" class="sidebar-menu"></nav>
+      </aside>
+
+      <!-- ZONE PRINCIPALE -->
+      <main id="main-content">
+
+        <!-- TOOLBAR : actions + recherche + switch vue -->
+        <div id="toolbar" class="toolbar">
+          <div class="toolbar-left" id="toolbar-actions"></div>
+          <div class="toolbar-center">
+            <input type="text" id="search-input" class="search-input" placeholder="Rechercher…" />
+          </div>
+          <div class="toolbar-right">
+            <button class="btn-ghost btn-sm view-btn active" data-view="list" title="Vue liste">☰</button>
+            <button class="btn-ghost btn-sm view-btn" data-view="kanban" title="Vue kanban">⊞</button>
+          </div>
+        </div>
+
+        <!-- ZONE DE RENDU DES VUES -->
+        <div id="view-content" class="view-content"></div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL CONTAINER : utilisé pour tous les formulaires / dialogues -->
+  <div id="modal-container" class="modal-overlay" style="display:none;">
+    <div class="modal-box" id="modal-box">
+      <button class="modal-close" id="modal-close">✕</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- Thème : appliqué AVANT le rendu pour éviter le flash blanc -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem('hcs_theme');
+      /* Respecte aussi la préférence système si aucun choix sauvegardé */
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (saved === 'dark' || (!saved && prefersDark)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+
+  <!-- ============================================================
+       SCRIPTS JS dans le bon ordre :
+       1. seed (données initiales)
+       2. store (CRUD + localStorage)
+       3. utils (formatage)
+       4. composants réutilisables (table, kanban, form, modal, toast, chart)
+       5. auth (login / session)
+       6. app (router principal — doit être chargé en dernier)
+       ============================================================ -->
+  <script src="data/seed.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/utils.js"></script>
+  <!-- Composants réutilisables -->
+  <script src="js/components/toast.js"></script>
+  <script src="js/components/modal.js"></script>
+  <script src="js/components/form.js"></script>
+  <script src="js/components/table.js"></script>
+  <script src="js/components/kanban.js"></script>
+  <script src="js/components/chart.js"></script>
+  <script src="js/components/commandPalette.js"></script>
+  <!-- Modules métier -->
+  <script src="js/modules/crm.js"></script>
+  <script src="js/modules/sales.js"></script>
+  <script src="js/modules/purchases.js"></script>
+  <script src="js/modules/inventory.js"></script>
+  <script src="js/modules/manufacturing.js"></script>
+  <script src="js/modules/accounting.js"></script>
+  <script src="js/modules/discuss.js"></script>
+  <script src="js/modules/users.js"></script>
+  <script src="js/modules/advisor.js"></script>
+  <!-- Authentification et router -->
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- ========================================================
+       SIDEBAR TOGGLE — responsive burger menu
+       ======================================================== -->
+  <script>
+    /* ---- Bouton mode sombre ---- */
+    (function() {
+      const btn = document.getElementById('btn-theme');
+      if (!btn) return;
+
+      function isDark() {
+        return document.documentElement.getAttribute('data-theme') === 'dark';
+      }
+
+      function applyTheme(dark) {
+        if (dark) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          btn.textContent = '☀️';
+          btn.title = 'Passer en mode clair';
+          localStorage.setItem('hcs_theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          btn.textContent = '🌙';
+          btn.title = 'Passer en mode sombre';
+          localStorage.setItem('hcs_theme', 'light');
+        }
+      }
+
+      /* Synchronise l'icône au chargement */
+      applyTheme(isDark());
+
+      btn.addEventListener('click', () => applyTheme(!isDark()));
+    })();
+
+    /* ---- Sidebar toggle ---- */
+    (function() {
+      const toggle  = document.getElementById('sidebar-toggle');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      if (!toggle || !sidebar || !overlay) return;
+
+      function openSidebar() {
+        sidebar.classList.add('sidebar-open');
+        overlay.classList.add('visible');
+        toggle.textContent = '✕';
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('sidebar-open');
+        overlay.classList.remove('visible');
+        toggle.textContent = '☰';
+      }
+      function isSidebarOpen() {
+        return sidebar.classList.contains('sidebar-open');
+      }
+
+      toggle.addEventListener('click', () => {
+        isSidebarOpen() ? closeSidebar() : openSidebar();
+      });
+      overlay.addEventListener('click', closeSidebar);
+
+      /* Ferme le sidebar quand on clique un item (mobile) */
+      sidebar.addEventListener('click', (e) => {
+        if (e.target.closest('.sidebar-item') && window.innerWidth < 900) {
+          closeSidebar();
+        }
+      });
+
+      /* Réinitialise si on redimensionne au-dessus du breakpoint */
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 900) closeSidebar();
+      });
+    })();
+  </script>
+
+</body>
+</html>

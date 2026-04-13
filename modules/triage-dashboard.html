@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent 1 — Triage & Réception</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',sans-serif;background:#0a0a14;color:#e0e0f0;min-height:100vh}
+  header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #4a9eff;box-shadow:0 4px 20px rgba(74,158,255,.2)}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#4a9eff,#1a6acc);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .logo h1{font-size:18px;color:#4a9eff;font-weight:700}
+  .logo p{font-size:11px;color:#666688;margin-top:2px}
+  .header-right{display:flex;align-items:center;gap:12px}
+  .btn-back{font-size:12px;color:#666688;text-decoration:none;background:#12122a;border:1px solid #1e1e3a;border-radius:8px;padding:6px 14px;transition:.2s}
+  .btn-back:hover{color:#4a9eff;border-color:#4a9eff}
+  .status{display:flex;align-items:center;gap:6px;background:#0d1a0d;border:1px solid #2d7a2d;border-radius:20px;padding:5px 12px;font-size:11px;color:#4caf50}
+  .dot{width:7px;height:7px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+  main{padding:20px 28px;max-width:1400px;margin:0 auto}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+  .kpi{background:#12122a;border:1px solid #1e1e3a;border-radius:10px;padding:16px;text-align:center;border-top:3px solid #4a9eff}
+  .kpi.green{border-top-color:#4caf50}
+  .kpi.orange{border-top-color:#ff9800}
+  .kpi.red{border-top-color:#ef5350}
+  .kpi.purple{border-top-color:#ab47bc}
+  .kpi-val{font-size:26px;font-weight:700;color:#4a9eff}
+  .kpi.green .kpi-val{color:#4caf50}
+  .kpi.orange .kpi-val{color:#ff9800}
+  .kpi.red .kpi-val{color:#ef5350}
+  .kpi.purple .kpi-val{color:#ce93d8}
+  .kpi-lbl{font-size:11px;color:#666688;margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:20px}
+  .panel{background:#12122a;border:1px solid #1e1e3a;border-radius:12px;padding:18px}
+  .panel-title{font-size:12px;font-weight:600;color:#666688;text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .panel-title span{color:#e0e0f0}
+  .chart-wrap{position:relative;height:200px}
+
+  /* Messages table */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#0d0d20;color:#666688;padding:8px 10px;text-align:left;font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.4px;border-bottom:1px solid #1e1e3a}
+  td{padding:9px 10px;border-bottom:1px solid #0d0d20;color:#a0a0c0;vertical-align:middle}
+  tr:hover td{background:#0f0f22}
+  .canal{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500}
+  .canal-gmail{background:#1a0d0d;color:#ef5350;border:1px solid #5a1a1a}
+  .canal-messenger{background:#0d1a2e;color:#4a9eff;border:1px solid #1a3a5a}
+  .cat-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+  .cat-devis{background:#1a1500;color:#f0c040;border:1px solid #4a3800}
+  .cat-services{background:#0d1a0d;color:#4caf50;border:1px solid #1a4a1a}
+  .cat-produits{background:#0d1a2e;color:#4a9eff;border:1px solid #1a3a5a}
+  .cat-mockup{background:#2a0d2a;color:#ce93d8;border:1px solid #4a1a5a}
+  .cat-image{background:#2a1400;color:#ff9800;border:1px solid #5a3000}
+  .action{font-size:11px;color:#666688}
+  .time{font-size:11px;color:#444466}
+
+  /* Test classif */
+  .test-form{display:flex;flex-direction:column;gap:10px}
+  textarea{background:#0d0d20;border:1px solid #1e1e3a;border-radius:8px;color:#e0e0f0;padding:10px;font-size:12px;font-family:inherit;resize:vertical;min-height:80px}
+  textarea:focus{outline:none;border-color:#4a9eff}
+  .form-row{display:flex;gap:8px}
+  select,input{background:#0d0d20;border:1px solid #1e1e3a;border-radius:8px;color:#e0e0f0;padding:8px 12px;font-size:12px;font-family:inherit;flex:1}
+  select:focus,input:focus{outline:none;border-color:#4a9eff}
+  .btn{background:linear-gradient(135deg,#4a9eff,#1a6acc);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s}
+  .btn:hover{opacity:.85}
+  .btn-secondary{background:#1e1e3a;color:#a0a0c0}
+  .result-box{background:#0d0d20;border:1px solid #1e1e3a;border-radius:8px;padding:12px;font-size:12px;color:#a0a0c0;display:none}
+  .result-box.show{display:block}
+  .result-cat{font-size:18px;font-weight:700;margin-bottom:6px}
+  .result-conf{color:#666688;font-size:11px}
+
+  /* Connexions */
+  .conn-list{display:flex;flex-direction:column;gap:8px}
+  .conn-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0d0d20;border-radius:8px;font-size:12px}
+  .conn-name{color:#a0a0c0;display:flex;align-items:center;gap:8px}
+  .conn-status{font-size:11px;padding:2px 10px;border-radius:12px}
+  .conn-ok{background:#0f2f0f;color:#4caf50;border:1px solid #2d7a2d}
+  .conn-warn{background:#2a1800;color:#ff9800;border:1px solid #5a3000}
+  .conn-err{background:#2a0d0d;color:#ef5350;border:1px solid #5a1a1a}
+
+  .tag{display:inline-block;background:#1e1e3a;color:#8888aa;border-radius:4px;padding:1px 6px;font-size:10px;margin-left:4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">📥</div>
+    <div>
+      <h1>Agent 1 — Triage & Réception</h1>
+      <p>Classification IA · Gmail + Messenger · Routage automatique</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <a href="../../hcs-hub.html" class="btn-back">← Hub HCS</a>
+    <div class="status"><div class="dot"></div>n8n actif</div>
+  </div>
+</header>
+
+<main>
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val" id="kpiTotal">0</div><div class="kpi-lbl">Messages aujourd'hui</div></div>
+    <div class="kpi green"><div class="kpi-val" id="kpiGmail">0</div><div class="kpi-lbl">Via Gmail</div></div>
+    <div class="kpi" style="border-top-color:#4a9eff"><div class="kpi-val" id="kpiMessenger" style="color:#4a9eff">0</div><div class="kpi-lbl">Via Messenger</div></div>
+    <div class="kpi orange"><div class="kpi-val" id="kpiDevis">0</div><div class="kpi-lbl">Classifiés Devis</div></div>
+    <div class="kpi purple"><div class="kpi-val" id="kpiImages">0</div><div class="kpi-lbl">Traitements image</div></div>
+  </div>
+
+  <!-- Charts + connexions -->
+  <div class="grid3">
+    <div class="panel">
+      <div class="panel-title">📊 Catégories — Aujourd'hui</div>
+      <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">📈 Messages — 7 jours</div>
+      <div class="chart-wrap"><canvas id="volChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">🔌 Connexions</div>
+      <div class="conn-list" id="connList"></div>
+    </div>
+  </div>
+
+  <!-- Messages récents -->
+  <div class="panel" style="margin-bottom:20px">
+    <div class="panel-title">
+      📬 Messages récents
+      <div style="display:flex;gap:8px">
+        <select id="filterCanal" onchange="renderTable()" style="font-size:11px;padding:4px 8px;width:auto">
+          <option value="">Tous canaux</option>
+          <option value="gmail">Gmail</option>
+          <option value="messenger">Messenger</option>
+        </select>
+        <select id="filterCat" onchange="renderTable()" style="font-size:11px;padding:4px 8px;width:auto">
+          <option value="">Toutes catégories</option>
+          <option value="DEVIS">Devis</option>
+          <option value="INFO_SERVICES">Services</option>
+          <option value="INFO_PRODUITS">Produits</option>
+          <option value="MOCKUP">Mockup</option>
+          <option value="TRAITEMENT_IMAGE">Image</option>
+        </select>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Heure</th><th>Canal</th><th>Expéditeur</th><th>Message</th><th>Catégorie</th><th>Action</th></tr></thead>
+      <tbody id="msgTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Test + webhook -->
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-title">🧪 Tester la classification IA</div>
+      <div class="test-form">
+        <div class="form-row">
+          <select id="testCanal">
+            <option value="gmail">Gmail</option>
+            <option value="messenger">Messenger</option>
+          </select>
+          <input id="testSender" placeholder="Nom expéditeur" value="Marie Dupont">
+        </div>
+        <textarea id="testMsg" placeholder="Coller le message à classifier...">Bonjour, je voudrais commander 20 t-shirts avec notre logo d'entreprise pour un événement le 15 mars. Pouvez-vous me faire un devis ?</textarea>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="simulateClassif()">🤖 Classifier</button>
+          <button class="btn btn-secondary" onclick="clearTest()">Effacer</button>
+        </div>
+        <div class="result-box" id="resultBox">
+          <div class="result-cat" id="resultCat"></div>
+          <div class="result-conf" id="resultConf"></div>
+          <div id="resultAction" style="margin-top:8px;font-size:11px;color:#666688"></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">⚙️ Configuration workflow
+        <span style="font-size:10px;color:#444466">n8n Cloud</span>
+      </div>
+      <div style="font-size:12px;color:#666688;margin-bottom:12px">Webhook URL du workflow actif :</div>
+      <div style="background:#0d0d20;border:1px solid #1e1e3a;border-radius:8px;padding:10px;font-size:11px;color:#4a9eff;word-break:break-all;margin-bottom:14px">
+        https://hcstahiti.app.n8n.cloud/webhook/hcs-triage
+      </div>
+      <div style="font-size:12px;color:#666688;margin-bottom:8px">Fichier n8n actif :</div>
+      <div style="background:#0d0d20;border:1px solid #2d7a2d;border-radius:8px;padding:10px;font-size:11px;color:#4caf50;margin-bottom:14px">
+        ✅ HCS — IA Classification Messenger &amp; Gmail v4-fixed.json<br>
+        <span style="color:#444466">35 nœuds · 3 bugs corrigés Session 7</span>
+      </div>
+      <div style="font-size:11px;color:#666688;line-height:1.8">
+        <div>📌 Gmail Trigger : <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b8d0d1dfd0dbd7dededdddcbd0d1caccf8dfd5d9d1d496dbd7d5">[email&#160;protected]</a></div>
+        <div>📌 Messenger Webhook : /webhook/messenger</div>
+        <div>📌 Google Sheets : Mémoire clients + Catalogue</div>
+        <div>📌 Dropbox : Archivage /HCS/2026/CLIENTS/</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// === DONNÉES DÉMO ===
+const DEMO_MESSAGES = [
+  {ts:'08:14',canal:'gmail',sender:'Marie Tamatoa',msg:'Bonjour, je voudrais commander 20 t-shirts pour notre événement du 15 mars...',cat:'DEVIS',action:'→ Agent 2 (Odoo)'},
+  {ts:'08:31',canal:'messenger',sender:'1234567890',msg:'Salut, vous faites du flocage sur casquettes ?',cat:'INFO_PRODUITS',action:'Réponse auto envoyée'},
+  {ts:'09:02',canal:'gmail',sender:'Jean-Pierre Teriimana',msg:'Bonjour, j\'envoie mon logo pour le détourage (voir pièce jointe)',cat:'TRAITEMENT_IMAGE',action:'→ PicWish Pipeline'},
+  {ts:'09:18',canal:'gmail',sender:'Hina Varua',msg:'Pourriez-vous me faire une maquette de mon t-shirt ? Taille L, blanc',cat:'MOCKUP',action:'Réponse : envoi logo demandé'},
+  {ts:'09:45',canal:'messenger',sender:'9876543210',msg:'Quels sont vos délais de livraison ?',cat:'INFO_SERVICES',action:'Réponse auto envoyée'},
+  {ts:'10:20',canal:'gmail',sender:'Faa\'a Sport Club',msg:'Suite à notre échange, voici les quantités confirmées : 50 polo, 30 t-shirts...',cat:'DEVIS',action:'→ Agent 2 (Odoo)'},
+  {ts:'10:55',canal:'messenger',sender:'5647382910',msg:'Vous avez des t-shirts polyester en stock ?',cat:'INFO_PRODUITS',action:'Réponse auto envoyée'},
+  {ts:'11:30',canal:'gmail',sender:'Maeva Nui',msg:'Bonjour, je cherche des informations sur vos services DTF',cat:'INFO_SERVICES',action:'Réponse auto envoyée'},
+];
+
+function canalBadge(c){
+  return c==='gmail'
+    ? '<span class="canal canal-gmail">✉️ Gmail</span>'
+    : '<span class="canal canal-messenger">💬 Messenger</span>';
+}
+function catBadge(c){
+  const map={DEVIS:'cat-devis',INFO_SERVICES:'cat-services',INFO_PRODUITS:'cat-produits',MOCKUP:'cat-mockup',TRAITEMENT_IMAGE:'cat-image'};
+  const lbl={DEVIS:'Devis',INFO_SERVICES:'Services',INFO_PRODUITS:'Produits',MOCKUP:'Mockup',TRAITEMENT_IMAGE:'Image'};
+  return `<span class="cat-badge ${map[c]||''}">${lbl[c]||c}</span>`;
+}
+
+function renderTable(){
+  const fc=document.getElementById('filterCanal').value;
+  const ft=document.getElementById('filterCat').value;
+  const msgs=DEMO_MESSAGES.filter(m=>(fc===''||m.canal===fc)&&(ft===''||m.cat===ft));
+  const tbody=document.getElementById('msgTable');
+  tbody.innerHTML='';
+  msgs.forEach(m=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="time">${m.ts}</td><td>${canalBadge(m.canal)}</td>
+      <td style="font-size:12px;color:#e0e0f0">${m.sender}</td>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.msg}</td>
+      <td>${catBadge(m.cat)}</td>
+      <td class="action">${m.action}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// === KPIs ===
+function loadKPIs(){
+  const msgs=DEMO_MESSAGES;
+  document.getElementById('kpiTotal').textContent=msgs.length;
+  document.getElementById('kpiGmail').textContent=msgs.filter(m=>m.canal==='gmail').length;
+  document.getElementById('kpiMessenger').textContent=msgs.filter(m=>m.canal==='messenger').length;
+  document.getElementById('kpiDevis').textContent=msgs.filter(m=>m.cat==='DEVIS').length;
+  document.getElementById('kpiImages').textContent=msgs.filter(m=>m.cat==='TRAITEMENT_IMAGE').length;
+}
+
+// === CHARTS ===
+function buildCharts(){
+  const cats=DEMO_MESSAGES.reduce((a,m)=>{a[m.cat]=(a[m.cat]||0)+1;return a},{});
+  new Chart(document.getElementById('catChart').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:['Devis','Services','Produits','Mockup','Image'],
+      datasets:[{data:[cats.DEVIS||0,cats.INFO_SERVICES||0,cats.INFO_PRODUITS||0,cats.MOCKUP||0,cats.TRAITEMENT_IMAGE||0],
+        backgroundColor:['#f0c040','#4caf50','#4a9eff','#ce93d8','#ff9800'],borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#666688',font:{size:10},boxWidth:10}}}}
+  });
+  new Chart(document.getElementById('volChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'],
+      datasets:[
+        {label:'Gmail',data:[4,7,5,9,6,3,8],backgroundColor:'rgba(239,83,80,.6)'},
+        {label:'Messenger',data:[3,5,4,6,4,2,4],backgroundColor:'rgba(74,158,255,.6)'}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#666688',font:{size:10},boxWidth:10}}},
+      scales:{x:{stacked:true,grid:{color:'#1e1e3a'},ticks:{color:'#666688',font:{size:9}}},
+              y:{stacked:true,grid:{color:'#1e1e3a'},ticks:{color:'#666688',font:{size:9}}}}}
+  });
+}
+
+// === CONNEXIONS ===
+const CONNS=[
+  {name:'Gmail Trigger',icon:'✉️',status:'ok',lbl:'Actif'},
+  {name:'Messenger Webhook',icon:'💬',status:'ok',lbl:'Actif'},
+  {name:'OpenAI GPT-4o',icon:'🤖',status:'ok',lbl:'Actif'},
+  {name:'Google Sheets',icon:'📊',status:'ok',lbl:'Connecté'},
+  {name:'Dropbox',icon:'📦',status:'ok',lbl:'Connecté'},
+  {name:'WhatsApp',icon:'📱',status:'warn',lbl:'Non configuré'},
+];
+function buildConns(){
+  const list=document.getElementById('connList');
+  CONNS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='conn-item';
+    div.innerHTML=`<div class="conn-name">${c.icon} ${c.name}</div>
+      <div class="conn-status conn-${c.status}">${c.lbl}</div>`;
+    list.appendChild(div);
+  });
+}
+
+// === TEST CLASSIF (simulation locale) ===
+const KEYWORDS={
+  DEVIS:['devis','commande','commander','quantité','prix','tarif','combien','facture'],
+  TRAITEMENT_IMAGE:['logo','image','photo','png','jpg','fichier','détourage','fond'],
+  MOCKUP:['maquette','mockup','aperçu','visuel','rendu'],
+  INFO_SERVICES:['délai','livraison','service','dtf','flocage','vinyle','impression'],
+  INFO_PRODUITS:['t-shirt','polo','casquette','taille','couleur','stock','modèle'],
+};
+function simulateClassif(){
+  const msg=document.getElementById('testMsg').value.toLowerCase();
+  let best='INFO_SERVICES',bestScore=0;
+  Object.entries(KEYWORDS).forEach(([cat,kws])=>{
+    const score=kws.filter(k=>msg.includes(k)).length;
+    if(score>bestScore){bestScore=score;best=cat;}
+  });
+  const conf=Math.min(95,70+bestScore*8);
+  const actions={DEVIS:'→ Routé vers Agent 2 (création devis Odoo)',TRAITEMENT_IMAGE:'→ Routé vers PicWish Pipeline',
+    MOCKUP:'→ Réponse : envoi logo + détails demandés',INFO_SERVICES:'→ Réponse automatique services',INFO_PRODUITS:'→ Réponse automatique produits'};
+  const labels={DEVIS:'💼 DEVIS',TRAITEMENT_IMAGE:'🎨 TRAITEMENT IMAGE',MOCKUP:'🖼️ MOCKUP',INFO_SERVICES:'ℹ️ INFO SERVICES',INFO_PRODUITS:'📦 INFO PRODUITS'};
+  const colors={DEVIS:'#f0c040',TRAITEMENT_IMAGE:'#ff9800',MOCKUP:'#ce93d8',INFO_SERVICES:'#4caf50',INFO_PRODUITS:'#4a9eff'};
+  const box=document.getElementById('resultBox');
+  document.getElementById('resultCat').textContent=labels[best];
+  document.getElementById('resultCat').style.color=colors[best];
+  document.getElementById('resultConf').textContent=`Confiance : ${conf}% · ${bestScore} mot(s)-clé(s) détecté(s)`;
+  document.getElementById('resultAction').textContent=actions[best];
+  box.className='r

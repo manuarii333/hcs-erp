@@ -1,0 +1,306 @@
+/* ================================================================
+   HCS ERP — variables.css
+   Design tokens : couleurs, typographie, espacement, bordures
+   ================================================================ */
+
+:root {
+  /* ================================================================
+     HCS ERP — Design System Premium
+     Palette : Vert profond (prospérité) + Or élégant (premium)
+     Inspiration : Stripe, Linear, Notion, Odoo 17
+     ================================================================ */
+
+  /* --- Couleur primaire — Vert profond (prospérité, confiance) --- */
+  --color-primary:      #1F7A63;
+  --color-primary-hover:#196552;
+  --color-primary-soft: #E8F5F0;
+
+  /* --- Accent — Or élégant (premium, distinction) --- */
+  --color-accent-gold:      #D4AF37;
+  --color-accent-gold-hover:#C09D20;
+  --color-accent-gold-soft: #F6E7B0;
+
+  /* --- Topbar sombre (nuit profonde, autorité) --- */
+  --topbar-bg:     #0F1923;
+  --topbar-text:   #FFFFFF;
+  --topbar-item:   rgba(255,255,255,0.60);
+  --topbar-hover:  rgba(255,255,255,0.08);
+  --topbar-active: rgba(31,122,99,0.25);
+  --topbar-border: rgba(255,255,255,0.06);
+
+  /* --- Fonds (thème clair épuré) --- */
+  --bg-base:    #F5F7F9;
+  --bg-page:    #F5F7F9;
+  --bg-surface: #FFFFFF;
+  --bg-card:    #FFFFFF;
+  --bg-elevated:#FFFFFF;
+  --bg-hover:   #F0F4F8;
+  --bg-active:  var(--color-primary-soft);
+  --bg-input:   #FFFFFF;
+  --sidebar-bg: #FFFFFF;
+
+  /* --- Textes --- */
+  --text-primary:  #1A1A1A;
+  --text-secondary:#5B6470;
+  --text-muted:    #8892A4;
+  --text-inverse:  #FFFFFF;
+
+  /* --- Bordures --- */
+  --border:       #E3E8EE;
+  --border-light: #EEF1F5;
+  --border-focus: var(--color-primary);
+  --border-input: #D4DAE3;
+
+  /* --- Statuts --- */
+  --color-success:      #1F9D55;
+  --color-success-soft: #E8F8EF;
+  --color-warning:      #D9822B;
+  --color-warning-soft: #FEF3E2;
+  --color-danger:       #C0392B;
+  --color-danger-soft:  #FDECEA;
+  --color-info:         #2D7FF9;
+  --color-info-soft:    #EBF3FE;
+
+  /* --- Aliases sémantiques — nommage --color-* --font-size-* --space-* --- */
+  /* Couleurs */
+  --color-bg:          #F5F7F9;
+  --color-bg-card:     #FFFFFF;
+  --color-text:        #1A1A1A;
+  --color-text-light:  #5B6470;
+  --color-border:      #E3E8EE;
+  --color-success:     #1F9D55;
+  --color-warning:     #D9822B;
+  --color-error:       #C0392B;
+  --color-info:        #2D7FF9;
+
+  /* Typographie sémantique */
+  --font-size-title:    34px;   /* titre principal */
+  --font-size-section:  21px;   /* titre section   */
+  --font-size-subtitle: 18px;   /* sous-titre      */
+  --font-size-body:     14px;   /* texte normal    */
+  --font-size-small:    12px;   /* petit texte     */
+
+  /* Espacements phi (Fibonacci visuel) */
+  --space-xs:  8px;
+  --space-sm:  13px;
+  --space-md:  21px;
+  --space-lg:  34px;
+  --space-xl:  55px;
+
+  /* Rayons sémantiques */
+  --radius-small:  6px;
+  --radius-medium: 12px;
+  --radius-large:  16px;
+
+  /* Ombres sémantiques */
+  --shadow-soft:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-medium: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-strong: 0 10px 30px rgba(0,0,0,0.12), 0 4px 10px rgba(0,0,0,0.06);
+
+  /* Transitions sémantiques */
+  --duration-fast:   150ms;
+  --duration-base:   200ms;
+  --duration-slow:   300ms;
+  --ease-standard:   ease;
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Aliases de compatibilité (anciens noms → nouveaux) --- */
+  --accent-blue:   #2D7FF9;
+  --accent-blue-h: #1A6EE8;
+  --accent-green:  #1F9D55;
+  --accent-red:    #C0392B;
+  --accent-orange: #D9822B;
+  --accent-violet: #6C63FF;
+  --accent-teal:   #0891B2;
+
+  /* --- Typographie — Inter, claire et premium --- */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Tailles — rythme harmonieux (proche nombre d'or) */
+  --text-xs:   11px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   18px;
+  --text-xl:   21px;
+  --text-2xl:  28px;
+  --text-3xl:  34px;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semi:   600;
+  --font-bold:   700;
+
+  /* --- Espacement (base 4px — cohérence absolue) --- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* --- Rayons — doux et modernes --- */
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
+  --radius-full: 9999px;
+
+  /* --- Dimensions du shell --- */
+  --topbar-h:  52px;
+  --sidebar-w: 220px;
+  --toolbar-h: 52px;
+
+  /* --- Ombres élégantes et subtiles --- */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
+  --shadow-xl:  0 16px 48px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-glow: 0 0 0 3px rgba(31,122,99,0.18);   /* glow vert primaire */
+
+  /* --- Transitions fluides --- */
+  --transition:      150ms ease;
+  --transition-slow: 250ms ease;
+
+  /* ================================================================
+     NOMBRE D'OR (φ = 1.618) — Proportions harmonieuses
+     Usage : multiplier une dimension de base par φ ou 1/φ
+     Ex: sidebar 220px × φ ≈ 356px (largeur conteneur secondaire)
+         card height = card width / φ
+     ================================================================ */
+  --phi: 1.618;
+
+  /* Sidebar — proportionnée par rapport au contenu principal */
+  /* 220px sidebar : contenu ≈ 220 × φ ≈ 356px mini, le reste fluide */
+  /* Sur 1440px : 220 / (1440-220) = 18% → rapport harmonieux */
+
+  /* Espacements dérivés du rythme phi */
+  --space-phi-sm: 10px;   /* ≈ 6 × φ  */
+  --space-phi-md: 16px;   /* ≈ 10 × φ */
+  --space-phi-lg: 26px;   /* ≈ 16 × φ */
+  --space-phi-xl: 42px;   /* ≈ 26 × φ */
+
+  /* Hiérarchie typographique — rythme harmonieux phi */
+  /* 11 → 12 → 14 → 16 → 18 → 21 → 28 → 34 */
+  /* Chaque palier ≈ précédent × 1.16 (proche √φ = 1.27 atténué) */
+  --text-xs:   11px;   /* labels, notes       */
+  --text-sm:   12px;   /* meta, badges        */
+  --text-base: 14px;   /* corps standard      */
+  --text-md:   16px;   /* corps large / lead  */
+  --text-lg:   18px;   /* sous-titre section  */
+  --text-xl:   21px;   /* titre section       */
+  --text-2xl:  28px;   /* titre page KPI      */
+  --text-3xl:  34px;   /* titre page principal*/
+}
+
+/* ================================================================
+   MODE SOMBRE — activé par data-theme="dark" sur <html>
+   ================================================================ */
+[data-theme="dark"] {
+  /* Indique au navigateur d'utiliser les styles natifs sombres */
+  color-scheme: dark;
+
+  /* Fonds sombres */
+  --bg-base:    #0F1117;
+  --bg-page:    #0F1117;
+  --bg-surface: #1A1D27;
+  --bg-card:    #1A1D27;
+  --bg-elevated:#1F2333;
+  --bg-hover:   #252836;
+  --bg-active:  rgba(31,122,99,0.18);
+  --bg-input:   #1A1D27;
+  --sidebar-bg: #13151E;
+
+  /* Textes */
+  --text-primary:  #E8EAED;
+  --text-secondary:#9AA3B0;
+  --text-muted:    #636B7A;
+  --text-inverse:  #0F1117;
+
+  /* Bordures */
+  --border:       #2A2D3A;
+  --border-light: #20232E;
+  --border-focus: var(--color-primary);
+  --border-input: #2A2D3A;
+
+  /* Couleur primaire adoucie pour le dark */
+  --color-primary-soft: rgba(31,122,99,0.18);
+
+  /* Aliases sémantiques */
+  --color-bg:      #0F1117;
+  --color-bg-card: #1A1D27;
+  --color-text:    #E8EAED;
+  --color-text-light: #9AA3B0;
+  --color-border:  #2A2D3A;
+
+  /* Ombres plus marquées en mode sombre */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.30);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.40), 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.25);
+  --shadow-lg:  0 8px 24px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.30);
+  --shadow-xl:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
+  --shadow-glow: 0 0 0 3px rgba(31,122,99,0.25);
+
+  /* Statuts légèrement ajustés pour le sombre */
+  --color-success-soft: rgba(31,157,85,0.15);
+  --color-warning-soft: rgba(217,130,43,0.15);
+  --color-danger-soft:  rgba(192,57,43,0.15);
+  --color-info-soft:    rgba(45,127,249,0.15);
+}
+
+/* Reset minimal */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);   /* 14px — plus confortable qu'un 0.875rem flou */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga' 1, 'kern' 1;
+}
+
+/* Scrollbars discrètes mais visibles — style premium */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: #C5CDD8; }
+
+/* Mode sombre — forcer couleur texte dans tous les champs de saisie */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  color: var(--text-primary);
+  background-color: var(--bg-input);
+}
+
+/* Correction de l'autofill navigateur en mode sombre */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-primary);
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-input) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Nombres avec JetBrains Mono */
+.mono, .amount, .num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

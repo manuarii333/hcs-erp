@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Atelier Production — HCS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#0a0a14;color:#e0e0e0;font-family:'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── TOPBAR ─────────────────────────────── */
+.topbar{background:#12121e;border-bottom:2px solid #f0c040;padding:0 16px;display:flex;align-items:center;gap:12px;height:56px;position:sticky;top:0;z-index:100;}
+.topbar h1{font-size:1.1rem;color:#f0c040;letter-spacing:.05em;flex:1;}
+.topbar a{color:#888;text-decoration:none;font-size:.78rem;white-space:nowrap;}
+.topbar a:hover{color:#f0c040;}
+.topbar .sep{color:#333;}
+
+/* ── TABS ───────────────────────────────── */
+.tabs{display:flex;background:#0e0e1c;border-bottom:1px solid #1e1e30;position:sticky;top:56px;z-index:99;}
+.tab-btn{flex:1;padding:14px 6px;background:none;border:none;color:#888;font-size:.85rem;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:.2s;letter-spacing:.03em;}
+.tab-btn.active{color:#f0c040;border-bottom-color:#f0c040;background:#12121e;}
+.tab-btn:hover:not(.active){color:#ccc;background:#12121e;}
+.tab-content{display:none;padding:16px;}
+.tab-content.active{display:block;}
+
+/* ── CARDS ──────────────────────────────── */
+.card{background:#12121e;border:1px solid #1e1e30;border-radius:12px;padding:16px;margin-bottom:14px;}
+.card-title{font-size:.8rem;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.card h2{font-size:1rem;color:#f0c040;margin-bottom:4px;}
+
+/* ── QUEUE ──────────────────────────────── */
+.queue-list{display:flex;flex-direction:column;gap:8px;}
+.order-card{background:#0e0e1c;border:1.5px solid #1e1e30;border-radius:10px;padding:14px 16px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:12px;}
+.order-card:hover{border-color:#f0c040;background:#12121e;}
+.order-card.selected{border-color:#f0c040;background:#1a1a2e;}
+.order-card.selected .order-num{color:#f0c040;}
+.order-num{font-size:1.1rem;font-weight:700;color:#888;min-width:40px;}
+.order-info{flex:1;}
+.order-client{font-size:.95rem;font-weight:600;color:#e0e0e0;}
+.order-details{font-size:.78rem;color:#888;margin-top:2px;}
+.order-badge{padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600;white-space:nowrap;}
+.badge-attente{background:#332200;color:#f0c040;border:1px solid #f0c04055;}
+.badge-prod{background:#003322;color:#22a85a;border:1px solid #22a85a55;}
+.badge-ctrl{background:#001833;color:#4aa3f5;border:1px solid #4aa3f555;}
+.badge-prete{background:#1a1a1a;color:#888;border:1px solid #33333355;}
+
+.empty-queue{text-align:center;padding:40px 20px;color:#555;font-size:.9rem;}
+.empty-queue big{display:block;font-size:2.5rem;margin-bottom:8px;}
+
+/* ── TIMER PANEL ─────────────────────────── */
+.timer-panel{background:#12121e;border:1.5px solid #f0c04055;border-radius:14px;padding:20px;margin-bottom:14px;}
+.timer-order-name{font-size:.85rem;color:#f0c040;font-weight:700;letter-spacing:.05em;margin-bottom:4px;}
+.timer-params{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.param-chip{background:#0e0e1c;border:1px solid #1e1e30;border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:80px;}
+.param-chip .val{font-size:1.4rem;font-weight:700;color:#f0c040;}
+.param-chip .lbl{font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:.06em;}
+.timer-display{text-align:center;margin:8px 0 20px;}
+.timer-clock{font-size:4.5rem;font-weight:800;letter-spacing:.08em;color:#f0c040;font-variant-numeric:tabular-nums;}
+.timer-clock.running{color:#22a85a;}
+.timer-clock.finished{color:#e74c3c;animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.timer-progress{height:6px;background:#1e1e30;border-radius:3px;margin-bottom:20px;overflow:hidden;}
+.timer-bar{height:100%;background:#f0c040;border-radius:3px;transition:width .5s linear;}
+.timer-bar.running{background:#22a85a;}
+.timer-bar.finished{background:#e74c3c;}
+
+.timer-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.btn{border:none;border-radius:10px;padding:14px;font-size:.9rem;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.03em;}
+.btn-start{background:#22a85a;color:#fff;}
+.btn-start:hover{background:#28cc6e;}
+.btn-pause{background:#f0c040;color:#0a0a14;}
+.btn-pause:hover{background:#ffe066;}
+.btn-reset{background:#1e1e30;color:#888;}
+.btn-reset:hover{background:#2a2a40;color:#ccc;}
+.btn-done{background:#4aa3f5;color:#fff;grid-column:1/-1;padding:16px;font-size:1rem;}
+.btn-done:hover{background:#66b5ff;}
+
+/* ── STATUS ACTIONS ─────────────────────── */
+.status-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+.status-btn{border:none;border-radius:10px;padding:12px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.15s;}
+.s-prod{background:#003322;color:#22a85a;border:1.5px solid #22a85a44;}
+.s-prod:hover{background:#004433;border-color:#22a85a;}
+.s-ctrl{background:#001833;color:#4aa3f5;border:1.5px solid #4aa3f544;}
+.s-ctrl:hover{background:#002244;border-color:#4aa3f5;}
+.s-prete{background:#1e1e30;color:#aaa;border:1.5px solid #33333355;}
+.s-prete:hover{background:#2a2a40;color:#fff;}
+
+/* ── MACHINE SELECTOR ───────────────────── */
+.machine-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.machine-btn{background:#0e0e1c;border:1.5px solid #1e1e30;border-radius:10px;padding:12px;cursor:pointer;transition:.2s;text-align:center;}
+.machine-btn:hover{border-color:#f0c04055;background:#12121e;}
+.machine-btn.sel{border-color:#f0c040;background:#1a1a14;}
+.machine-btn .m-icon{font-size:1.6rem;display:block;margin-bottom:4px;}
+.machine-btn .m-name{font-size:.78rem;color:#ccc;font-weight:600;}
+.machine-btn .m-status{font-size:.68rem;color:#888;margin-top:2px;}
+
+/* ── CHECKLIST ──────────────────────────── */
+.cl-section{margin-bottom:18px;}
+.cl-title{font-size:.82rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e1e30;}
+.cl-item{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:.15s;}
+.cl-item:hover{background:#12121e;}
+.cl-item.checked{background:#003322;}
+.cl-checkbox{width:22px;height:22px;min-width:22px;border:2px solid #333;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:.15s;}
+.cl-item.checked .cl-checkbox{background:#22a85a;border-color:#22a85a;}
+.cl-text{font-size:.88rem;color:#ccc;line-height:1.4;}
+.cl-item.checked .cl-text{color:#888;text-decoration:line-through;}
+.cl-reset-btn{background:none;border:1px solid #333;border-radius:8px;color:#888;padding:8px 18px;cursor:pointer;font-size:.8rem;margin-top:4px;}
+.cl-reset-btn:hover{border-color:#f0c040;color:#f0c040;}
+.cl-progress{height:4px;background:#1e1e30;border-radius:2px;margin-bottom:12px;overflow:hidden;}
+.cl-bar{height:100%;background:#22a85a;border-radius:2px;transition:width .3s;}
+
+/* ── MATERIALS TABLE ────────────────────── */
+.type-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.type-btn{flex:1;padding:10px;background:#0e0e1c;border:1.5px solid #1e1e30;border-radius:8px;color:#888;font-weight:700;font-size:.82rem;cursor:pointer;text-align:center;transition:.2s;}
+.type-btn.sel{background:#1a1a14;border-color:#f0c040;color:#f0c040;}
+.mat-table{width:100%;border-collapse:collapse;font-size:.83rem;}
+.mat-table th{background:#0e0e1c;color:#888;font-weight:600;text-transform:uppercase;font-size:.72rem;letter-spacing:.06em;padding:10px 12px;text-align:left;border-bottom:1px solid #1e1e30;}
+.mat-table td{padding:12px;border-bottom:1px solid #1e1e1a;color:#ccc;cursor:pointer;}
+.mat-table tr:hover td{background:#12121e;}
+.mat-table tr.sel-row td{background:#1a1a14;color:#f0c040;}
+.val-temp{color:#e74c3c;font-weight:700;}
+.val-time{color:#4aa3f5;font-weight:700;}
+.val-pres{font-weight:600;}
+.pres-low{color:#22a85a;}
+.pres-med{color:#f0c040;}
+.pres-high{color:#e74c3c;}
+
+.result-card{background:#1a1a14;border:1.5px solid #f0c040;border-radius:12px;padding:18px;margin-top:16px;display:none;}
+.result-card.visible{display:block;}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;}
+.result-item{text-align:center;}
+.result-item .rv{font-size:2rem;font-weight:800;}
+.result-item .rl{font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.06em;}
+.rv-temp{color:#e74c3c;}
+.rv-time{color:#4aa3f5;}
+.rv-pres{color:#f0c040;}
+.rv-film{color:#22a85a;}
+.result-notes{background:#0e0e1c;border-radius:8px;padding:10px;font-size:.82rem;color:#aaa;font-style:italic;}
+.apply-timer-btn{width:100%;margin-top:12px;padding:14px;background:#f0c040;color:#0a0a14;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.03em;}
+.apply-timer-btn:hover{background:#ffe066;}
+
+/* ── GUIDE ──────────────────────────────── */
+.guide-card{background:#0e0e1c;border:1px solid #1e1e30;border-radius:12px;margin-bottom:10px;overflow:hidden;}
+.guide-header{padding:16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:.15s;}
+.guide-header:hover{background:#12121e;}
+.guide-icon{font-size:1.5rem;}
+.guide-title{font-size:.95rem;font-weight:700;color:#e0e0e0;flex:1;}
+.guide-chevron{color:#555;font-size:1.1rem;transition:.3s;}
+.guide-card.open .guide-chevron{transform:rotate(180deg);color:#f0c040;}
+.guide-body{display:none;padding:0 18px 18px;}
+.guide-card.open .guide-body{display:block;}
+.step-list{list-style:none;counter-reset:steps;}
+.step-list li{counter-increment:steps;display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #1a1a2a;}
+.step-list li:last-child{border-bottom:none;}
+.step-num{min-width:28px;height:28px;background:#f0c040;color:#0a0a14;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;flex-shrink:0;}
+.step-text{font-size:.85rem;color:#ccc;line-height:1.5;}
+.step-text strong{color:#f0c040;}
+.tip-box{background:#0a1a0a;border-left:3px solid #22a85a;border-radius:0 8px 8px 0;padding:10px 14px;margin-top:12px;font-size:.82rem;color:#aaa;}
+.warn-box{background:#1a0a00;border-left:3px solid #e74c3c;border-radius:0 8px 8px 0;padding:10px 14px;margin-top:8px;font-size:.82rem;color:#aaa;}
+
+/* ── ADD ORDER FORM ─────────────────────── */
+.add-order-btn{width:100%;padding:14px;background:#1a1a14;border:2px dashed #333;border-radius:10px;color:#888;font-size:.88rem;cursor:pointer;transition:.2s;margin-bottom:14px;}
+.add-order-btn:hover{border-color:#f0c040;color:#f0c040;}
+.add-order-form{background:#12121e;border:1.5px solid #1e1e30;border-radius:12px;padding:16px;margin-bottom:14px;display:none;}
+.add-order-form.visible{display:block;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group label{font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.06em;}
+.form-group input,.form-group select{background:#0e0e1c;border:1px solid #1e1e30;border-radius:8px;color:#e0e0e0;padding:10px 12px;font-size:.88rem;}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#f0c040;}
+.form-btns{display:flex;gap:8px;margin-top:4px;}
+.btn-sm{flex:1;padding:10px;border:none;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;}
+.btn-sm-add{background:#22a85a;color:#fff;}
+.btn-sm-cancel{background:#1e1e30;color:#888;}
+
+/* ── TOAST ──────────────────────────────── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#22a85a;color:#fff;padding:12px 24px;border-radius:24px;font-weight:700;font-size:.88rem;transition:.3s;z-index:999;opacity:0;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.toast.error{background:#e74c3c;}
+.toast.info{background:#4aa3f5;}
+
+/* ── TIMER ALARM ────────────────────────── */
+@keyframes pulse-alarm{0%,100%{box-shadow:0 0 0 0 #e74c3c44;}70%{box-shadow:0 0 0 20px transparent;}}
+.timer-panel.alarm{animation:pulse-alarm 1s infinite;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1>⚒️ Atelier Production</h1>
+  <a href="../../hcs-hub.html">🏠 Hub</a>
+  <span class="sep">|</span>
+  <a href="planning-dashboard.html">📅 Planning</a>
+  <span class="sep">|</span>
+  <a href="../agent4_stock/stock-dashboard.html">📦 Stock</a>
+  <span class="sep">|</span>
+  <a href="../agent4_stock/signmaster-guide.html">✂️ SignMaster</a>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="goTab('atelier')">⏱ Atelier</button>
+  <button class="tab-btn" onclick="goTab('checklist')">📋 Checklist</button>
+  <button class="tab-btn" onclick="goTab('params')">🌡 Paramètres</button>
+  <button class="tab-btn" onclick="goTab('guide')">📖 Guide</button>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- TAB 1 — ATELIER                        -->
+<!-- ══════════════════════════════════════ -->
+<div id="tab-atelier" class="tab-content active">
+
+  <!-- Timer Panel -->
+  <div class="timer-panel" id="timer-panel">
+    <div class="timer-order-name" id="timer-order-name">Aucune commande sélectionnée</div>
+    <div class="timer-params" id="timer-params">
+      <div class="param-chip"><div class="val" id="p-temp">—</div><div class="lbl">°C</div></div>
+      <div class="param-chip"><div class="val" id="p-time">—</div><div class="lbl">sec</div></div>
+      <div class="param-chip"><div class="val" id="p-pres">—</div><div class="lbl">Pression</div></div>
+      <div class="param-chip"><div class="val" id="p-film">—</div><div class="lbl">Film</div></div>
+    </div>
+    <div class="timer-display">
+      <div class="timer-clock" id="timer-clock">00:00</div>
+    </div>
+    <div class="timer-progress"><div class="timer-bar" id="timer-bar" style="width:100%"></div></div>
+    <div class="timer-btns">
+      <button class="btn btn-start" id="btn-start" onclick="timerStart()">▶ Démarrer</button>
+      <button class="btn btn-pause" id="btn-pause" onclick="timerPause()" disabled>⏸ Pause</button>
+      <button class="btn btn-reset" onclick="timerReset()">↺ Reset</button>
+      <button class="btn btn-done" onclick="markDone()">✅ Pressage terminé — Passer en Contrôle</button>
+    </div>
+  </div>
+
+  <!-- Machine Selector -->
+  <div class="card">
+    <div class="card-title">Machine active</div>
+    <div class="machine-grid" id="machine-grid">
+      <div class="machine-btn sel" onclick="selectMachine(this,'T-shirt 1')">
+        <span class="m-icon">👕</span>
+        <div class="m-name">Presse T-shirt 1</div>
+        <div class="m-status" id="ms0">Libre</div>
+      </div>
+      <div class="machine-btn" onclick="selectMachine(this,'T-shirt 2')">
+        <span class="m-icon">👕</span>
+        <div class="m-name">Presse T-shirt 2</div>
+        <div class="m-status" id="ms1">Libre</div>
+      </div>
+      <div class="machine-btn" onclick="selectMachine(this,'Casquette 1')">
+        <span class="m-icon">🧢</span>
+        <div class="m-name">Presse Casquette 1</div>
+        <div class="m-status" id="ms2">Libre</div>
+      </div>
+      <div class="machine-btn" onclick="selectMachine(this,'Casquette 2')">
+        <span class="m-icon">🧢</span>
+        <div class="m-name">Presse Casquette 2</div>
+        <div class="m-status" id="ms3">Libre</div>
+      </div>
+      <div class="machine-btn" onclick="selectMachine(this,'Plotter 1')">
+        <span class="m-icon">🖨️</span>
+        <div class="m-name">Plotter Vinyle 1</div>
+        <div class="m-status" id="ms4">Libre</div>
+      </div>
+      <div class="machine-btn" onclick="selectMachine(this,'Plotter 2')">
+        <span class="m-icon">🖨️</span>
+        <div class="m-name">Plotter Vinyle 2</div>
+        <div class="m-status" id="ms5">Libre</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Queue -->
+  <div class="card">
+    <div class="card-title">File d'attente — Commandes du jour</div>
+    <button class="add-order-btn" onclick="toggleAddForm()">+ Ajouter commande manuellement</button>
+
+    <!-- Add form -->
+    <div class="add-order-form" id="add-order-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Client / Devis N°</label>
+          <input type="text" id="f-client" placeholder="Ex: Maeva / DEV-024">
+        </div>
+        <div class="form-group">
+          <label>Type de production</label>
+          <select id="f-type">
+            <option value="DTF">DTF — Pressage film</option>
+            <option value="Flocage">Flocage Vinyle</option>
+            <option value="Vinyle">Découpe Vinyle</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Matière</label>
+          <select id="f-mat">
+            <option value="Coton">Coton</option>
+            <option value="Polyester">Polyester</option>
+            <option value="Nylon">Nylon</option>
+            <option value="Casquette">Casquette</option>
+            <option value="Tote Bag">Tote Bag</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Quantité</label>
+          <input type="number" id="f-qty" placeholder="ex: 10" min="1" value="1">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Notes (optionnel)</label>
+        <input type="text" id="f-notes" placeholder="ex: couleur Blanc, logo dos + poitrine">
+      </div>
+      <div class="form-btns">
+        <button class="btn-sm btn-sm-add" onclick="addOrder()">✅ Ajouter</button>
+        <button class="btn-sm btn-sm-cancel" onclick="toggleAddForm()">Annuler</button>
+      </div>
+    </div>
+
+    <div class="queue-list" id="queue-list">
+      <div class="empty-queue"><big>📋</big>Aucune commande en queue<br><small>Ajouter manuellement ou importer depuis le Planning</small></div>
+    </div>
+    <button class="add-order-btn" style="margin-top:10px;margin-bottom:0;" onclick="importFromPlanning()">⬇ Importer depuis Planning (Agent 5)</button>
+  </div>
+
+  <!-- Status Actions -->
+  <div class="card" id="status-card" style="display:none;">
+    <div class="card-title">Changer statut — <span id="status-order-name" style="color:#f0c040;"></span></div>
+    <div class="status-row">
+      <button class="status-btn s-prod" onclick="setStatus('production')">🔧 En production</button>
+      <button class="status-btn s-ctrl" onclick="setStatus('controle')">🔍 Contrôle qualité</button>
+      <button class="status-btn s-prete" onclick="setStatus('prete')">✅ Prête / Livrée</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- TAB 2 — CHECKLIST                      -->
+<!-- ══════════════════════════════════════ -->
+<div id="tab-checklist" class="tab-content">
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="card-title" style="margin:0;">Progression checklist</div>
+      <button class="cl-reset-btn" onclick="resetChecklist()">↺ Tout réinitialiser</button>
+    </div>
+    <div class="cl-progress"><div class="cl-bar" id="cl-bar" style="width:0%"></div></div>
+    <div id="cl-progress-text" style="font-size:.75rem;color:#888;text-align:right;margin-top:4px;">0 / 0 coché</div>
+  </div>
+
+  <!-- AVANT pressage -->
+  <div class="card">
+    <div class="cl-title">🔴 Avant pressage — Préparation</div>
+    <div class="cl-section" id="cl-avant">
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Le vêtement est propre, sec et sans plis — préchauffage 2 sec si humide</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Le film DTF / flocage / vinyle est bien positionné — <strong>centrage vérifié</strong> sur le gabarit</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Température de la presse vérifiée et stabilisée au paramètre requis</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Papier de protection / silicone sheet placé sur le film</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Pression de la presse réglée (légère / moyenne / forte selon matière)</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Logo et N° de commande correspondent bien — double-check visuel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APRÈS pressage -->
+  <div class="card">
+    <div class="cl-title">🟢 Après pressage — Contrôle qualité</div>
+    <div class="cl-section" id="cl-apres">
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Film retiré lentement (chaud ou froid selon le type) — pas de déchirure</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Adhérence complète sur tous les bords — tirer légèrement pour tester les coins</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Couleurs nettes, pas de bavure, pas de bulle d'air visible</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Désherbage vinyle propre — aucun résidu de film sur le tissu</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Centrage et alignement conformes au bon de commande / maquette client</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Photo prise et archivée — commande validée et statut mis à jour</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checklist découpe vinyle -->
+  <div class="card">
+    <div class="cl-title">✂️ Découpe vinyle (si applicable)</div>
+    <div class="cl-section" id="cl-coupe">
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Fichier SVG/DXF importé dans SignMaster PRO — tracés en contours uniquement</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Profondeur lame réglée — test sur chute (coupe vinyle sans entailler le support)</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Vitesse et pression selon matière sélectionnées dans SignMaster</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Découpe lancée — surveiller les 30 premières secondes</div>
+      </div>
+      <div class="cl-item" onclick="toggleCheck(this)">
+        <div class="cl-checkbox"></div>
+        <div class="cl-text">Désherbage complet — retirer tous les morceaux internes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- TAB 3 — PARAMÈTRES MATÉRIAUX           -->
+<!-- ══════════════════════════════════════ -->
+<div id="tab-params" class="tab-content">
+
+  <div class="card">
+    <div class="card-title">Type de production</div>
+    <div class="type-tabs">
+      <button class="type-btn sel" onclick="selectType('DTF',this)">🎨 DTF</button>
+      <button class="type-btn" onclick="selectType('Flocage',this)">🧶 Flocage</button>
+      <button class="type-btn" onclick="selectType('Vinyle',this)">✂️ Vinyle</button>
+    </div>
+
+    <table class="mat-table" id="mat-table">
+      <thead>
+        <tr>
+          <th>Matière</th>
+          <th>Temp °C</th>
+          <th>Temps</th>
+          <th>Pression</th>
+          <th>Film</th>
+        </tr>
+      </thead>
+      <tbody id="mat-tbody"></tbody>
+    </table>
+
+    <div class="result-card" id="result-card">
+      <div style="font-size:.78rem;color:#888;margin-bottom:12px;" id="result-label">DTF — Coton</div>
+      <div class="result-grid">
+        <div class="result-item"><div class="rv rv-temp" id="r-temp">160°C</div><div class="rl">Température</div></div>
+        <div class="result-item"><div class="rv rv-time" id="r-time">15s</div><div class="rl">Durée</div></div>
+        <div class="result-item"><div class="rv rv-pres" id="r-pres">Moyenne</div><div class="rl">Pression</div></div>
+        <div class="result-item"><div class="rv rv-film" id="r-film">Froid</div><div class="rl">Film</div></div>
+      </div>
+      <div class="result-notes" id="r-notes"></div>
+      <button class="apply-timer-btn" onclick="applyToTimer()">⏱ Appliquer ce temps au minuteur</button>
+    </div>
+  </div>
+
+  <!-- Tableau pression rapide -->
+  <div class="card">
+    <div class="card-title">Référence pression — Guide visuel</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center;">
+      <div style="background:#003322;border:1px solid #22a85a44;border-radius:10px;padding:14px;">
+        <div style="font-size:1.4rem;color:#22a85a;font-weight:800;">⬇</div>
+        <div style="color:#22a85a;font-weight:700;font-size:.88rem;">Légère</div>
+        <div style="color:#888;font-size:.72rem;margin-top:4px;">Polyester / Nylon — 2-3 doigts résistance</div>
+      </div>
+      <div style="background:#332200;border:1px solid #f0c04044;border-radius:10px;padding:14px;">
+        <div style="font-size:1.4rem;color:#f0c040;font-weight:800;">⬇⬇</div>
+        <div style="color:#f0c040;font-weight:700;font-size:.88rem;">Moyenne</div>
+        <div style="color:#888;font-size:.72rem;margin-top:4px;">Coton / Tote bag — résistance ferme</div>
+      </div>
+      <div style="background:#1a0a00;border:1px solid #e74c3c44;border-radius:10px;padding:14px;">
+        <div style="font-size:1.4rem;color:#e74c3c;font-weight:800;">⬇⬇⬇</div>
+        <div style="color:#e74c3c;font-weight:700;font-size:.88rem;">Forte</div>
+        <div style="color:#888;font-size:.72rem;margin-top:4px;">Flocage épais — pleine pression</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- TAB 4 — GUIDE PROCÉDURES               -->
+<!-- ══════════════════════════════════════ -->
+<div id="tab-guide" class="tab-content">
+
+  <!-- DTF Film Froid -->
+  <div class="guide-card" id="g1">
+    <div class="guide-header" onclick="toggleGuide('g1')">
+      <span class="guide-icon">🎨</span>
+      <span class="guide-title">DTF — Film à retirer à froid</span>
+      <span class="guide-chevron">▼</span>
+    </div>
+    <div class="guide-body">
+      <ol class="step-list">
+        <li><div class="step-num">1</div><div class="step-text">Préchauffer le vêtement <strong>2 secondes</strong> à vide pour éliminer l'humidité résiduelle</div></li>
+        <li><div class="step-num">2</div><div class="step-text">Positionner le film DTF face imprimée vers le bas sur le tissu — utiliser la règle ou gabarit</div></li>
+        <li><div class="step-num">3</div><div class="step-text">Placer le <strong>papier silicone</strong> par-dessus le film (protège la surface)</div></li>
+        <li><div class="step-num">4</div><div class="step-text">Presser à <strong>160°C / 15 sec / pression moyenne</strong> (coton) — adapter selon matière</div></li>
+        <li><div class="step-num">5</div><div class="step-text">Laisser refroidir <strong>complètement</strong> (~30 sec) — le film doit être froid au toucher</div></li>
+        <li><div class="step-num">6</div><div class="step-text">Retirer le film lentement à <strong>45°</strong>, en commençant par un coin — ne pas tirer d'un coup</div></li>
+        <li><div class="step-num">7</div><div class="step-text">Repasser 5 sec avec silicone pour sceller les bords si nécessaire</div></li>
+      </ol>
+      <div class="tip-box">💡 Si des zones se soulèvent, repasser 3 sec supplémentaires sur ces zones puis laisser refroidir à nouveau</div>
+    </div>
+  </div>
+
+  <!-- DTF Film Chaud -->
+  <div class="guide-card" id="g2">
+    <div class="guide-header" onclick="toggleGuide('g2')">
+      <span class="guide-icon">🔥</span>
+      <span class="guide-title">DTF — Film à retirer à chaud</span>
+      <span class="guide-chevron">▼</span>
+    </div>
+    <div class="guide-body">
+      <ol class="step-list">
+        <li><div class="step-num">1</div><div class="step-text">Préchauffer vêtement 2 sec à vide</div></li>
+        <li><div class="step-num">2</div><div class="step-text">Poser film DTF face imprimée vers le bas + papier silicone par-dessus</div></li>
+        <li><div class="step-num">3</div><div class="step-text">Presser à <strong>155°C / 12 sec / pression légère à moyenne</strong></div></li>
+        <li><div class="step-num">4</div><div class="step-text">Ouvrir la presse — retirer le film <strong>immédiatement, encore chaud</strong> à 45°</div></li>
+        <li><div class="step-num">5</div><div class="step-text">Optionnel : recouvrir et repasser 3 sec à pression légère pour finition</div></li>
+      </ol>
+      <div class="warn-box">⚠️ Attention aux brûlures — le film est très chaud. Utiliser une pince ou laisser refroidir 3 sec avant de saisir le bord</div>
+    </div>
+  </div>
+
+  <!-- Flocage Vinyle -->
+  <div class="guide-card" id="g3">
+    <div class="guide-header" onclick="toggleGuide('g3')">
+      <span class="guide-icon">🧶</span>
+      <span class="guide-title">Flocage Vinyle — Pressage</span>
+      <span class="guide-chevron">▼</span>
+    </div>
+    <div class="guide-body">
+      <ol class="step-list">
+        <li><div class="step-num">1</div><div class="step-text">Découper le flocage sur le plotter — face velours vers le haut</div></li>
+        <li><div class="step-num">2</div><div class="step-text">Déherber soigneusement — retirer tous les intérieurs des lettres / formes</div></li>
+        <li><div class="step-num">3</div><div class="step-text">Poser le flocage sur le vêtement — <strong>face velours vers le bas</strong> (face lisse = face de la presse)</div></li>
+        <li><div class="step-num">4</div><div class="step-text">Presser à <strong>160°C / 20 sec / forte pression</strong></div></li>
+        <li><div class="step-num">5</div><div class="step-text">Laisser refroidir complètement avant de retirer le support</div></li>
+        <li><div class="step-num">6</div><div class="step-text">Retirer le support à <strong>180°</strong> (pli vers l'arrière) — lentement</div></li>
+      </ol>
+      <div class="tip-box">💡 Un second pressage de 5 sec avec papier silicone améliore l'ancrage sur coton épais</div>
+    </div>
+  </div>
+
+  <!-- Découpe Vinyle -->
+  <div class="guide-card" id="g4">
+    <div class="guide-header" onclick="toggleGuide('g4')">
+      <span class="guide-icon">✂️</span>
+      <span class="guide-title">Découpe Vinyle — Plotter SignMaster</span>
+      <span class="guide-chevron">▼</span>
+    </div>
+    <div class="guide-body">
+      <ol class="step-list">
+        <li><div class="step-num">1</div><div class="step-text">Ouvrir SignMaster PRO — importer fichier <strong>SVG ou AI</strong> (contours uniquement, pas de remplissage)</div></li>
+        <li><div class="step-num">2</div><div class="step-text">Vérifier les tracés : pas de nœuds doublés, pas de traits croisés — utiliser "Simplifier"</div></li>
+        <li><div class="step-num">3</div><div class="step-text">Charger le vinyle dans le plotter — rouleau centré, bien guidé par les molettes</div></li>
+        <li><div class="step-num">4</div><div class="step-text">Régler la lame : <strong>vinyle standard = 0.5 à 1 mm de dépassement</strong></div></li>
+        <li><div class="step-num">5</div><div class="step-text">Faire un <strong>test cut</strong> (carré + cercle) — la lame doit couper le vinyle sans entailler le support</div></li>
+        <li><div class="step-num">6</div><div class="step-text">Lancer la découpe — surveiller les premières secondes</div></li>
+        <li><div class="step-num">7</div><div class="step-text">Déherber, poser sur vêtement, presser (voir "Flocage" ou "Vinyle" selon type)</div></li>
+      </ol>
+      <div class="tip-box">💡 Paramètres SignMaster recommandés : Vinyle = 100 mm/s, Pression 80-120g — voir guide SignMaster pour détails</div>
+      <div style="margin-top:12px;">
+        <a href="../agent4_stock/signmaster-guide.html" target="_blank"
+           style="display:block;text-align:center;background:#0e0e1c;border:1px solid #1e1e30;border-radius:8px;padding:10px;color:#f0c040;text-decoration:none;font-size:.85rem;font-weight:700;">
+          📖 Ouvrir Guide SignMaster PRO complet ↗
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contour Cut (Print & Cut) -->
+  <div class="guide-card" id="g5">
+    <div class="guide-header" onclick="toggleGuide('g5')">
+      <span class="guide-icon">🎯</span>
+      <span class="guide-title">Contour Cut — Découpe après impression</span>
+      <span class="guide-chevron">▼</span>
+    </div>
+    <div class="guide-body">
+      <ol class="step-list">
+        <li><div class="step-num">1</div><div class="step-text">Dans SignMaster, activer les <strong>marques de repérage</strong> (Registration Marks) autour du visuel</div></li>
+        <li><div class="step-num">2</div><div class="step-text">Imprimer le visuel avec les marques sur le vinyle imprimable</div></li>
+        <li><div class="step-num">3</div><div class="step-text">Charger le vinyle imprimé dans le plotter — <strong>sans déplacer les marques</strong></div></li>
+        <li><div class="step-num">4</div><div class="step-text">Dans SignMaster : aller dans <strong>Output → Print & Cut → Calibrate</strong></div></li>
+        <li><div class="step-num">5</div><div class="step-text">Le laser du plotter scanne automatiquement les 3 marques — confirmer la détection</div></li>
+        <li><div class="step-num">6</div><div class="step-text">Lancer la découpe contour — vérifier l'alignement sur les 5 premières secondes</div></li>
+      </ol>
+      <div class="warn-box">⚠️ Si les marques ne sont pas détectées : nettoyer le capteur laser, vérifier que les marques sont bien noires sur fond blanc</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+
+const MATERIALS_DB = {
+  DTF: {
+    Coton:      { temp:160, time:15, pres:'Moyenne', film:'Froid', notes:'Refroidir complètement avant de retirer le film' },
+    Polyester:  { temp:140, time:12, pres:'Légère',  film:'Froid', notes:'Attention à la brillance — ne pas surchauffer' },
+    Nylon:      { temp:130, time:10, pres:'Légère',  film:'Chaud', notes:'Tester sur chute avant — matière sensible à la chaleur' },
+    Casquette:  { temp:155, time:13, pres:'Moyenne', film:'Froid', notes:'Utiliser presse casquette courbée' },
+    'Tote Bag': { temp:160, time:15, pres:'Moyenne', film:'Froid', notes:'Coton naturel — même param que t-shirt coton' },
+  },
+  Flocage: {
+    Coton:      { temp:160, time:20, pres:'Forte',   film:'Chaud', notes:'Film support à retirer chaud à 180°' },
+    Polyester:  { temp:145, time:18, pres:'Moyenne', film:'Chaud', notes:'Réduire 5°C si brillance visible sur polyester brillant' },
+    Nylon:      { temp:130, time:15, pres:'Légère',  film:'Chaud', notes:'⚠ Matière sensible — test obligatoire' },
+    Casquette:  { temp:155, time:18, pres:'Forte',   film:'Chaud', notes:'Presse casquette — bien appuyer sur les bords' },
+    'Tote Bag': { temp:160, time:20, pres:'Forte',   film:'Chaud', notes:'Identique au coton' },
+  },
+  Vinyle: {
+    Coton:      { temp:150, time:15, pres:'Moyenne', film:'Chaud', notes:'Vinyle standard — retirer chaud pour meilleure adhérence' },
+    Polyester:  { temp:135, time:12, pres:'Légère',  film:'Chaud', notes:'Privilégier vinyle stretch pour polyester extensible' },
+    Nylon:      { temp:125, time:10, pres:'Légère',  film:'Chaud', notes:'⚠ Température très basse — risque de décollement' },
+    Casquette:  { temp:145, time:13, pres:'Moyenne', film:'Chaud', notes:'Attention aux coutures — lever les épaules si possible' },
+    'Tote Bag': { temp:150, time:15, pres:'Moyenne', film:'Chaud', notes:'Même que coton standard' },
+  }
+};
+
+let orders = JSON.parse(localStorage.getItem('hcs_atelier_orders') || '[]');
+let selectedOrder = null;
+let currentType = 'DTF';
+let selectedMaterial = null;
+let selectedMachine = 'T-shirt 1';
+let timerInterval = null;
+let timerTotal = 0;
+let timerRemain = 0;
+let timerRunning = false;
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function goTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  const idx = {atelier:0,checklist:1,params:2,guide:3}[id];
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// QUEUE
+// ══════════════════════════════════════════
+function saveOrders() { localStorage.setItem('hcs_atelier_orders', JSON.stringify(orders)); }
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  if (!orders.length) {
+    list.innerHTML = '<div class="empty-queue"><big>📋</big>Aucune commande en queue<br><small>Ajouter manuellement ou importer depuis le Planning</small></div>';
+    return;
+  }
+  const statusBadge = {attente:'badge-attente', production:'badge-prod', controle:'badge-ctrl', prete:'badge-prete'};
+  const statusLabel = {attente:'En attente', production:'En production', controle:'Contrôle', prete:'Prête ✅'};
+  list.innerHTML = orders.map((o, i) => `
+    <div class="order-card ${selectedOrder === i ? 'selected' : ''}" onclick="selectOrder(${i})">
+      <div class="order-num">#${i+1}</div>
+      <div class="order-info">
+        <div class="order-client">${o.client}</div>
+        <div class="order-details">${o.type} · ${o.mat} · Qté ${o.qty}${o.notes ? ' — ' + o.notes : ''}</div>
+      </div>
+      <div class="order-badge ${statusBadge[o.status] || 'badge-attente'}">${statusLabel[o.status] || 'En attente'}</div>
+    </div>
+  `).join('');
+}
+
+function selectOrder(idx) {
+  selectedOrder = idx;
+  const o = orders[idx];
+  document.getElementById('status-order-name').textContent = o.client;
+  document.getElementById('status-card').style.display = 'block';
+
+  // Auto-load materials
+  const mat = MATERIALS_DB[o.type] && MATERIALS_DB[o.type][o.mat];
+  const name = `${o.type} — ${o.mat} — ${o.client}`;
+  document.getElementById('timer-order-name').textContent = name;
+  if (mat) {
+    document.getElementById('p-temp').textContent = mat.temp;
+    document.getElementById('p-time').textContent = mat.time + 's';
+    document.getElementById('p-pres').textContent = mat.pres;
+    document.getElementById('p-film').textContent = mat.film;
+    timerTotal = mat.time;
+    timerRemain = mat.time;
+    updateTimerDisplay();
+  }
+  renderQueue();
+}
+
+function addOrder() {
+  const client = document.getElementById('f-client').value.trim();
+  const type = document.getElementById('f-type').value;
+  const mat = document.getElementById('f-mat').value;
+  const qty = document.getElementById('f-qty').value || 1;
+  const notes = document.getElementById('f-notes').value.trim();
+  if (!client) { showToast('Entrez un nom client ou N° devis', 'error'); return; }
+  orders.push({ client, type, mat, qty: parseInt(qty), notes, status: 'attente', machine: '' });
+  saveOrders();
+  renderQueue();
+  toggleAddForm();
+  document.getElementById('f-client').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-qty').value = 1;
+  showToast('Commande ajoutée ✅');
+}
+
+function toggleAddForm() {
+  const f = document.getElementById('add-order-form');
+  f.classList.toggle('visible');
+}
+
+function importFromPlanning() {
+  const planning = JSON.parse(localStorage.getItem('hcs_planning') || '[]');
+  if (!planning.length) { showToast('Aucune donnée dans Planning (Agent 5)', 'error'); return; }
+  let added = 0;
+  planning.forEach(p => {
+    if (p.status === 'planifie' || p.status === 'a_planifier') {
+      const exists = orders.some(o => o.client === (p.client || p.nom || ''));
+      if (!exists) {
+        orders.push({
+          client: p.client || p.nom || 'Inconnu',
+          type: p.type || 'DTF',
+          mat: p.matiere || 'Coton',
+          qty: p.quantite || 1,
+          notes: p.notes || '',
+          status: 'attente',
+          machine: ''
+        });
+        added++;
+      }
+    }
+  });
+  saveOrders();
+  renderQueue();
+  showToast(`${added} commande(s) importée(s) depuis Planning`);
+}
+
+function setStatus(status) {
+  if (selectedOrder === null) return;
+  orders[selectedOrder].status = status;
+  saveOrders();
+  renderQueue();
+  const labels = {production:'En production 🔧', controle:'Contrôle qualité 🔍', prete:'Prête ✅'};
+  showToast(`Statut → ${labels[status]}`);
+  // Sync to planning
+  syncToPlanning();
+}
+
+function syncToPlanning() {
+  // Light sync: update matching order in hcs_planning if exists
+  const planning = JSON.parse(localStorage.getItem('hcs_planning') || '[]');
+  const statusMap = {attente:'a_planifier', production:'en_production', controle:'controle_qualite', prete:'pret_livre'};
+  if (selectedOrder !== null) {
+    const o = orders[selectedOrder];
+    planning.forEach(p => {
+      if ((p.client || p.nom) === o.client) p.status = statusMap[o.status] || p.status;
+    });
+    localStorage.setItem('hcs_planning', JSON.stringify(planning));
+  }
+}
+
+// ══════════════════════════════════════════
+// MACHINE
+// ══════════════════════════════════════════
+function selectMachine(el, name) {
+  document.querySelectorAll('.machine-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedMachine = name;
+  if (selectedOrder !== null) {
+    orders[selectedOrder].machine = name;
+    saveOrders();
+  }
+}
+
+// ══════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════
+function updateTimerDisplay() {
+  const min = Math.floor(timerRemain / 60);
+  const sec = timerRemain % 60;
+  document.getElementById('timer-clock').textContent =
+    String(min).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+  const pct = timerTotal > 0 ? (timerRemain / timerTotal) * 100 : 100;
+  const bar = document.getElementById('timer-bar');
+  bar.style.width = pct + '%';
+  const clock = document.getElementById('timer-clock');
+  const panel = document.getElementById('timer-panel');
+  if (timerRemain <= 0) {
+    clock.className = 'timer-clock finished';
+    bar.className = 'timer-bar finished';
+    panel.classList.add('alarm');
+  } else if (timerRunning) {
+    clock.className = 'timer-clock running';
+    bar.className = 'timer-bar running';
+    panel.classList.remove('alarm');
+  } else {
+    clock.className = 'timer-clock';
+    bar.className = 'timer-bar';
+    panel.classList.remove('alarm');
+  }
+}
+
+function timerStart() {
+  if (timerTotal === 0) { showToast('Sélectionner une commande ou un matériau', 'info'); return; }
+  if (timerRemain <= 0) timerRemain = timerTotal;
+  timerRunning = true;
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-pause').disabled = false;
+  timerInterval = setInterval(() => {
+    if (timerRemain > 0) {
+      timerRemain--;
+      updateTimerDisplay();
+    } else {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('btn-start').disabled = false;
+      document.getElementById('btn-pause').disabled = true;
+      updateTimerDisplay();
+      // Vibrate on mobile if supported
+      if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+      showToast('⏰ Pressage terminé !', 'info');
+    }
+  }, 1000);
+}
+
+function timerPause() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+  updateTimerDisplay();
+}
+
+function timerReset() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerRemain = timerTotal;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-pause').disabled = true;
+  document.getElementById('timer-panel').classList.remove('alarm');
+  updateTimerDisplay();
+}
+
+function markDone() {
+  timerReset();
+  if (selectedOrder !== null) setStatus('controle');
+}
+
+// ══════════════════════════════════════════
+// MATERIALS
+// ══════════════════════════════════════════
+function selectType(type, btn) {
+  currentType = type;
+  selectedMaterial = null;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('result-card').classList.remove('visible');
+  renderMatTable();
+}
+
+function renderMatTable() {
+  const db = MATERIALS_DB[currentType];
+  const presColor = {Légère:'pres-low', Moyenne:'pres-med', Forte:'pres-high'};
+  const rows = Object.entries(db).map(([mat, d]) => `
+    <tr onclick="selectMat('${mat}')" ${selectedMaterial===mat ? 'class="sel-row"':''}>
+      <td>${mat}</td>
+      <td class="val-temp">${d.temp}°</td>
+      <td class="val-time">${d.time}s</td>
+      <td class="val-pres ${presColor[d.pres]||''}">${d.pres}</td>
+      <td>${d.film}</td>
+    </tr>
+  `).join('');
+  document.getElementById('mat-tbody').innerHTML = rows;
+}
+
+function selectMat(mat) {
+  selectedMaterial = mat;
+  const d = MATERIALS_DB[currentType][mat];
+  document.getElementById('result-label').textContent = currentType + ' — ' + mat;
+  document.getElementById('r-temp').textContent = d.temp + '°C';
+  document.getElementById('r-time').textContent = d.time + 's';
+  document.getElementById('r-pres').textContent = d.pres;
+  document.getElementById('r-film').textContent = d.film;
+  document.getElementById('r-notes').textContent = d.notes || '';
+  document.getElementById('result-card').classList.add('visible');
+  renderMatTable();
+}
+
+function applyToTimer() {
+  if (!selectedMaterial) return;
+  const d = MATERIALS_DB[currentType][selectedMaterial];
+  timerTotal = d.time;
+  timerRemain = d.time;
+  document.getElementById('p-temp').textContent = d.temp;
+  document.getElementById('p-time').textContent = d.time + 's';
+  document.getElementById('p-pres').textContent = d.pres;
+  document.getElementById('p-film').textContent = d.film;
+  if (!document.getElementById('timer-order-name').textContent || document.getElementById('timer-order-name').textContent === 'Aucune commande sélectionnée') {
+    document.getElementById('timer-order-name').textContent = currentType + ' — ' + selectedMaterial;
+  }
+  updateTimerDisplay();
+  goTab('atelier');
+  showToast(`Minuteur réglé : ${d.time}s à ${d.temp}°C`);
+}
+
+// ══════════════════════════════════════════
+// CHECKLIST
+// ══════════════════════════════════════════
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  el.querySelector('.cl-checkbox').textContent = el.classList.contains('checked') ? '✓' : '';
+  updateCheckProgress();
+}
+
+function updateCheckProgress() {
+  const all = document.querySelectorAll('.cl-item');
+  const done = document.querySelectorAll('.cl-item.checked');
+  const pct = all.length ? Math.round((done.length / all.length) * 100) : 0;
+  document.getElementById('cl-bar').style.width = pct + '%';
+  document.getElementById('cl-progress-text').textContent = `${done.length} / ${all.length} coché${done.length>1?'s':''}`;
+}
+
+function resetChecklist() {
+  document.querySelectorAll('.cl-item').forEach(el => {
+    el.classList.remove('checked');
+    el.querySelector('.cl-checkbox').textContent = '';
+  });
+  updateCheckProgress();
+  showToast('Checklist réinitialisée');
+}
+
+// ══════════════════════════════════════════
+// GUIDE ACCORDION
+// ══════════════════════════════════════════
+function toggleGuide(id) {
+  const card = document.getElementById(id);
+  card.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type ? ' ' + type : '') + ' show';
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.addEventListener('load', () => {
+  renderQueue();
+  renderMatTable();
+  updateCheckProgress();
+  updateTimerDisplay();
+
+  // Auto-open tab from URL param
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab) goTab(tab);
+});
+</script>
+</body>
+</html>
