@@ -355,6 +355,12 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             Envoyer vers MockupForge
           </button>
+          <!-- Dossier client partagé -->
+          <div id="dossier-client" style="display:none;background:#0a0f1a;border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:12px;margin-top:4px;">
+            <div id="dossier-client-title" style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:8px;letter-spacing:.5px;"></div>
+            <div id="dossier-client-list"></div>
+          </div>
+
           <button id="btn-gmail" class="btn-secondary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2" onclick="envoyerGmail()" disabled>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             Envoyer par Gmail
@@ -978,12 +984,75 @@ async function envoyerMockupForge() {
   const entry  = { id: Date.now().toString(36), name: nom + '_traite', src: state.base64Traitee, client, date: new Date().toLocaleDateString('fr-FR') };
   try {
     await PicWishDB.put(entry);
+    await HCSClientsDB.put({ ...entry, type: 'logo' });
     ajouterLog(`MockupForge : image envoyée → dossier "${client}"`, 'success');
     afficherToast(`✓ Envoyé dans MockupForge — dossier "${client}"`, 'success', 5000);
+    await renderDossierPicwish(client);
   } catch(e) {
     ajouterLog('MockupForge erreur : ' + e.message, 'error');
     afficherToast('Erreur : ' + e.message, 'error');
   }
+}
+
+/* ── Dossiers Clients partagés (hcs_clients_db) ── */
+const HCSClientsDB = {
+  _db: null,
+  open() {
+    return new Promise((res, rej) => {
+      if (this._db) { res(this._db); return; }
+      const req = indexedDB.open('hcs_clients_db', 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('assets')) {
+          const store = db.createObjectStore('assets', { keyPath: 'id' });
+          store.createIndex('client', 'client', { unique: false });
+        }
+      };
+      req.onsuccess = e => { this._db = e.target.result; res(this._db); };
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+  async put(entry) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('assets', 'readwrite');
+      tx.objectStore('assets').put(entry);
+      tx.oncomplete = res;
+      tx.onerror = e => rej(e.target.error);
+    });
+  },
+  async getByClient(client) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx  = db.transaction('assets', 'readonly');
+      const idx = tx.objectStore('assets').index('client');
+      const req = idx.getAll(client);
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  }
+};
+
+async function renderDossierPicwish(client) {
+  const panel = document.getElementById('dossier-client');
+  const title = document.getElementById('dossier-client-title');
+  const list  = document.getElementById('dossier-client-list');
+  if (!panel || !client) return;
+  try {
+    const assets = await HCSClientsDB.getByClient(client);
+    title.textContent = `📁 Dossier — ${client}`;
+    list.innerHTML = assets.length === 0
+      ? `<p style="color:#6b7280;font-size:12px;margin:4px 0">Aucun fichier encore archivé.</p>`
+      : assets.map(a => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);">
+            <img src="${a.src}" style="width:36px;height:36px;object-fit:contain;border-radius:4px;background:#111;flex-shrink:0;" />
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:11px;font-weight:600;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.type === 'logo' ? '🖼' : '👕'} ${a.name}</div>
+              <div style="font-size:10px;color:#6b7280;">${a.date}</div>
+            </div>
+          </div>`).join('');
+    panel.style.display = 'block';
+  } catch(e) { console.warn('Dossier client:', e); }
 }
 
 /* Gmail mailto */
