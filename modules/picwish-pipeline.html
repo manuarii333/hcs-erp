@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PicWish Pipeline — HCS</title>
+  <title>HCS Image Pipeline</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -121,8 +121,8 @@
     <div class="flex items-center gap-3">
       <span style="font-size:28px;">🖼️</span>
       <div>
-        <h1 class="text-xl font-bold text-white leading-tight">PicWish Pipeline</h1>
-        <p class="text-xs" style="color:#888;">HCS — Traitement images automatique</p>
+        <h1 class="text-xl font-bold text-white leading-tight">HCS Image Pipeline</h1>
+        <p class="text-xs" style="color:#888;">Détourage remove.bg · Amélioration PicWish</p>
       </div>
     </div>
     <div class="flex items-center gap-2 text-xs" style="color:#555;">
@@ -518,7 +518,7 @@ async function lancerPipeline() {
   document.getElementById('badge-0').textContent = '✓';
   try {
     /* Étape 1 — Détourage */
-    setEtape(1); setEtapeEnCours(1); ajouterLog("Étape 1 — Détourage PicWish...", 'info');
+    setEtape(1); setEtapeEnCours(1); ajouterLog("Étape 1 — Détourage remove.bg...", 'info');
     let img1;
     try {
       img1 = await appelPicWish('https://api.picwish.com/open-api/async-task/remove-image-background', state.base64Source, 'Détourage');
@@ -586,9 +586,10 @@ async function lancerPipeline() {
   }
 }
 
-/* Appel PicWish (détourage ou amélioration) — retourne { dataUrl, resultUrl } */
+/* Appel Worker (détourage remove.bg ou amélioration PicWish) — retourne { dataUrl, resultUrl } */
 async function appelPicWishAvecUrl(operation, imageDataUrl, nom) {
-  ajouterLog(`${nom} : appel via Worker Cloudflare...`, 'info');
+  const provider = operation === 'remove-background' ? 'remove.bg' : 'PicWish';
+  ajouterLog(`${nom} [${provider}] : appel via Worker Cloudflare...`, 'info');
   const rep = await fetch(`${CONFIG.WORKER_URL}/api/picwish`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': CONFIG.WORKER_SECRET },
@@ -599,8 +600,17 @@ async function appelPicWishAvecUrl(operation, imageDataUrl, nom) {
     throw new Error(`Worker HTTP ${rep.status}${txt ? ' — ' + txt.slice(0, 100) : ''}`);
   }
   const data = await rep.json();
-  if (!data.success || !data.result_url) throw new Error(data.error || 'Pas d\'URL de résultat.');
-  ajouterLog(`${nom} : téléchargement du résultat...`, 'info');
+  if (!data.success) throw new Error(data.error || 'Erreur Worker.');
+
+  /* remove.bg retourne directement le PNG en base64 (pas d'URL externe) */
+  if (data.result_base64) {
+    ajouterLog(`${nom} [${provider}] : image reçue ✓`, 'info');
+    return { dataUrl: data.result_base64, resultUrl: null };
+  }
+
+  /* PicWish retourne une URL → on télécharge l'image */
+  if (!data.result_url) throw new Error(data.error || 'Pas d\'URL de résultat.');
+  ajouterLog(`${nom} [${provider}] : téléchargement du résultat...`, 'info');
   const repF = await fetch(data.result_url);
   const blob = await repF.blob();
   const dataUrl = await blobVersBase64(blob);
