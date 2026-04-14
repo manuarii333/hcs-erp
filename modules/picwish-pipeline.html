@@ -176,6 +176,23 @@
         <p class="text-xs mt-2" style="color:#555;">Utilisé pour nommer le fichier et le chemin Dropbox.</p>
       </div>
 
+      <!-- Détourage local — tolérance couleur -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:20px;">
+        <h2 class="text-sm font-semibold uppercase tracking-widest mb-3" style="color:#888;">3. Détourage fond uni</h2>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:12px;color:#aaa;">Tolérance couleur</span>
+          <span id="tol-value" style="font-size:13px;font-weight:700;color:#FF6B00;">30</span>
+        </div>
+        <input type="range" id="tol-slider" min="5" max="120" value="30" step="1"
+          style="width:100%;accent-color:#FF6B00;cursor:pointer;"
+          oninput="document.getElementById('tol-value').textContent=this.value" />
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          <span style="font-size:10px;color:#444;">Précis (5)</span>
+          <span style="font-size:10px;color:#444;">Large (120)</span>
+        </div>
+        <p class="text-xs mt-2" style="color:#555;">Supprime uniquement les zones de couleur unie en bordure. Augmenter si le fond reste visible.</p>
+      </div>
+
       <!-- Bouton traiter -->
       <button id="btn-process" class="btn-primary w-full py-4 rounded-xl text-lg" onclick="lancerPipeline()" disabled>
         <span id="btn-process-label">Traiter l'image</span>
@@ -497,6 +514,93 @@ function extraireBase64Pur(dataUrl) { return dataUrl.split(',')[1]; }
 function blobVersBase64(blob) { return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(blob); }); }
 
 /* Pipeline principal */
+/* ============================================================
+   DÉTOURAGE LOCAL — Flood fill depuis les bords sur fond uni
+   ============================================================ */
+
+/* Lit la couleur RGBA d'un pixel dans un tableau ImageData */
+function _pixelColor(pixels, W, x, y) {
+  const i = (y * W + x) * 4;
+  return [pixels[i], pixels[i+1], pixels[i+2], pixels[i+3]];
+}
+
+/* Distance euclidienne entre deux couleurs RGB */
+function _colorDist(a, b) {
+  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+}
+
+/* Vérifie si un pixel correspond à la couleur de fond (dans la tolérance) */
+function _estFond(pixels, W, x, y, bgColor, tol) {
+  const i = (y * W + x) * 4;
+  if (pixels[i+3] === 0) return true;  // déjà transparent
+  return _colorDist([pixels[i], pixels[i+1], pixels[i+2]], bgColor) <= tol;
+}
+
+/* Détourage local : supprime le fond uni par BFS depuis les 4 bords */
+function detourer_local_canvas(imageDataUrl, tolerance = 30) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const W = img.naturalWidth, H = img.naturalHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const imgData = ctx.getImageData(0, 0, W, H);
+        const pixels  = imgData.data;
+
+        // Détecter la couleur de fond depuis les 4 coins
+        const coins = [
+          _pixelColor(pixels, W, 0,   0  ),
+          _pixelColor(pixels, W, W-1, 0  ),
+          _pixelColor(pixels, W, 0,   H-1),
+          _pixelColor(pixels, W, W-1, H-1)
+        ];
+        // Prendre la couleur du coin le plus fréquent (tolérance 10px entre coins)
+        const bgColor = coins.reduce((best, c) => {
+          const votes = coins.filter(o => _colorDist(o, c) < 15).length;
+          return votes >= (best.votes || 0) ? { color: c, votes } : best;
+        }, {}).color || coins[0];
+
+        // BFS depuis tous les pixels de bord
+        const visited = new Uint8Array(W * H);
+        const queue   = [];
+
+        const ajouter = (x, y) => {
+          if (visited[y * W + x]) return;
+          if (_estFond(pixels, W, x, y, bgColor, tolerance)) {
+            visited[y * W + x] = 1;
+            queue.push(y * W + x);
+          }
+        };
+
+        for (let x = 0; x < W; x++) { ajouter(x, 0); ajouter(x, H-1); }
+        for (let y = 0; y < H; y++) { ajouter(0, y); ajouter(W-1, y); }
+
+        let head = 0;
+        while (head < queue.length) {
+          const pos = queue[head++];
+          const px  = pos % W, py = Math.floor(pos / W);
+          // Rendre transparent
+          pixels[pos * 4 + 3] = 0;
+          // Voisins (4 directions)
+          if (px > 0)   ajouter(px-1, py);
+          if (px < W-1) ajouter(px+1, py);
+          if (py > 0)   ajouter(px, py-1);
+          if (py < H-1) ajouter(px, py+1);
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch(e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error('Impossible de charger l\'image pour le détourage.'));
+    img.src = imageDataUrl;
+  });
+}
+
 async function lancerPipeline() {
   if (state.enTraitement || !state.base64Source) return;
   const nomClient = document.getElementById('client-name').value.trim();
@@ -511,19 +615,27 @@ async function lancerPipeline() {
   document.getElementById('badge-0').className = 'step-card-badge badge-done';
   document.getElementById('badge-0').textContent = '✓';
   try {
-    /* Étape 1 — Détourage */
-    setEtape(1); setEtapeEnCours(1); ajouterLog("Étape 1 — Détourage remove.bg...", 'info');
+    /* Étape 1 — Détourage : remove.bg (Worker) → fallback canvas local */
+    setEtape(1); setEtapeEnCours(1);
+    ajouterLog('Étape 1 — Détourage remove.bg (logos & graphiques)...', 'info');
     let img1;
     try {
       img1 = await appelPicWish('https://api.picwish.com/open-api/async-task/remove-image-background', state.base64Source, 'Détourage');
-      afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — OK', 'success');
+      afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — Détourage remove.bg OK ✓', 'success');
     } catch (e) {
-      ajouterLog(`Étape 1 — Erreur : ${e.message}`, 'error');
-      img1 = state.base64Source;
-      afficherPreviewEtape(1, img1);
-      document.getElementById('badge-1').textContent = '⚠ Erreur';
-      document.getElementById('badge-1').className = 'step-card-badge';
-      document.getElementById('badge-1').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
+      ajouterLog(`Étape 1 — remove.bg indisponible (${e.message}), bascule sur détourage local...`, 'warn');
+      try {
+        const tolerance = parseInt(document.getElementById('tol-slider').value, 10);
+        img1 = await detourer_local_canvas(state.base64Source, tolerance);
+        afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — Détourage local OK (fallback)', 'success');
+      } catch (e2) {
+        ajouterLog(`Étape 1 — Erreur : ${e2.message}`, 'error');
+        img1 = state.base64Source;
+        afficherPreviewEtape(1, img1);
+        document.getElementById('badge-1').textContent = '⚠ Erreur';
+        document.getElementById('badge-1').className = 'step-card-badge';
+        document.getElementById('badge-1').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
+      }
     }
     /* Étape 2 — Amélioration */
     setEtape(2); setEtapeEnCours(2); ajouterLog('Étape 2 — Amélioration PicWish...', 'info');
