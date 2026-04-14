@@ -415,9 +415,8 @@ const CONFIG = {
   WORKER_SECRET:        'hcs-proxy-2026',
 
   // ── MySQL API (Planet Hoster) ──────────────────────────────
-  // Déployer api/clients.php dans public_html/erp/api/
   MYSQL_API_URL:        'https://highcoffeeshirts.com/erp/api/clients.php',
-  HCS_API_SECRET:       'hcs-erp-2026',   // doit correspondre à $API_SECRET dans clients.php
+  HCS_API_SECRET:       'hcs-erp-2026',
 
   // ── Gmail ──────────────────────────────────────────────────
   GMAIL_CLIENT_ID:      '999133125687-0lljll4i15fe7e3bif45smrd8e1hdff0.apps.googleusercontent.com'
@@ -1067,7 +1066,7 @@ async function envoyerMockupForge() {
     await PicWishDB.put(entry);
     await HCSClientsDB.put({ ...entry, type: 'logo' });
     await renderDossierPicwish(client);
-    sauverMySQLClient({ ...entry, type: 'logo' }); // async, non bloquant
+    sauverMySQLClient({ ...entry, type: 'logo' });
     ajouterLog(`MockupForge : image envoyée → dossier "${client}"`, 'success');
     afficherToast(`✓ Envoyé dans MockupForge — dossier "${client}"`, 'success', 5000);
   } catch(e) {
