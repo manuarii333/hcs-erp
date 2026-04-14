@@ -615,27 +615,21 @@ async function lancerPipeline() {
   document.getElementById('badge-0').className = 'step-card-badge badge-done';
   document.getElementById('badge-0').textContent = '✓';
   try {
-    /* Étape 1 — Détourage : remove.bg (Worker) → fallback canvas local */
+    /* Étape 1 — Détourage canvas local (fond uni → transparent) */
     setEtape(1); setEtapeEnCours(1);
-    ajouterLog('Étape 1 — Détourage remove.bg (logos & graphiques)...', 'info');
+    const tolerance = parseInt(document.getElementById('tol-slider').value, 10);
+    ajouterLog(`Étape 1 — Détourage fond uni (tolérance ${tolerance})...`, 'info');
     let img1;
     try {
-      img1 = await appelPicWish('https://api.picwish.com/open-api/async-task/remove-image-background', state.base64Source, 'Détourage');
-      afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — Détourage remove.bg OK ✓', 'success');
+      img1 = await detourer_local_canvas(state.base64Source, tolerance);
+      afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — Détourage OK ✓', 'success');
     } catch (e) {
-      ajouterLog(`Étape 1 — remove.bg indisponible (${e.message}), bascule sur détourage local...`, 'warn');
-      try {
-        const tolerance = parseInt(document.getElementById('tol-slider').value, 10);
-        img1 = await detourer_local_canvas(state.base64Source, tolerance);
-        afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — Détourage local OK (fallback)', 'success');
-      } catch (e2) {
-        ajouterLog(`Étape 1 — Erreur : ${e2.message}`, 'error');
-        img1 = state.base64Source;
-        afficherPreviewEtape(1, img1);
-        document.getElementById('badge-1').textContent = '⚠ Erreur';
-        document.getElementById('badge-1').className = 'step-card-badge';
-        document.getElementById('badge-1').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
-      }
+      ajouterLog(`Étape 1 — Erreur : ${e.message}`, 'error');
+      img1 = state.base64Source;
+      afficherPreviewEtape(1, img1);
+      document.getElementById('badge-1').textContent = '⚠ Erreur';
+      document.getElementById('badge-1').className = 'step-card-badge';
+      document.getElementById('badge-1').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
     }
     /* Étape 2 — Amélioration */
     setEtape(2); setEtapeEnCours(2); ajouterLog('Étape 2 — Amélioration PicWish...', 'info');
