@@ -355,10 +355,6 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             Envoyer vers MockupForge
           </button>
-          <div id="dossier-client" style="display:none;background:#0a0f1a;border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:12px;margin-top:4px;">
-            <div id="dossier-client-title" style="font-size:13px;font-weight:600;color:#a78bfa;margin-bottom:8px;"></div>
-            <div id="dossier-client-list"></div>
-          </div>
           <button id="btn-gmail" class="btn-secondary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2" onclick="envoyerGmail()" disabled>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
             Envoyer par Gmail
@@ -413,10 +409,6 @@ const CONFIG = {
   //        wrangler secret put WORKER_SECRET  → coller la valeur ci-dessous
   WORKER_URL:           'https://hcs-proxy.highcoffeeshirt.workers.dev',
   WORKER_SECRET:        'hcs-proxy-2026',
-
-  // ── MySQL API (Planet Hoster) ──────────────────────────────
-  MYSQL_API_URL:        'https://highcoffeeshirts.com/erp/api/clients.php',
-  HCS_API_SECRET:       'hcs-erp-2026',
 
   // ── Gmail ──────────────────────────────────────────────────
   GMAIL_CLIENT_ID:      '999133125687-0lljll4i15fe7e3bif45smrd8e1hdff0.apps.googleusercontent.com'
@@ -989,74 +981,6 @@ const PicWishDB = {
   }
 };
 
-/* ============================================================
-   HCS CLIENTS DB — IndexedDB partagée avec MockupForge
-   ============================================================ */
-const HCSClientsDB = {
-  _db: null,
-  open() {
-    return new Promise((res, rej) => {
-      if (this._db) { res(this._db); return; }
-      const req = indexedDB.open('hcs_clients_db', 1);
-      req.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains('assets')) {
-          const store = db.createObjectStore('assets', { keyPath: 'id' });
-          store.createIndex('client', 'client', { unique: false });
-        }
-      };
-      req.onsuccess = e => { this._db = e.target.result; res(this._db); };
-      req.onerror   = e => rej(e.target.error);
-    });
-  },
-  async put(entry) {
-    const db = await this.open();
-    return new Promise((res, rej) => {
-      const tx = db.transaction('assets', 'readwrite');
-      tx.objectStore('assets').put(entry);
-      tx.oncomplete = res;
-      tx.onerror = e => rej(e.target.error);
-    });
-  },
-  async getByClient(client) {
-    const db = await this.open();
-    return new Promise((res, rej) => {
-      const tx  = db.transaction('assets', 'readonly');
-      const req = tx.objectStore('assets').index('client').getAll(client);
-      req.onsuccess = e => res(e.target.result);
-      req.onerror   = e => rej(e.target.error);
-    });
-  }
-};
-
-async function renderDossierPicwish(client) {
-  const panel = document.getElementById('dossier-client');
-  const title = document.getElementById('dossier-client-title');
-  const list  = document.getElementById('dossier-client-list');
-  if (!panel) return;
-  const items = await HCSClientsDB.getByClient(client);
-  title.textContent = `📁 Dossier — ${client}`;
-  list.innerHTML = items.map(it => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(167,139,250,.1);">
-      <img src="${it.src}" style="width:40px;height:40px;object-fit:contain;border-radius:4px;background:#111;">
-      <div>
-        <div style="font-size:12px;color:#e2e8f0;">${it.type === 'logo' ? '🖼' : '👕'} ${it.name}</div>
-        <div style="font-size:10px;color:#64748b;">${it.date}</div>
-      </div>
-    </div>`).join('') || '<p style="color:#64748b;font-size:12px;padding:8px 0;">Aucun asset enregistré.</p>';
-  panel.style.display = 'block';
-}
-
-async function sauverMySQLClient(entry) {
-  try {
-    await fetch(CONFIG.MYSQL_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-HCS-Secret': CONFIG.HCS_API_SECRET },
-      body: JSON.stringify({ action: 'save_asset', ...entry, src: entry.src.substring(0, 50) + '…' })
-    });
-  } catch(e) { /* silencieux si API non déployée */ }
-}
-
 async function envoyerMockupForge() {
   if (!state.base64Traitee) { afficherToast('Aucune image traitée.', 'error'); return; }
   const client = (state.nomClient || 'Clients').trim();
@@ -1064,9 +988,6 @@ async function envoyerMockupForge() {
   const entry  = { id: Date.now().toString(36), name: nom + '_traite', src: state.base64Traitee, client, date: new Date().toLocaleDateString('fr-FR') };
   try {
     await PicWishDB.put(entry);
-    await HCSClientsDB.put({ ...entry, type: 'logo' });
-    await renderDossierPicwish(client);
-    sauverMySQLClient({ ...entry, type: 'logo' });
     ajouterLog(`MockupForge : image envoyée → dossier "${client}"`, 'success');
     afficherToast(`✓ Envoyé dans MockupForge — dossier "${client}"`, 'success', 5000);
   } catch(e) {

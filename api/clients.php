@@ -6,10 +6,10 @@
    ============================================================ */
 
 /* ── Configuration ─────────────────────────────────────────── */
-define('DB_HOST',   'localhost');
-define('DB_NAME',   'highftqb_hcs_erp');   // à adapter selon Planet Hoster
-define('DB_USER',   'highftqb_erp');        // à adapter
-define('DB_PASS',   'MOT_DE_PASSE_ICI');    // à renseigner
+define('DB_HOST',   '127.0.0.1');
+define('DB_NAME',   'highftqb_HCS_ERP');
+define('DB_USER',   'highftqb_ERP');
+define('DB_PASS',   'HcsErp2026!');
 define('DB_PORT',   3306);
 define('API_SECRET','hcs-erp-2026');        // doit correspondre à CONFIG.HCS_API_SECRET
 
