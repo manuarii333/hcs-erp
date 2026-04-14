@@ -640,12 +640,12 @@ async function lancerPipeline() {
       state.resultUrlStep2 = res2.resultUrl;
       afficherPreviewEtape(2, img2); ajouterLog('Étape 2 — OK', 'success');
     } catch (e) {
-      ajouterLog(`Étape 2 — Erreur : ${e.message}`, 'error');
+      ajouterLog(`Étape 2 — Amélioration non disponible (${e.message.slice(0,60)}), image étape 1 utilisée.`, 'warn');
       img2 = img1; state.resultUrlStep2 = null;
       afficherPreviewEtape(2, img2);
-      document.getElementById('badge-2').textContent = '⚠ Erreur';
+      document.getElementById('badge-2').textContent = '⚡ Ignorée';
       document.getElementById('badge-2').className = 'step-card-badge';
-      document.getElementById('badge-2').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
+      document.getElementById('badge-2').style.cssText = 'background:rgba(251,191,36,0.12);color:#fbbf24;';
     }
     /* Étape 3 — Recadrage manuel sur base amélioration */
     setEtape(3); setEtapeEnCours(3);
