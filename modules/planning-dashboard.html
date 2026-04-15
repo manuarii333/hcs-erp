@@ -20,6 +20,8 @@
     --red: #ef4444;
     --blue: #3b82f6;
     --purple: #a855f7;
+    --teal: #14b8a6;
+    --teal-dim: rgba(20,184,166,0.15);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
@@ -66,7 +68,7 @@
   .main { display:grid; grid-template-columns:1fr 320px; gap:16px; padding:0 24px 24px; }
 
   /* KANBAN */
-  .kanban { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .kanban { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
   .kanban-col { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
   .col-header {
     padding:12px 14px; font-size:12px; font-weight:600; text-transform:uppercase;
@@ -113,6 +115,7 @@
   /* COL COLORS */
   .col-header.attendre { color:#a855f7; }
   .col-header.matiere { color:var(--yellow); }
+  .col-header.reservation { color:var(--teal); }
   .col-header.prod { color:var(--orange); }
   .col-header.qualite { color:var(--blue); }
   .col-header.pret { color:var(--green); }
@@ -198,11 +201,63 @@
   /* DROP ZONE */
   .col-body.dragover { background:var(--orange-dim); border-radius:8px; }
 
-  @media(max-width:1400px) { .kanban { grid-template-columns:repeat(3,1fr); } }
+  /* ─── RÉSERVATION ─── */
+  .cmd-btn-reserve { background:var(--teal-dim); color:var(--teal); }
+  .cmd-btn-reserve:hover { background:var(--teal); color:#fff; }
+  .cmd-btn-reserve-edit { background:rgba(168,85,247,.1); color:#a855f7; flex:0 0 auto; padding:4px 8px; }
+  .cmd-btn-reserve-edit:hover { background:#a855f7; color:#fff; }
+  .reserve-badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:999px; }
+  .reserve-badge.en_attente { background:rgba(234,179,8,.15); color:var(--yellow); }
+  .reserve-badge.confirme { background:rgba(34,197,94,.15); color:var(--green); }
+  .reserve-badge.non_disponible { background:rgba(239,68,68,.15); color:var(--red); }
+  .reserve-info { font-size:10px; color:var(--text-muted); margin-top:4px; padding:4px 6px; background:var(--bg); border-radius:6px; line-height:1.5; }
+
+  /* STOCK TYPE RADIO */
+  .stock-type-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:14px; }
+  .stock-type-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 8px; border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12px; text-align:center; transition:all 0.2s; background:var(--surface2); gap:4px; }
+  .stock-type-btn input { display:none; }
+  .stock-type-btn:has(input:checked) { border-color:var(--teal); background:rgba(20,184,166,.1); color:var(--teal); }
+  .stock-type-btn small { color:var(--text-muted); font-size:10px; }
+  .stock-type-btn:has(input:checked) small { color:rgba(20,184,166,.7); }
+
+  /* MODAL WIDE */
+  .modal-wide { width:620px; }
+
+  /* FOURNISSEURS */
+  .fourn-card { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:8px; }
+  .fourn-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .fourn-name { font-size:13px; font-weight:600; }
+  .fourn-type-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; }
+  .fourn-type-badge.local { background:rgba(34,197,94,.15); color:var(--green); }
+  .fourn-type-badge.etranger { background:rgba(59,130,246,.15); color:var(--blue); }
+  .fourn-contact { font-size:11px; color:var(--text-muted); margin-top:4px; display:flex; gap:14px; flex-wrap:wrap; }
+  .fourn-produits { font-size:11px; color:var(--text-muted); margin-top:3px; }
+  .fourn-actions { display:flex; gap:6px; }
+  .fourn-btn { font-size:10px; font-weight:600; padding:3px 8px; border-radius:6px; border:none; cursor:pointer; font-family:'Inter',sans-serif; }
+  .fourn-btn-edit { background:var(--orange-dim); color:var(--orange); }
+  .fourn-btn-del { background:rgba(239,68,68,.1); color:var(--red); }
+
+  /* ACHATS TABLE */
+  .achat-row { display:grid; grid-template-columns:75px 1fr 110px 65px 100px 80px; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; font-size:11px; border:1px solid var(--border); margin-bottom:6px; background:var(--surface2); }
+  .achat-header { display:grid; grid-template-columns:75px 1fr 110px 65px 100px 80px; gap:8px; padding:6px 10px; font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+  .achat-status { font-size:10px; font-weight:600; padding:2px 6px; border-radius:999px; white-space:nowrap; text-align:center; }
+  .achat-status.en_attente { background:rgba(234,179,8,.15); color:var(--yellow); }
+  .achat-status.commande { background:rgba(59,130,246,.15); color:var(--blue); }
+  .achat-status.recu { background:rgba(34,197,94,.15); color:var(--green); }
+  .achat-status.facture { background:rgba(168,85,247,.15); color:#a855f7; }
+  .achat-action { font-size:10px; background:none; border:none; cursor:pointer; color:var(--text-muted); font-family:'Inter',sans-serif; }
+  .achat-action:hover { color:var(--orange); }
+
+  /* FOURN INFO BLOCK */
+  .fourn-info-block { background:rgba(20,184,166,.08); border:1px solid rgba(20,184,166,.2); border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:12px; line-height:1.6; }
+
+  @media(max-width:1500px) { .kanban { grid-template-columns:repeat(3,1fr); } }
   @media(max-width:900px) {
     .main { grid-template-columns:1fr; }
     .kanban { grid-template-columns:1fr 1fr; }
     .stats-bar { grid-template-columns:repeat(3,1fr); }
+    .achat-row, .achat-header { grid-template-columns:65px 1fr 90px; }
+    .achat-row > *:nth-child(n+4), .achat-header > *:nth-child(n+4) { display:none; }
   }
 </style>
 </head>
@@ -217,6 +272,8 @@
   <div style="display:flex;gap:10px;align-items:center;">
     <span class="live-clock" id="clock"></span>
     <button class="btn btn-ghost" onclick="exportPlanning()">Export CSV</button>
+    <button class="btn btn-ghost" onclick="openFournisseursModal()" title="Gérer les fournisseurs">👥 Fournisseurs</button>
+    <button class="btn btn-ghost" onclick="openAchatsModal()" title="Liste des achats / comptabilité">🛒 Achats</button>
     <button class="btn btn-orange" onclick="openAddModal()">+ Nouvelle commande</button>
   </div>
 </div>
@@ -267,7 +324,16 @@
       <div class="col-body" id="col-matiere" data-col="matiere"
            ondragover="dragOver(event)" ondrop="drop(event)"></div>
     </div>
-    <!-- Col 3 -->
+    <!-- Col 3 — RÉSERVATION -->
+    <div class="kanban-col">
+      <div class="col-header reservation">
+        <span>📦 Réservation</span>
+        <span class="col-badge" id="cnt-reservation">0</span>
+      </div>
+      <div class="col-body" id="col-reservation" data-col="reservation"
+           ondragover="dragOver(event)" ondrop="drop(event)"></div>
+    </div>
+    <!-- Col 4 -->
     <div class="kanban-col">
       <div class="col-header prod">
         <span>En production</span>
@@ -276,7 +342,7 @@
       <div class="col-body" id="col-prod" data-col="prod"
            ondragover="dragOver(event)" ondrop="drop(event)"></div>
     </div>
-    <!-- Col 4 -->
+    <!-- Col 5 -->
     <div class="kanban-col">
       <div class="col-header qualite">
         <span>Contrôle qualité</span>
@@ -285,7 +351,7 @@
       <div class="col-body" id="col-qualite" data-col="qualite"
            ondragover="dragOver(event)" ondrop="drop(event)"></div>
     </div>
-    <!-- Col 5 -->
+    <!-- Col 6 -->
     <div class="kanban-col">
       <div class="col-header pret">
         <span>Prêt / Livré</span>
@@ -309,6 +375,15 @@
     <div class="side-card">
       <div class="side-title">🔔 Alertes</div>
       <div id="alerts-list"></div>
+    </div>
+
+    <!-- RÉSERVATIONS EN ATTENTE -->
+    <div class="side-card">
+      <div class="side-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>📦 Réservations</span>
+        <button class="btn btn-ghost" style="font-size:10px;padding:3px 8px;" onclick="openAchatsModal()">Voir achats →</button>
+      </div>
+      <div id="reservations-sidebar"></div>
     </div>
 
     <!-- STATS JOUR -->
@@ -401,6 +476,220 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════
+     MODAL RÉSERVATION STOCK
+════════════════════════════════════════ -->
+<div class="modal-bg" id="reservationModal">
+  <div class="modal modal-wide">
+    <div class="modal-title">📦 Réservation de stock / Matière</div>
+
+    <!-- Info commande (lecture seule) -->
+    <div id="r-cmd-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--text-muted);line-height:1.6;"></div>
+
+    <!-- Source du stock -->
+    <div class="form-row">
+      <label class="form-label">Source du stock *</label>
+      <div class="stock-type-grid">
+        <label class="stock-type-btn">
+          <input type="radio" name="r-type-radio" value="magasin" onchange="toggleReservationType()">
+          <span>🏪 Stock magasin</span>
+          <small>Disponible de suite</small>
+        </label>
+        <label class="stock-type-btn">
+          <input type="radio" name="r-type-radio" value="fournisseur_local" onchange="toggleReservationType()">
+          <span>🚚 Fournisseur local</span>
+          <small>Délai court (PF)</small>
+        </label>
+        <label class="stock-type-btn">
+          <input type="radio" name="r-type-radio" value="fournisseur_etranger" onchange="toggleReservationType()">
+          <span>✈️ Fournisseur étranger</span>
+          <small>Import / délai long</small>
+        </label>
+      </div>
+    </div>
+
+    <!-- Bloc fournisseur (masqué si magasin) -->
+    <div id="r-bloc-fournisseur" style="display:none;">
+      <div class="form-row-2">
+        <div>
+          <label class="form-label">Fournisseur</label>
+          <select class="form-select" id="r-fournisseur" onchange="onFournisseurChange()">
+            <option value="">-- Sélectionner un fournisseur --</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Mode de contact</label>
+          <select class="form-select" id="r-contact">
+            <option value="telephone">📞 Appel téléphonique</option>
+            <option value="email">📧 Envoi email</option>
+            <option value="les_deux">📞📧 Téléphone + Email</option>
+          </select>
+        </div>
+      </div>
+      <!-- Infos fournisseur -->
+      <div id="r-fournisseur-info" class="fourn-info-block" style="display:none;"></div>
+      <div style="text-align:right;margin-bottom:12px;">
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="closeReservationModal();openFournisseursModal();">+ Ajouter un fournisseur</button>
+      </div>
+    </div>
+
+    <!-- Produit & Quantité -->
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Produit / Matière à réserver *</label>
+        <input class="form-input" id="r-produit" placeholder="ex: 50 t-shirts blanc M/L/XL polyester">
+      </div>
+      <div>
+        <label class="form-label">Quantité</label>
+        <input class="form-input" id="r-qte" type="number" min="1" value="1">
+      </div>
+    </div>
+
+    <!-- Montant & Statut -->
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">Montant estimé (XPF)</label>
+        <input class="form-input" id="r-montant" type="number" placeholder="0" min="0">
+      </div>
+      <div>
+        <label class="form-label">Statut de la réservation</label>
+        <select class="form-select" id="r-status">
+          <option value="en_attente">⏳ En attente de confirmation</option>
+          <option value="confirme">✅ Confirmé — disponible</option>
+          <option value="non_disponible">❌ Non disponible</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-row">
+      <label class="form-label">Instructions / Notes de commande</label>
+      <textarea class="form-textarea" id="r-notes" placeholder="Ex: couleurs requises, tailles, délai souhaité, conditions spéciales..."></textarea>
+    </div>
+
+    <!-- Feedback fournisseur -->
+    <div class="form-row">
+      <label class="form-label">Feedback fournisseur (réponse, devis, confirmations reçus...)</label>
+      <textarea class="form-textarea" id="r-feedback" placeholder="Ex: M. Dupont a confirmé le 14/04, livraison prévue le 16/04 — Devis joint par email..."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeReservationModal()">Annuler</button>
+      <button class="btn btn-orange" onclick="saveReservation()">💾 Enregistrer la réservation</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL FOURNISSEURS
+════════════════════════════════════════ -->
+<div class="modal-bg" id="fournisseursModal">
+  <div class="modal modal-wide">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div class="modal-title" style="margin-bottom:0;">👥 Fournisseurs</div>
+      <button class="btn btn-orange" style="font-size:12px;padding:6px 14px;" onclick="openAddFournisseurForm()">+ Ajouter</button>
+    </div>
+
+    <!-- Formulaire ajout / édition -->
+    <div id="fourn-form" style="display:none;background:var(--surface2);border:1px solid var(--teal);border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--teal);" id="fourn-form-title">✏️ Nouveau fournisseur</div>
+      <input type="hidden" id="ff-id">
+      <div class="form-row-2">
+        <div>
+          <label class="form-label">Nom *</label>
+          <input class="form-input" id="ff-nom" placeholder="Nom du fournisseur">
+        </div>
+        <div>
+          <label class="form-label">Type</label>
+          <select class="form-select" id="ff-type">
+            <option value="local">🚚 Fournisseur local (PF)</option>
+            <option value="etranger">✈️ Fournisseur étranger</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div>
+          <label class="form-label">Téléphone</label>
+          <input class="form-input" id="ff-tel" placeholder="+689 40 00 00 00">
+        </div>
+        <div>
+          <label class="form-label">Email</label>
+          <input class="form-input" id="ff-email" placeholder="contact@fournisseur.com">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div>
+          <label class="form-label">Pays / Localisation</label>
+          <input class="form-input" id="ff-pays" placeholder="Polynésie française">
+        </div>
+        <div>
+          <label class="form-label">Produits / Spécialités</label>
+          <input class="form-input" id="ff-produits" placeholder="T-shirts, polos, transferts DTF...">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Notes (délais, MOQ, conditions...)</label>
+        <textarea class="form-textarea" id="ff-notes" style="min-height:50px;" placeholder="Ex: Livraison 24-48h, MOQ 10 pcs, paiement à 30j..."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-ghost" style="font-size:12px;" onclick="cancelFournisseurForm()">Annuler</button>
+        <button class="btn btn-orange" style="font-size:12px;" onclick="saveFournisseur()">Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- Liste des fournisseurs -->
+    <div id="fourn-list" style="max-height:400px;overflow-y:auto;"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeFournisseursModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL ACHATS — COMPTABILITÉ
+════════════════════════════════════════ -->
+<div class="modal-bg" id="achatsModal">
+  <div class="modal modal-wide">
+    <div class="modal-title">🛒 Liste d'achats — Comptabilité fournisseurs</div>
+
+    <!-- Filtres & Actions -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+      <select class="form-select" id="ach-filter" onchange="renderAchatsList()" style="max-width:200px;padding:7px 10px;">
+        <option value="">Tous les statuts</option>
+        <option value="en_attente">⏳ En attente</option>
+        <option value="commande">📋 Commandé</option>
+        <option value="recu">📦 Reçu</option>
+        <option value="facture">🧾 Facturé</option>
+      </select>
+      <button class="btn btn-ghost" style="font-size:12px;padding:7px 14px;" onclick="exportAchats()">Export CSV</button>
+    </div>
+
+    <!-- En-tête tableau -->
+    <div class="achat-header">
+      <div>Réf.</div>
+      <div>Client / Produit</div>
+      <div>Fournisseur</div>
+      <div>Qté</div>
+      <div>Statut</div>
+      <div>Montant</div>
+    </div>
+
+    <!-- Lignes -->
+    <div id="achats-list" style="max-height:360px;overflow-y:auto;"></div>
+
+    <!-- Total -->
+    <div id="achats-total" style="margin-top:10px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:var(--text-muted);">Total des achats affichés</span>
+      <span id="achats-total-val" style="font-weight:700;font-size:16px;">0 XPF</span>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAchatsModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DÉTAIL -->
 <div class="modal-bg" id="detailModal">
   <div class="modal">
@@ -425,19 +714,24 @@ const MACHINES = [
   { id: 'plotter-3', name: 'Plotter Vinyle 3', icon: '✂️' },
 ];
 
-const COLS = ['attente', 'matiere', 'prod', 'qualite', 'pret'];
+const COLS = ['attente', 'matiere', 'reservation', 'prod', 'qualite', 'pret'];
 const COL_LABELS = {
   attente: 'À planifier',
   matiere: 'Attente matière',
+  reservation: 'Réservation stock',
   prod: 'En production',
   qualite: 'Contrôle qualité',
   pret: 'Prêt / Livré'
 };
-const NEXT_COL = { attente:'matiere', matiere:'prod', prod:'qualite', qualite:'pret', pret:null };
+const NEXT_COL = { attente:'matiere', matiere:'reservation', reservation:'prod', prod:'qualite', qualite:'pret', pret:null };
 
 let commandes = JSON.parse(localStorage.getItem('hcs_planning') || '[]');
+let fournisseurs = JSON.parse(localStorage.getItem('hcs_fournisseurs') || '[]');
+let achats = JSON.parse(localStorage.getItem('hcs_achats') || '[]');
 let dragId = null;
 let currentDetailId = null;
+let currentReservationId = null;
+let editingFournisseurId = null;
 
 // ─── CLOCK ───
 function updateClock() {
@@ -455,6 +749,7 @@ window.addEventListener('load', () => {
   d.setMinutes(0);
   document.getElementById('f-deadline').value = d.toISOString().slice(0,16);
   loadDemoData();
+  loadDemoFournisseurs();
   render();
 });
 
@@ -507,9 +802,27 @@ function loadDemoData() {
   save();
 }
 
+// ─── DEMO FOURNISSEURS ───
+function loadDemoFournisseurs() {
+  if (fournisseurs.length > 0) return;
+  fournisseurs = [
+    { id:'f-1', nom:'Anémone Tahiti', type:'local', telephone:'+689 40 50 00 01', email:'contact@anemone.pf', produits:'T-shirts, polos, casquettes blank', pays:'Polynésie française', notes:'Fournisseur principal textile. Livraison 24-48h. Crédit 30j.' },
+    { id:'f-2', nom:'HT4You', type:'local', telephone:'+689 40 50 00 02', email:'info@ht4you.pf', produits:'Transferts DTF, films, encres', pays:'Polynésie française', notes:'Livraison J+1. MOQ 10 transferts. Paiement à la commande.' },
+    { id:'f-3', nom:'AliExpress Pro', type:'etranger', telephone:'', email:'supplier@alibaba.com', produits:'Textile en gros, casquettes, bags', pays:'Chine', notes:'Délai 15-30 jours. MOQ 100 pcs. Paiement anticipé.' },
+    { id:'f-4', nom:'Stanley/Stella Europe', type:'etranger', telephone:'+32 2 000 0000', email:'orders@stanleystella.com', produits:'T-shirts bio premium, polos éco', pays:'Belgique', notes:'Délai 7-10 jours. Livraison DHL. Facture EUR.' },
+  ];
+  saveFournisseurs();
+}
+
 // ─── SAVE ───
 function save() {
   localStorage.setItem('hcs_planning', JSON.stringify(commandes));
+}
+function saveFournisseurs() {
+  localStorage.setItem('hcs_fournisseurs', JSON.stringify(fournisseurs));
+}
+function saveAchats() {
+  localStorage.setItem('hcs_achats', JSON.stringify(achats));
 }
 
 // ─── RENDER ───
@@ -528,6 +841,7 @@ function render() {
   renderStats();
   renderMachines();
   renderAlerts();
+  renderReservationsSidebar();
   renderStatsToday();
 }
 
@@ -559,23 +873,72 @@ function typeTag(type) {
   return `<span class="tag ${map[type]||'tag-dtf'}">${labels[type]||type}</span>`;
 }
 
+function getReservationStatusBadge(status) {
+  const map = {
+    en_attente: '⏳ En attente confirmation',
+    confirme: '✅ Confirmé — disponible',
+    non_disponible: '❌ Non disponible',
+  };
+  return `<span class="reserve-badge ${status||'en_attente'}">${map[status] || '⏳ En attente'}</span>`;
+}
+
 function renderCard(c) {
   const urg = urgencyClass(c);
   const nextCol = NEXT_COL[c.col];
-  const nextLabel = nextCol ? COL_LABELS[nextCol] : null;
+
+  // ── Bloc informations réservation (colonne reservation) ──
+  let reserveInfo = '';
+  if (c.col === 'reservation' && c.reservation) {
+    const res = c.reservation;
+    const typeLabel = { magasin:'🏪 Stock magasin', fournisseur_local:'🚚 Fourn. local', fournisseur_etranger:'✈️ Fourn. étranger' }[res.type] || '';
+    const contactIcon = { telephone:'📞', email:'📧', les_deux:'📞📧' }[res.contactMethod] || '';
+    reserveInfo = `<div class="reserve-info">
+      ${typeLabel}${res.fournisseurNom ? ' · <strong>' + res.fournisseurNom + '</strong>' : ''} ${contactIcon}
+      ${res.feedback ? '<br><em style="color:var(--text-muted);">' + res.feedback.substring(0,60) + (res.feedback.length>60?'…':'') + '</em>' : ''}
+    </div>`;
+  }
+
+  // ── Boutons d'action selon la colonne ──
+  let actionsHtml = '';
+
+  if (c.col === 'matiere') {
+    // Bouton spécial : ouvrir le modal de réservation
+    actionsHtml = `
+      <button class="cmd-btn cmd-btn-reserve" onclick="openReservationModal('${c.id}')">📦 Réserver stock</button>
+      <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
+    `;
+  } else if (c.col === 'reservation') {
+    const res = c.reservation || {};
+    const canAdvance = res.status === 'confirme';
+    actionsHtml = `
+      <div style="width:100%;margin-bottom:6px;">${getReservationStatusBadge(res.status)}</div>
+      <button class="cmd-btn cmd-btn-reserve-edit" onclick="openReservationModal('${c.id}')">✏️</button>
+      <button class="cmd-btn cmd-btn-next" onclick="advanceCmd('${c.id}')"
+        ${!canAdvance ? 'disabled style="opacity:.4;cursor:not-allowed;"' : ''}
+        title="${canAdvance ? 'Passer en production' : 'Confirmez la disponibilité pour débloquer'}">
+        → Production
+      </button>
+      <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
+    `;
+  } else {
+    const nextLabel = nextCol ? COL_LABELS[nextCol] : null;
+    actionsHtml = `
+      ${nextLabel
+        ? `<button class="cmd-btn cmd-btn-next" onclick="advanceCmd('${c.id}')">→ ${nextLabel}</button>`
+        : '<button class="cmd-btn cmd-btn-next" style="opacity:.4" disabled>✅ Terminé</button>'}
+      <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
+    `;
+  }
+
   return `<div class="cmd-card ${urg}" draggable="true" id="card-${c.id}"
     ondragstart="dragStart('${c.id}')"
     ondragend="dragEnd()">
     <div class="cmd-ref">${c.ref || 'CMD'} ${c.priority==='urgent'?'🔴':c.priority==='express'?'⚡':''}${typeTag(c.type)}</div>
     <div class="cmd-client">${c.client}</div>
     <div class="cmd-detail">${c.desc.substring(0,80)}${c.desc.length>80?'…':''}<br>Qté: ${c.qty} · ${c.machine}</div>
-    <div class="cmd-footer">
-      ${formatDeadline(c.deadline)}
-    </div>
-    <div class="cmd-actions">
-      ${nextLabel ? `<button class="cmd-btn cmd-btn-next" onclick="advanceCmd('${c.id}')">→ ${nextLabel}</button>` : '<button class="cmd-btn cmd-btn-next" style="opacity:.4" disabled>✅ Terminé</button>'}
-      <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
-    </div>
+    ${reserveInfo}
+    <div class="cmd-footer">${formatDeadline(c.deadline)}</div>
+    <div class="cmd-actions">${actionsHtml}</div>
   </div>`;
 }
 
@@ -633,6 +996,34 @@ function renderAlerts() {
     <span class="alert-icon">${a.type==='urgent'?'🔴':a.type==='warning'?'🟡':'🟢'}</span>
     <span class="alert-text">${a.text}</span>
   </div>`).join('');
+}
+
+// ─── RÉSERVATIONS SIDEBAR ───
+function renderReservationsSidebar() {
+  const el = document.getElementById('reservations-sidebar');
+  const reserved = commandes.filter(c => c.col === 'reservation');
+  if (reserved.length === 0) {
+    el.innerHTML = '<div class="empty" style="padding:12px;">Aucune réservation en cours</div>';
+    return;
+  }
+  const statusColors = { en_attente:'var(--yellow)', confirme:'var(--green)', non_disponible:'var(--red)' };
+  const statusIcons = { en_attente:'⏳', confirme:'✅', non_disponible:'❌' };
+  el.innerHTML = reserved.map(c => {
+    const res = c.reservation || {};
+    const color = statusColors[res.status] || 'var(--yellow)';
+    const icon = statusIcons[res.status] || '⏳';
+    const typeShort = { magasin:'Stock', fournisseur_local:'Local', fournisseur_etranger:'Import' }[res.type] || '—';
+    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px;cursor:pointer;"
+              onclick="openReservationModal('${c.id}')">
+      <span style="color:${color};font-size:14px;flex-shrink:0;">${icon}</span>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${c.client}</div>
+        <div style="color:var(--text-muted);">${c.ref} · ${typeShort}${res.fournisseurNom?' · '+res.fournisseurNom:''}</div>
+      </div>
+      <button class="cmd-btn cmd-btn-reserve-edit" style="padding:2px 6px;font-size:10px;flex-shrink:0;"
+        onclick="event.stopPropagation();openReservationModal('${c.id}')">✏️</button>
+    </div>`;
+  }).join('');
 }
 
 // ─── STATS TODAY ───
@@ -740,6 +1131,341 @@ function saveCommande() {
 // ─── DETAIL MODAL ───
 function closeDetailModal() { document.getElementById('detailModal').classList.remove('open'); }
 
+// ════════════════════════════════════════
+//  MODAL RÉSERVATION
+// ════════════════════════════════════════
+function openReservationModal(cmdId) {
+  currentReservationId = cmdId;
+  const cmd = commandes.find(c => c.id === cmdId);
+  if (!cmd) return;
+
+  // Info commande en lecture seule
+  document.getElementById('r-cmd-info').innerHTML =
+    `<strong>${cmd.ref}</strong> — ${cmd.client} &nbsp;|&nbsp; ${cmd.desc.substring(0,80)}… &nbsp;|&nbsp; Qté: <strong>${cmd.qty}</strong>`;
+
+  // Pré-remplissage si réservation existante
+  const res = cmd.reservation || {};
+  const typeVal = res.type || 'magasin';
+  document.querySelectorAll('input[name="r-type-radio"]').forEach(r => {
+    r.checked = (r.value === typeVal);
+  });
+  document.getElementById('r-produit').value = res.produit || cmd.desc.substring(0, 120);
+  document.getElementById('r-qte').value = res.qte || cmd.qty;
+  document.getElementById('r-montant').value = res.montant || '';
+  document.getElementById('r-notes').value = res.notes || cmd.notes || '';
+  document.getElementById('r-feedback').value = res.feedback || '';
+  document.getElementById('r-status').value = res.status || 'en_attente';
+  document.getElementById('r-contact').value = res.contactMethod || 'telephone';
+
+  updateFournisseurSelect(res.fournisseurId || '');
+  toggleReservationType();
+  document.getElementById('reservationModal').classList.add('open');
+}
+
+function closeReservationModal() {
+  document.getElementById('reservationModal').classList.remove('open');
+}
+
+function toggleReservationType() {
+  const selected = document.querySelector('input[name="r-type-radio"]:checked');
+  const type = selected ? selected.value : 'magasin';
+  const bloc = document.getElementById('r-bloc-fournisseur');
+  if (type === 'magasin') {
+    bloc.style.display = 'none';
+    // Stock magasin = confirmé automatiquement
+    document.getElementById('r-status').value = 'confirme';
+  } else {
+    bloc.style.display = 'block';
+    // Filtrer fournisseurs par type
+    updateFournisseurSelect('');
+    const filterType = type === 'fournisseur_local' ? 'local' : 'etranger';
+    const opts = document.getElementById('r-fournisseur').options;
+    for (let i = 1; i < opts.length; i++) {
+      opts[i].style.display = opts[i].dataset.type === filterType ? '' : 'none';
+    }
+    onFournisseurChange();
+  }
+}
+
+function updateFournisseurSelect(selectedId) {
+  const sel = document.getElementById('r-fournisseur');
+  sel.innerHTML = '<option value="">-- Sélectionner un fournisseur --</option>';
+  fournisseurs.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.nom + ' (' + f.pays + ')';
+    opt.dataset.type = f.type;
+    if (f.id === selectedId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  onFournisseurChange();
+}
+
+function onFournisseurChange() {
+  const id = document.getElementById('r-fournisseur').value;
+  const info = document.getElementById('r-fournisseur-info');
+  const f = fournisseurs.find(x => x.id === id);
+  if (f) {
+    info.style.display = 'block';
+    info.innerHTML = `
+      <strong>${f.nom}</strong> — ${f.pays}<br>
+      ${f.telephone ? '📞 <a href="tel:' + f.telephone + '" style="color:var(--teal);">' + f.telephone + '</a>&emsp;' : ''}
+      ${f.email ? '📧 <a href="mailto:' + f.email + '" style="color:var(--teal);">' + f.email + '</a>' : ''}<br>
+      ${f.produits ? '<em style="color:var(--text-muted);">Produits : ' + f.produits + '</em>' : ''}
+      ${f.notes ? '<br><span style="color:var(--text-muted);">' + f.notes + '</span>' : ''}
+    `;
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+function saveReservation() {
+  const cmd = commandes.find(c => c.id === currentReservationId);
+  if (!cmd) return;
+
+  const selectedRadio = document.querySelector('input[name="r-type-radio"]:checked');
+  const type = selectedRadio ? selectedRadio.value : 'magasin';
+  const fournisseurId = document.getElementById('r-fournisseur').value;
+  const fournisseur = fournisseurs.find(f => f.id === fournisseurId);
+  const status = type === 'magasin' ? 'confirme' : document.getElementById('r-status').value;
+
+  cmd.reservation = {
+    type,
+    fournisseurId,
+    fournisseurNom: fournisseur ? fournisseur.nom : '',
+    contactMethod: document.getElementById('r-contact').value,
+    produit: document.getElementById('r-produit').value.trim(),
+    qte: parseInt(document.getElementById('r-qte').value) || cmd.qty,
+    montant: document.getElementById('r-montant').value.trim(),
+    notes: document.getElementById('r-notes').value.trim(),
+    feedback: document.getElementById('r-feedback').value.trim(),
+    status,
+    dateReservation: cmd.reservation?.dateReservation || new Date().toISOString(),
+    dateConfirmation: (status === 'confirme' && !cmd.reservation?.dateConfirmation)
+      ? new Date().toISOString()
+      : (cmd.reservation?.dateConfirmation || null),
+  };
+
+  // Déplacer vers la colonne réservation si on vient de matiere
+  if (cmd.col === 'matiere') cmd.col = 'reservation';
+
+  // Créer ou mettre à jour l'entrée dans la liste d'achats (si fournisseur externe)
+  if (type !== 'magasin') {
+    const existing = achats.find(a => a.cmdId === cmd.id);
+    if (!existing) {
+      achats.push({
+        id: 'ach-' + Date.now(),
+        cmdId: cmd.id,
+        cmdRef: cmd.ref,
+        cmdClient: cmd.client,
+        fournisseurId,
+        fournisseurNom: fournisseur ? fournisseur.nom : 'Inconnu',
+        produit: cmd.reservation.produit,
+        qte: cmd.reservation.qte,
+        montant: cmd.reservation.montant || '0',
+        status: status === 'confirme' ? 'commande' : 'en_attente',
+        dateCreation: new Date().toISOString(),
+        notes: cmd.reservation.notes,
+      });
+    } else {
+      existing.fournisseurId = fournisseurId;
+      existing.fournisseurNom = fournisseur ? fournisseur.nom : existing.fournisseurNom;
+      existing.montant = cmd.reservation.montant || existing.montant;
+      existing.status = status === 'confirme' ? 'commande' : (status === 'non_disponible' ? 'en_attente' : existing.status);
+      existing.notes = cmd.reservation.notes;
+      existing.produit = cmd.reservation.produit;
+      existing.qte = cmd.reservation.qte;
+    }
+    saveAchats();
+  }
+
+  save();
+  render();
+  closeReservationModal();
+}
+
+// ════════════════════════════════════════
+//  MODAL FOURNISSEURS
+// ════════════════════════════════════════
+function openFournisseursModal() {
+  renderFournisseursList();
+  document.getElementById('fourn-form').style.display = 'none';
+  document.getElementById('fournisseursModal').classList.add('open');
+}
+function closeFournisseursModal() {
+  document.getElementById('fournisseursModal').classList.remove('open');
+}
+
+function openAddFournisseurForm() {
+  editingFournisseurId = null;
+  document.getElementById('fourn-form-title').textContent = '✏️ Nouveau fournisseur';
+  ['ff-id','ff-nom','ff-tel','ff-email','ff-pays','ff-produits','ff-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('ff-type').value = 'local';
+  document.getElementById('fourn-form').style.display = 'block';
+  document.getElementById('fourn-form').scrollIntoView({ behavior:'smooth' });
+}
+
+function editFournisseur(id) {
+  const f = fournisseurs.find(x => x.id === id);
+  if (!f) return;
+  editingFournisseurId = id;
+  document.getElementById('fourn-form-title').textContent = '✏️ Modifier — ' + f.nom;
+  document.getElementById('ff-id').value = f.id;
+  document.getElementById('ff-nom').value = f.nom;
+  document.getElementById('ff-type').value = f.type;
+  document.getElementById('ff-tel').value = f.telephone || '';
+  document.getElementById('ff-email').value = f.email || '';
+  document.getElementById('ff-pays').value = f.pays || '';
+  document.getElementById('ff-produits').value = f.produits || '';
+  document.getElementById('ff-notes').value = f.notes || '';
+  document.getElementById('fourn-form').style.display = 'block';
+  document.getElementById('fourn-form').scrollIntoView({ behavior:'smooth' });
+}
+
+function cancelFournisseurForm() {
+  document.getElementById('fourn-form').style.display = 'none';
+  editingFournisseurId = null;
+}
+
+function saveFournisseur() {
+  const nom = document.getElementById('ff-nom').value.trim();
+  if (!nom) { alert('Le nom du fournisseur est obligatoire.'); return; }
+  const data = {
+    nom,
+    type: document.getElementById('ff-type').value,
+    telephone: document.getElementById('ff-tel').value.trim(),
+    email: document.getElementById('ff-email').value.trim(),
+    pays: document.getElementById('ff-pays').value.trim(),
+    produits: document.getElementById('ff-produits').value.trim(),
+    notes: document.getElementById('ff-notes').value.trim(),
+  };
+  if (editingFournisseurId) {
+    const idx = fournisseurs.findIndex(f => f.id === editingFournisseurId);
+    if (idx >= 0) fournisseurs[idx] = { id: editingFournisseurId, ...data };
+  } else {
+    fournisseurs.push({ id: 'f-' + Date.now(), ...data });
+  }
+  saveFournisseurs();
+  cancelFournisseurForm();
+  renderFournisseursList();
+}
+
+function deleteFournisseur(id) {
+  if (!confirm('Supprimer ce fournisseur ?')) return;
+  fournisseurs = fournisseurs.filter(f => f.id !== id);
+  saveFournisseurs();
+  renderFournisseursList();
+}
+
+function renderFournisseursList() {
+  const el = document.getElementById('fourn-list');
+  if (fournisseurs.length === 0) {
+    el.innerHTML = '<div class="empty">Aucun fournisseur enregistré. Cliquez sur "+ Ajouter".</div>';
+    return;
+  }
+  el.innerHTML = fournisseurs.map(f => {
+    const typeLabel = f.type === 'local' ? '🚚 Local' : '✈️ Étranger';
+    return `<div class="fourn-card">
+      <div class="fourn-header">
+        <div>
+          <span class="fourn-name">${f.nom}</span>
+          &nbsp;<span class="fourn-type-badge ${f.type}">${typeLabel}</span>
+        </div>
+        <div class="fourn-actions">
+          <button class="fourn-btn fourn-btn-edit" onclick="editFournisseur('${f.id}')">✏️ Modifier</button>
+          <button class="fourn-btn fourn-btn-del" onclick="deleteFournisseur('${f.id}')">✕</button>
+        </div>
+      </div>
+      <div class="fourn-contact">
+        ${f.telephone ? '<span>📞 <a href="tel:' + f.telephone + '" style="color:var(--teal);">' + f.telephone + '</a></span>' : ''}
+        ${f.email ? '<span>📧 <a href="mailto:' + f.email + '" style="color:var(--teal);">' + f.email + '</a></span>' : ''}
+        ${f.pays ? '<span>📍 ' + f.pays + '</span>' : ''}
+      </div>
+      ${f.produits ? '<div class="fourn-produits">Produits : ' + f.produits + '</div>' : ''}
+      ${f.notes ? '<div style="font-size:10px;color:var(--text-muted);margin-top:3px;font-style:italic;">' + f.notes + '</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+//  MODAL ACHATS — COMPTABILITÉ
+// ════════════════════════════════════════
+function openAchatsModal() {
+  renderAchatsList();
+  document.getElementById('achatsModal').classList.add('open');
+}
+function closeAchatsModal() {
+  document.getElementById('achatsModal').classList.remove('open');
+}
+
+function renderAchatsList() {
+  const el = document.getElementById('achats-list');
+  const filter = document.getElementById('ach-filter').value;
+  let list = achats;
+  if (filter) list = achats.filter(a => a.status === filter);
+
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty">Aucun achat enregistré' + (filter ? ' pour ce statut' : '') + '.</div>';
+    document.getElementById('achats-total-val').textContent = '0 XPF';
+    return;
+  }
+
+  const statusLabels = { en_attente:'⏳ En attente', commande:'📋 Commandé', recu:'📦 Reçu', facture:'🧾 Facturé' };
+  const total = list.reduce((s, a) => s + (parseFloat(a.montant)||0) * (parseInt(a.qte)||1), 0);
+
+  el.innerHTML = list.map(a => `
+    <div class="achat-row">
+      <div style="font-weight:700;color:var(--orange);font-size:10px;">${a.cmdRef || '—'}</div>
+      <div>
+        <div style="font-weight:600;">${a.cmdClient || '—'}</div>
+        <div style="color:var(--text-muted);font-size:10px;">${(a.produit||'').substring(0,40)}${(a.produit||'').length>40?'…':''}</div>
+      </div>
+      <div style="color:var(--text-muted);">${a.fournisseurNom || '—'}</div>
+      <div style="text-align:center;">${a.qte || '—'}</div>
+      <div>
+        <select onchange="updateAchatStatus('${a.id}', this.value)"
+          style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:10px;color:var(--text);cursor:pointer;width:100%;">
+          ${['en_attente','commande','recu','facture'].map(s =>
+            `<option value="${s}" ${a.status===s?'selected':''}>${statusLabels[s]}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div style="text-align:right;font-weight:600;">${a.montant ? Number(a.montant).toLocaleString('fr-FR') + ' XPF' : '—'}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('achats-total-val').textContent =
+    total.toLocaleString('fr-FR') + ' XPF';
+}
+
+function updateAchatStatus(id, newStatus) {
+  const a = achats.find(x => x.id === id);
+  if (a) { a.status = newStatus; saveAchats(); renderAchatsList(); }
+}
+
+function exportAchats() {
+  const filter = document.getElementById('ach-filter').value;
+  let list = filter ? achats.filter(a => a.status === filter) : achats;
+  const header = 'Réf commande,Client,Produit,Fournisseur,Qté,Montant XPF,Statut,Date création,Notes';
+  const rows = list.map(a =>
+    [a.cmdRef, a.cmdClient,
+     '"'+(a.produit||'').replace(/"/g,'""')+'"',
+     a.fournisseurNom, a.qte, a.montant||0, a.status,
+     new Date(a.dateCreation).toLocaleDateString('fr-FR'),
+     '"'+(a.notes||'').replace(/"/g,'""')+'"'
+    ].join(',')
+  );
+  const csv = [header,...rows].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a2 = document.createElement('a');
+  a2.href = url; a2.download = 'achats_hcs_' + new Date().toISOString().slice(0,10) + '.csv';
+  a2.click(); URL.revokeObjectURL(url);
+}
+
 // ─── EXPORT ───
 function exportPlanning() {
   const header = 'Ref,Client,Canal,Description,Type,Machine,Qté,Deadline,Priorité,Statut,Notes';
@@ -760,6 +1486,15 @@ document.getElementById('addModal').addEventListener('click', function(e) {
 });
 document.getElementById('detailModal').addEventListener('click', function(e) {
   if (e.target === this) closeDetailModal();
+});
+document.getElementById('reservationModal').addEventListener('click', function(e) {
+  if (e.target === this) closeReservationModal();
+});
+document.getElementById('fournisseursModal').addEventListener('click', function(e) {
+  if (e.target === this) closeFournisseursModal();
+});
+document.getElementById('achatsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAchatsModal();
 });
 
 // ─── AUTO REFRESH ALERTES ───

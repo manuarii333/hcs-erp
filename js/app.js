@@ -60,6 +60,7 @@ const APPS = [
     color: '#ff6b6b',
     pinned: true,
     views: [
+      { id: 'planning',     label: 'Planning',       icon: '📅', section: 'Atelier'    },
       { id: 'mo',           label: 'Ordres de fab.', icon: '🔧', section: 'Atelier'    },
       { id: 'bom',          label: 'Nomenclatures',  icon: '📐', section: 'Paramètres' },
       { id: 'work-centers', label: 'Postes',         icon: '🏭', section: 'Paramètres' }
@@ -163,7 +164,6 @@ const APPS = [
       { id: 'triage-dashboard',        label: 'Triage & Réception',    icon: '📋', section: 'Opérations'       },
       { id: 'commercial-dashboard',    label: 'Commercial & Devis',    icon: '🤝', section: 'Opérations'       },
       { id: 'boutique-assistant',      label: 'Boutique Assistant',    icon: '🏪', section: 'Opérations'       },
-      { id: 'planning-dashboard',      label: 'Planning Production',   icon: '📅', section: 'Production'       },
       { id: 'atelier-production',      label: 'Atelier Production',    icon: '⚙️', section: 'Production'       },
       { id: 'dtf-atelier-bn20-yannick',label: 'DTF Atelier BN20',     icon: '🖨',  section: 'Production'       },
       { id: 'dtf-atelier-usa',         label: 'DTF Atelier USA',      icon: '🖨',  section: 'Production'       },
@@ -448,8 +448,10 @@ function renderView() {
       }
       break;
     case 'production':
-      // Déléguer au module Production dédié (js/modules/manufacturing.js)
-      if (typeof Manufacturing !== 'undefined') {
+      // La vue Planning charge le dashboard standalone en iframe
+      if (view === 'planning') {
+        renderIframe('modules/planning-dashboard.html', container);
+      } else if (typeof Manufacturing !== 'undefined') {
         Manufacturing.init(document.getElementById('toolbar-actions'), container, view);
       }
       break;
