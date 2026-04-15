@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HCS Image Pipeline</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            hcs: { orange: '#FF6B00', orangeHover: '#e05e00', bg: '#0a0a0a', panel: '#111111', border: '#222222', text: '#e5e5e5', muted: '#888888' }
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background-color: #0a0a0a; color: #e5e5e5; font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #FF6B00; }
+    #drop-zone { border: 2px dashed #333; transition: border-color 0.2s, background-color 0.2s; }
+    #drop-zone.drag-over { border-color: #FF6B00; background-color: rgba(255,107,0,0.06); }
+    #drop-zone:hover { border-color: #FF6B00; cursor: pointer; }
+    .step-item { position: relative; display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .step-item:not(:last-child)::after { content: ''; position: absolute; top: 14px; left: calc(50% + 18px); right: calc(-50% + 18px); height: 2px; background-color: #222; z-index: 0; transition: background-color 0.4s; }
+    .step-item.done:not(:last-child)::after { background-color: #FF6B00; }
+    .step-circle { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #333; background-color: #111; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #888; z-index: 1; transition: all 0.3s; }
+    .step-item.active .step-circle { border-color: #FF6B00; color: #FF6B00; background-color: rgba(255,107,0,0.1); box-shadow: 0 0 10px rgba(255,107,0,0.3); }
+    .step-item.done .step-circle { border-color: #FF6B00; background-color: #FF6B00; color: #fff; }
+    .step-label { margin-top: 6px; font-size: 11px; color: #666; text-align: center; transition: color 0.3s; white-space: nowrap; }
+    .step-item.active .step-label, .step-item.done .step-label { color: #FF6B00; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,107,0,0.3); border-top-color: #FF6B00; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #step-log { font-family: 'Courier New', monospace; font-size: 12px; }
+    .log-entry { display: flex; gap: 10px; padding: 4px 0; border-bottom: 1px solid #1a1a1a; align-items: flex-start; }
+    .log-time { color: #555; flex-shrink: 0; width: 70px; }
+    .log-msg { color: #ccc; }
+    .log-msg.success { color: #4ade80; }
+    .log-msg.error { color: #f87171; }
+    .log-msg.info { color: #60a5fa; }
+    .log-msg.warn { color: #fbbf24; }
+    #compare-container { position: relative; overflow: hidden; cursor: ew-resize; user-select: none; }
+    #compare-overlay { position: absolute; top: 0; left: 0; bottom: 0; overflow: hidden; }
+    #compare-handle { position: absolute; top: 0; bottom: 0; width: 3px; background: #FF6B00; cursor: ew-resize; z-index: 10; }
+    #compare-handle::before { content: '◀▶'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #FF6B00; color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; white-space: nowrap; }
+    .btn-primary { background-color: #FF6B00; color: white; font-weight: 600; border: none; cursor: pointer; transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s; }
+    .btn-primary:hover:not(:disabled) { background-color: #e05e00; box-shadow: 0 0 16px rgba(255,107,0,0.4); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary { background-color: #1a1a1a; color: #ccc; font-weight: 500; border: 1px solid #333; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+    .btn-secondary:hover:not(:disabled) { background-color: #222; border-color: #FF6B00; color: #fff; }
+    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+    #toast { position: fixed; bottom: 24px; right: 24px; z-index: 1000; min-width: 280px; max-width: 420px; padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; display: none; box-shadow: 0 8px 30px rgba(0,0,0,0.5); animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    #toast.success { background: #14532d; border: 1px solid #16a34a; color: #86efac; }
+    #toast.error { background: #450a0a; border: 1px solid #b91c1c; color: #fca5a5; }
+    #toast.info { background: #0c1a2e; border: 1px solid #2563eb; color: #93c5fd; }
+    .img-preview { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px; background-image: linear-gradient(45deg,#1a1a1a 25%,transparent 25%),linear-gradient(-45deg,#1a1a1a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1a1a 75%),linear-gradient(-45deg,transparent 75%,#1a1a1a 75%); background-size: 16px 16px; background-position: 0 0,0 8px,8px -8px,-8px 0; background-color: #0f0f0f; }
+    .placeholder-box { min-height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; background-color: #111; border-radius: 8px; border: 1px solid #222; }
+    .hcs-input { background-color: #111; border: 1px solid #333; color: #e5e5e5; border-radius: 8px; padding: 10px 14px; font-size: 14px; width: 100%; outline: none; transition: border-color 0.2s, box-shadow 0.2s; font-family: 'Inter', sans-serif; }
+    .hcs-input:focus { border-color: #FF6B00; box-shadow: 0 0 0 3px rgba(255,107,0,0.15); }
+    .hcs-input::placeholder { color: #555; }
+    /* Step preview gallery */
+    .step-card { background: #0d0d0d; border: 1px solid #222; border-radius: 10px; overflow: hidden; transition: border-color 0.3s; }
+    .step-card.active { border-color: #FF6B00; box-shadow: 0 0 12px rgba(255,107,0,0.15); }
+    .step-card.done { border-color: #2a4a2a; }
+    .step-card-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #1a1a1a; }
+    .step-card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+    .step-card.active .step-card-label { color: #FF6B00; }
+    .step-card.done .step-card-label { color: #4ade80; }
+    .step-card-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .badge-wait { background: #1a1a1a; color: #444; }
+    .badge-loading { background: rgba(255,107,0,0.15); color: #FF6B00; display: flex; align-items: center; gap: 5px; }
+    .badge-done { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .step-card-img-wrap { position: relative; min-height: 130px; display: flex; align-items: center; justify-content: center; background-image: linear-gradient(45deg,#141414 25%,transparent 25%),linear-gradient(-45deg,#141414 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#141414 75%),linear-gradient(-45deg,transparent 75%,#141414 75%); background-size: 12px 12px; background-position: 0 0,0 6px,6px -6px,-6px 0; background-color: #0a0a0a; }
+    .step-card-img { max-width: 100%; max-height: 160px; object-fit: contain; display: block; }
+    .step-card-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px; }
+    .step-card-loading-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(10,10,10,0.7); }
+    .spinner-sm { display: inline-block; width: 24px; height: 24px; border: 2px solid rgba(255,107,0,0.3); border-top-color: #FF6B00; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    /* Bouton zoom sur carte */
+    .btn-zoom { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); border: 1px solid #333; color: #aaa; border-radius: 6px; padding: 3px 7px; font-size: 11px; cursor: pointer; z-index: 5; transition: background 0.2s, color 0.2s; }
+    .btn-zoom:hover { background: #FF6B00; color: #fff; border-color: #FF6B00; }
+    /* Modal plein écran */
+    #modal-zoom { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    #modal-zoom.open { display: flex; }
+    #modal-zoom-title { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.1em; }
+    #modal-zoom-container { position: relative; overflow: hidden; cursor: ew-resize; user-select: none; max-width: 90vw; max-height: 75vh; border-radius: 10px; }
+    #modal-zoom-after { display: block; max-width: 90vw; max-height: 75vh; object-fit: contain; }
+    #modal-zoom-overlay { position: absolute; top: 0; left: 0; bottom: 0; overflow: hidden; }
+    #modal-zoom-before { display: block; max-height: 75vh; object-fit: contain; max-width: none; }
+    #modal-zoom-handle { position: absolute; top: 0; bottom: 0; width: 3px; background: #FF6B00; cursor: ew-resize; z-index: 10; left: 50%; }
+    #modal-zoom-handle::before { content: '◀▶'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #FF6B00; color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; white-space: nowrap; }
+    #modal-zoom-labels { display: flex; justify-content: space-between; width: 100%; max-width: 90vw; font-size: 11px; color: #555; }
+    /* Recadrage manuel */
+    #crop-overlay { display: none; position: absolute; inset: 0; z-index: 6; cursor: crosshair; }
+    #crop-overlay.active { display: block; }
+    #crop-rect { position: absolute; border: 2px solid #FF6B00; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); pointer-events: none; background: transparent; }
+    #crop-handles span { position: absolute; width: 10px; height: 10px; background: #FF6B00; border-radius: 2px; }
+    .crop-actions { display: flex; gap: 8px; margin-top: 8px; }
+    /* Fond quadrillé vert sur la carte recadrage */
+    #wrap-3 {
+      background-image: linear-gradient(45deg,#0c2010 25%,transparent 25%),linear-gradient(-45deg,#0c2010 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#0c2010 75%),linear-gradient(-45deg,transparent 75%,#0c2010 75%);
+      background-size: 12px 12px;
+      background-position: 0 0,0 6px,6px -6px,-6px 0;
+      background-color: #061409;
+    }
+    /* Agrandissement carte recadrage */
+    #card-3.expanded { grid-column: span 2; }
+    #card-3.expanded .step-card-img-wrap { min-height: 420px; }
+    /* Plein écran recadrage */
+    #card-3.crop-fullscreen {
+      position: fixed; inset: 0; z-index: 2500; border-radius: 0; margin: 0;
+      display: flex; flex-direction: column; background: #050d07;
+      grid-column: unset !important;
+    }
+    #card-3.crop-fullscreen .step-card-img-wrap { flex:1; min-height:0; max-height:none; }
+    #card-3.crop-fullscreen .step-card-img { max-height:calc(100vh - 100px); max-width:100%; }
+    #card-3.crop-fullscreen #wrap-3 {
+      background-size: 18px 18px; background-position: 0 0,0 9px,9px -9px,-9px 0;
+    }
+    #btn-crop-fullscreen { transition: background 0.2s, color 0.2s; }
+    #btn-crop-fullscreen:hover { background:#FF6B00 !important; color:#fff !important; border-color:#FF6B00 !important; }
+    /* Onglets détourage */
+    .tab-btn { flex:1; padding:7px 0; font-size:12px; font-weight:600; border-radius:6px; cursor:pointer; transition:all 0.2s; border:1px solid transparent; background:transparent; color:#555; font-family:'Inter',sans-serif; }
+    .tab-btn.active-tab { background:rgba(255,107,0,0.12); border-color:rgba(255,107,0,0.4); color:#FF6B00; }
+    .tab-btn:hover:not(.active-tab) { color:#ccc; border-color:#333; }
+    /* Canvas sélection couleur */
+    #sel-canvas { display:block; width:100%; cursor:crosshair; background-image:linear-gradient(45deg,#141414 25%,transparent 25%),linear-gradient(-45deg,#141414 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#141414 75%),linear-gradient(-45deg,transparent 75%,#141414 75%); background-size:12px 12px; background-position:0 0,0 6px,6px -6px,-6px 0; background-color:#0a0a0a; }
+    #sel-zone { position:relative; margin-top:12px; border-radius:8px; overflow:hidden; border:2px dashed #333; min-height:72px; display:flex; align-items:center; justify-content:center; transition:border-color 0.2s; }
+    #sel-zone.has-image { border-style:solid; border-color:#FF6B00; }
+    #sel-canvas-overlay { position:absolute; inset:0; pointer-events:none; z-index:4; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<div id="toast"></div>
+
+<!-- HEADER -->
+<header style="background-color:#111111;border-bottom:1px solid #222222;">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+    <div class="flex items-center gap-3">
+      <span style="font-size:28px;">🖼️</span>
+      <div>
+        <h1 class="text-xl font-bold text-white leading-tight">HCS Image Pipeline</h1>
+        <p class="text-xs" style="color:#888;">Détourage remove.bg · Amélioration PicWish</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 text-xs" style="color:#555;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#FF6B00;display:inline-block;box-shadow:0 0 6px #FF6B00;"></span>
+      Pipeline actif
+    </div>
+  </div>
+</header>
+
+<!-- BARRE DE PROGRESSION -->
+<div style="background-color:#111111;border-bottom:1px solid #1a1a1a;">
+  <div class="max-w-7xl mx-auto px-6 py-5">
+    <div class="flex items-start" id="steps-bar">
+      <div class="step-item active" id="step-0"><div class="step-circle">0</div><span class="step-label">Upload</span></div>
+      <div class="step-item" id="step-1"><div class="step-circle">1</div><span class="step-label">Détourage</span></div>
+      <div class="step-item" id="step-2"><div class="step-circle">2</div><span class="step-label">Amélioration</span></div>
+      <div class="step-item" id="step-3"><div class="step-circle">3</div><span class="step-label">Recadrage</span></div>
+      <div class="step-item" id="step-4"><div class="step-circle">✓</div><span class="step-label">Prêt</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENU PRINCIPAL -->
+<main class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+    <!-- COLONNE GAUCHE -->
+    <div class="flex flex-col gap-6">
+
+      <!-- Zone upload -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:24px;">
+        <h2 class="text-sm font-semibold uppercase tracking-widest mb-4" style="color:#888;">1. Image source</h2>
+        <div id="drop-zone" style="border-radius:10px;padding:40px 20px;text-align:center;background-color:#0d0d0d;" onclick="document.getElementById('file-input').click()">
+          <svg id="upload-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px auto;display:block;">
+            <polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+          </svg>
+          <p class="text-base font-medium text-white mb-1">Glissez votre image ici ou cliquez pour parcourir</p>
+          <p class="text-xs" style="color:#555;">PNG, JPG, JPEG, WEBP · Taille max : 10 MB</p>
+          <img id="source-preview-inline" class="img-preview mt-4 mx-auto hidden" style="max-height:180px;" alt="Aperçu" />
+          <p id="file-name-label" class="mt-3 text-xs hidden" style="color:#FF6B00;"></p>
+        </div>
+        <input type="file" id="file-input" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" style="display:none;" />
+        <button id="btn-reset" class="btn-secondary mt-3 px-4 py-2 rounded-lg text-xs hidden w-full" onclick="resetAll()">Réinitialiser</button>
+      </div>
+
+      <!-- Nom client -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:24px;">
+        <h2 class="text-sm font-semibold uppercase tracking-widest mb-4" style="color:#888;">2. Nom du client</h2>
+        <input type="text" id="client-name" class="hcs-input" placeholder="Ex : Mairie de Papeete" autocomplete="off" />
+        <p class="text-xs mt-2" style="color:#555;">Utilisé pour nommer le fichier et le chemin Dropbox.</p>
+      </div>
+
+      <!-- Section 3 : Détourage -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:20px;">
+        <h2 class="text-sm font-semibold uppercase tracking-widest mb-3" style="color:#888;">3. Détourage local</h2>
+        <!-- Onglets -->
+        <div style="display:flex;gap:4px;background:#0d0d0d;padding:4px;border-radius:8px;margin-bottom:14px;">
+          <button id="tab-fond-uni" class="tab-btn active-tab" onclick="switchDetourageTab('fond-uni')">Fond uni</button>
+          <button id="tab-selection" class="tab-btn" onclick="switchDetourageTab('selection')">Sélection couleur</button>
+        </div>
+
+        <!-- Panneau : fond uni -->
+        <div id="panel-fond-uni">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#aaa;">Tolérance couleur</span>
+            <span id="tol-value" style="font-size:13px;font-weight:700;color:#FF6B00;">30</span>
+          </div>
+          <input type="range" id="tol-slider" min="5" max="120" value="30" step="1"
+            style="width:100%;accent-color:#FF6B00;cursor:pointer;"
+            oninput="document.getElementById('tol-value').textContent=this.value" />
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:10px;color:#444;">Précis (5)</span>
+            <span style="font-size:10px;color:#444;">Large (120)</span>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;padding:8px 10px;background:#0d0d0d;border-radius:6px;border:1px solid #1e1e1e;cursor:pointer;">
+            <input type="checkbox" id="chk-iles" style="width:14px;height:14px;accent-color:#FF6B00;cursor:pointer;flex-shrink:0;" />
+            <span style="font-size:11px;color:#aaa;">Supprimer aussi les zones intérieures (îles)</span>
+          </label>
+          <p class="text-xs mt-2" style="color:#555;">BFS depuis les bords — supprime le fond uni. Cochez "îles" pour effacer aussi les zones intérieures de même couleur (ex : intérieur de lettres, trous).</p>
+        </div>
+
+        <!-- Panneau : sélection couleur -->
+        <div id="panel-selection" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:12px;color:#aaa;">Tolérance</span>
+            <span id="sel-tol-value" style="font-size:13px;font-weight:700;color:#FF6B00;">20</span>
+          </div>
+          <input type="range" id="sel-tol-slider" min="1" max="120" value="20" step="1"
+            style="width:100%;accent-color:#FF6B00;cursor:pointer;"
+            oninput="document.getElementById('sel-tol-value').textContent=this.value" />
+          <!-- Zone canvas interactive -->
+          <div id="sel-zone">
+            <span id="sel-hint" style="font-size:11px;color:#444;text-align:center;padding:16px;">Chargez une image — cliquez sur le fond à supprimer.</span>
+            <canvas id="sel-canvas"></canvas>
+          </div>
+          <!-- Actions -->
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button id="btn-sel-undo" class="btn-secondary px-3 py-1.5 rounded-lg text-xs" onclick="annulerSelection()" disabled>↩ Annuler</button>
+            <button id="btn-sel-reset" class="btn-secondary px-3 py-1.5 rounded-lg text-xs" onclick="reinitialiserSelection()" disabled>⟲ Réinitialiser</button>
+          </div>
+          <!-- Palette couleurs supprimées -->
+          <div id="sel-palette" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;min-height:16px;"></div>
+          <p class="text-xs mt-2" style="color:#555;">Cliquez sur n'importe quelle zone colorée pour la supprimer (BFS depuis le point cliqué). Plusieurs clics cumulatifs possibles.</p>
+        </div>
+      </div>
+
+      <!-- Bouton traiter -->
+      <button id="btn-process" class="btn-primary w-full py-4 rounded-xl text-lg" onclick="lancerPipeline()" disabled>
+        <span id="btn-process-label">Traiter l'image</span>
+        <span id="btn-process-spinner" class="spinner ml-2 hidden" style="vertical-align:middle;"></span>
+      </button>
+
+      <!-- Recadrage direct -->
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="flex:1;height:1px;background:#222;"></div>
+        <span style="font-size:11px;color:#444;">ou</span>
+        <div style="flex:1;height:1px;background:#222;"></div>
+      </div>
+      <button class="btn-secondary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2" onclick="document.getElementById('file-crop-direct').click()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        Recadrer une image directement
+      </button>
+      <input type="file" id="file-crop-direct" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" style="display:none;" onchange="importerRecadrageDirect(event)" />
+
+      <!-- Journal -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:20px;">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold uppercase tracking-widest" style="color:#888;">Journal d'exécution</h2>
+          <button class="text-xs px-2 py-1 rounded" style="color:#555;border:1px solid #2a2a2a;background:transparent;cursor:pointer;" onclick="viderLog()">Vider</button>
+        </div>
+        <div id="step-log" class="overflow-y-auto" style="max-height:220px;min-height:80px;">
+          <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-msg info">Pipeline HCS prêt. Sélectionnez une image.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLONNE DROITE -->
+    <div class="flex flex-col gap-6">
+
+      <!-- Prévisualisation étapes -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:24px;">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold uppercase tracking-widest" style="color:#888;">Prévisualisation</h2>
+          <button id="btn-compare" class="btn-secondary px-4 py-1.5 rounded-lg text-xs" onclick="toggleCompare()" disabled>Comparer</button>
+        </div>
+
+        <!-- Grille 4 étapes -->
+        <div id="preview-steps-grid" class="grid grid-cols-2 gap-3">
+
+          <!-- Carte 0 : Original -->
+          <div class="step-card" id="card-0">
+            <div class="step-card-header">
+              <span class="step-card-label">Original</span>
+              <span class="step-card-badge badge-wait" id="badge-0">—</span>
+            </div>
+            <div class="step-card-img-wrap" id="wrap-0">
+              <div class="step-card-placeholder" id="placeholder-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span style="font-size:11px;color:#333;">Aucune image</span>
+              </div>
+              <img id="img-0" class="step-card-img hidden" alt="Original" />
+            </div>
+          </div>
+
+          <!-- Carte 1 : Détourage -->
+          <div class="step-card" id="card-1">
+            <div class="step-card-header">
+              <span class="step-card-label">Détourage</span>
+              <span class="step-card-badge badge-wait" id="badge-1">En attente</span>
+            </div>
+            <div class="step-card-img-wrap" id="wrap-1">
+              <div class="step-card-placeholder" id="placeholder-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+                <span style="font-size:11px;color:#333;">Fond supprimé</span>
+              </div>
+              <img id="img-1" class="step-card-img hidden" alt="Détourage" />
+              <div class="step-card-loading-overlay hidden" id="loading-1">
+                <div class="spinner-sm"></div>
+                <span style="font-size:11px;color:#FF6B00;">Détourage...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Carte 2 : Amélioration -->
+          <div class="step-card" id="card-2">
+            <div class="step-card-header">
+              <span class="step-card-label">Amélioration IA</span>
+              <span class="step-card-badge badge-wait" id="badge-2">En attente</span>
+            </div>
+            <div class="step-card-img-wrap" id="wrap-2">
+              <div class="step-card-placeholder" id="placeholder-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span style="font-size:11px;color:#333;">Qualité boostée</span>
+              </div>
+              <img id="img-2" class="step-card-img hidden" alt="Amélioration" />
+              <div class="step-card-loading-overlay hidden" id="loading-2">
+                <div class="spinner-sm"></div>
+                <span style="font-size:11px;color:#FF6B00;">Amélioration...</span>
+              </div>
+              <button class="btn-zoom hidden" id="btn-zoom-2" onclick="ouvrirZoom()" title="Comparer Détourage vs Amélioration">⤢ Zoom</button>
+            </div>
+          </div>
+
+          <!-- Carte 3 : Recadrage final -->
+          <div class="step-card" id="card-3">
+            <div class="step-card-header">
+              <span class="step-card-label">Recadrage final</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <button id="btn-crop-fullscreen" onclick="toggleCropFullscreen()"
+                  style="background:rgba(0,0,0,0.5);border:1px solid #333;color:#888;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;display:none;"
+                  title="Plein écran pour recadrer avec précision">⤢ Plein écran</button>
+                <span class="step-card-badge badge-wait" id="badge-3">En attente</span>
+              </div>
+            </div>
+            <div class="step-card-img-wrap" id="wrap-3" style="cursor:default;">
+              <div class="step-card-placeholder" id="placeholder-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                <span style="font-size:11px;color:#333;">Bords ajustés</span>
+              </div>
+              <img id="img-3" class="step-card-img hidden" alt="Recadrage" />
+              <div class="step-card-loading-overlay hidden" id="loading-3">
+                <div class="spinner-sm"></div>
+                <span style="font-size:11px;color:#FF6B00;">Recadrage...</span>
+              </div>
+              <!-- Overlay recadrage manuel -->
+              <div id="crop-overlay">
+                <div id="crop-rect" style="left:5%;top:5%;width:90%;height:90%;"></div>
+              </div>
+            </div>
+            <!-- Actions recadrage -->
+            <div id="crop-actions" class="hidden" style="padding:8px 10px;border-top:1px solid #1a1a1a;">
+              <!-- Mode : en cours d'ajustement -->
+              <div id="crop-mode-adjust" style="display:flex;gap:6px;align-items:center;justify-content:space-between;">
+                <span style="font-size:10px;color:#666;">Glissez le cadre pour ajuster</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-secondary px-3 py-1 rounded text-xs" onclick="resetCrop()">↺ Auto</button>
+                  <button class="btn-primary px-3 py-1 rounded text-xs" onclick="appliquerCropManuel()">✓ Appliquer</button>
+                </div>
+              </div>
+              <!-- Mode : recadrage appliqué -->
+              <div id="crop-mode-applied" style="display:none;gap:6px;align-items:center;justify-content:space-between;">
+                <span style="font-size:10px;color:#4ade80;">✓ Recadrage appliqué</span>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-secondary px-3 py-1 rounded text-xs" onclick="annulerCrop()" id="btn-undo-crop">↩ Annuler</button>
+                  <button class="btn-secondary px-3 py-1 rounded text-xs" onclick="reajusterCrop()">✎ Ré-ajuster</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Comparateur slider (original vs final) -->
+        <div id="preview-compare" class="hidden mt-4" style="border-radius:10px;overflow:hidden;">
+          <p class="text-xs font-medium mb-2" style="color:#555;">Glissez pour comparer</p>
+          <div id="compare-container" style="border-radius:10px;background:#0f0f0f;min-height:160px;">
+            <img id="cmp-after" class="img-preview w-full" style="display:block;" alt="Traitée" />
+            <div id="compare-overlay" style="width:50%;"><img id="cmp-before" class="img-preview" style="display:block;width:100%;max-height:none;" alt="Originale" /></div>
+            <div id="compare-handle" style="left:50%;"></div>
+          </div>
+          <div class="flex justify-between text-xs mt-1" style="color:#555;"><span>← Original</span><span>Traité →</span></div>
+        </div>
+      </div>
+
+      <!-- Métadonnées -->
+      <div id="meta-panel" class="hidden" style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:20px;">
+        <h2 class="text-sm font-semibold uppercase tracking-widest mb-3" style="color:#888;">Informations</h2>
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px;">
+            <p class="text-xs" style="color:#555;">Dimensions</p><p id="meta-dimensions" class="text-sm font-semibold text-white mt-1">—</p>
+          </div>
+          <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px;">
+            <p class="text-xs" style="color:#555;">Taille</p><p id="meta-size" class="text-sm font-semibold text-white mt-1">—</p>
+          </div>
+          <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px;">
+            <p class="text-xs" style="color:#555;">Format</p><p id="meta-format" class="text-sm font-semibold text-white mt-1">PNG</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="background-color:#111111;border:1px solid #222222;border-radius:12px;padding:24px;">
+        <h2 class="text-sm font-semibold uppercase tracking-widest mb-4" style="color:#888;">Actions</h2>
+        <div class="flex flex-col gap-3">
+          <div style="display:flex;gap:8px;">
+            <button id="btn-download" class="btn-primary py-3 rounded-xl text-sm flex items-center justify-center gap-2" style="flex:1;position:relative;" onclick="telechargerImage()" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export PNG Transparent
+              <span style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:9px;font-weight:800;letter-spacing:1px;padding:2px 6px;border-radius:4px;line-height:1;font-family:'Courier New',monospace;">300 DPI</span>
+            </button>
+            <button id="btn-preview-full" class="btn-secondary py-3 rounded-xl text-sm flex items-center justify-center" style="width:48px;flex-shrink:0;" onclick="afficherPleinEcran()" disabled title="Afficher plein écran">⤢</button>
+          </div>
+          <button id="btn-dropbox" class="btn-secondary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2" onclick="archiverDropbox()" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Archiver dans Dropbox
+            <span id="btn-dropbox-spinner" class="spinner hidden" style="width:14px;height:14px;"></span>
+          </button>
+          <button id="btn-mockup" class="btn-secondary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2" onclick="envoyerMockupForge()" disabled style="border-color:rgba(167,139,250,.4);color:#a78bfa;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            Envoyer vers MockupForge
+          </button>
+          <button id="btn-gmail" class="btn-secondary w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2" onclick="envoyerGmail()" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Envoyer par Gmail
+          </button>
+          <div style="background:#0c1a0c;border:1px solid #1a3a1a;border-radius:8px;padding:12px;">
+            <p class="text-xs" style="color:#4ade80;line-height:1.6;"><strong>Note Gmail :</strong> Le bouton ouvre votre client mail natif via <code>mailto:</code>. Pour une intégration Gmail API complète, configurez <code>CONFIG.GMAIL_CLIENT_ID</code>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL ZOOM : Détourage vs Amélioration -->
+<div id="modal-zoom" onclick="fermerZoom(event)">
+  <p id="modal-zoom-title">Détourage → Amélioration — glissez pour comparer</p>
+  <div id="modal-zoom-container">
+    <img id="modal-zoom-after" alt="Amélioration" />
+    <div id="modal-zoom-overlay" style="width:50%;">
+      <img id="modal-zoom-before" alt="Détourage" />
+    </div>
+    <div id="modal-zoom-handle"></div>
+  </div>
+  <div id="modal-zoom-labels"><span>← Détourage</span><span>Amélioration →</span></div>
+  <button onclick="fermerZoom()" style="margin-top:8px;background:#222;border:1px solid #444;color:#aaa;padding:6px 20px;border-radius:8px;cursor:pointer;font-size:12px;">✕ Fermer</button>
+</div>
+
+<!-- MODAL PLEIN ÉCRAN IMAGE FINALE -->
+<div id="modal-fullscreen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:3000;flex-direction:column;align-items:center;justify-content:center;gap:16px;" onclick="fermerPleinEcran(event)">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="modal-fs-label" style="font-size:12px;font-weight:600;color:#666;text-transform:uppercase;letter-spacing:0.1em;"></span>
+    <button onclick="telechargerImage()" style="background:#FF6B00;border:none;color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">↓ PNG 300 DPI</button>
+    <button onclick="fermerPleinEcran()" style="background:#1a1a1a;border:1px solid #333;color:#aaa;padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;">✕ Fermer</button>
+  </div>
+  <img id="modal-fs-img" style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:10px;background-image:linear-gradient(45deg,#1a1a1a 25%,transparent 25%),linear-gradient(-45deg,#1a1a1a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1a1a 75%),linear-gradient(-45deg,transparent 75%,#1a1a1a 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;background-color:#111;" alt="Résultat" />
+  <span style="font-size:11px;color:#444;">Cliquez en dehors pour fermer</span>
+</div>
+
+<footer style="background-color:#111111;border-top:1px solid #1a1a1a;padding:16px 24px;margin-top:auto;">
+  <p class="text-center text-xs" style="color:#444;">High Coffee Shirt · Papeete, Polynésie Française · PicWish Pipeline v1.0</p>
+</footer>
+
+<script>
+/* ============================================================
+   CONFIGURATION — À RENSEIGNER AVANT UTILISATION
+   ============================================================ */
+const CONFIG = {
+  // ── Cloudflare Worker (remplace n8n) ───────────────────────
+  // Déployer : cd cloudflare-deploy && wrangler deploy
+  // Puis : wrangler secret put PICWISH_API_KEY  (valeur : wxfbdaky07sn6fl2s)
+  //        wrangler secret put DROPBOX_ACCESS_TOKEN
+  //        wrangler secret put WORKER_SECRET  → coller la valeur ci-dessous
+  WORKER_URL:           'https://hcs-proxy.highcoffeeshirt.workers.dev',
+  WORKER_SECRET:        'hcs-proxy-2026',
+
+  // ── Gmail ──────────────────────────────────────────────────
+  GMAIL_CLIENT_ID:      '999133125687-0lljll4i15fe7e3bif45smrd8e1hdff0.apps.googleusercontent.com'
+};
+
+/* Mois en français pour le chemin Dropbox */
+const MOIS_FR = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+
+/* État global */
+const state      = { fichierSource: null, base64Source: null, base64Traitee: null, nomClient: '', enTraitement: false, resultUrlStep2: null };
+const selState   = { historique: [], base: null };
+const cropHistory = []; // pile d'états { src, dim, size } pour annuler le recadrage
+
+/* Initialisation */
+document.addEventListener('DOMContentLoaded', () => {
+  const dernierClient = localStorage.getItem('hcs_dernier_client');
+  if (dernierClient) document.getElementById('client-name').value = dernierClient;
+  initDropZone();
+  document.getElementById('file-input').addEventListener('change', (e) => { if (e.target.files?.[0]) gererFichier(e.target.files[0]); });
+  document.getElementById('client-name').addEventListener('input', verifierPret);
+  ajouterLog('Pipeline HCS initialisé.', 'info');
+});
+
+/* Zone drag & drop */
+function initDropZone() {
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragenter', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragover',  (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', (e) => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+  zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files?.[0]) gererFichier(e.dataTransfer.files[0]); });
+}
+
+/* Traitement du fichier sélectionné */
+function gererFichier(fichier) {
+  if (!['image/png','image/jpeg','image/webp'].includes(fichier.type)) { afficherToast('Format non supporté. Utilisez PNG, JPG ou WEBP.', 'error'); return; }
+  if (fichier.size > 10*1024*1024) { afficherToast(`Fichier trop volumineux : ${(fichier.size/1024/1024).toFixed(1)} MB (max 10 MB).`, 'error'); return; }
+  state.fichierSource = fichier;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    state.base64Source = evt.target.result;
+    const pi = document.getElementById('source-preview-inline');
+    pi.src = state.base64Source; pi.classList.remove('hidden');
+    document.getElementById('upload-icon').style.display = 'none';
+    const lbl = document.getElementById('file-name-label');
+    lbl.textContent = `${fichier.name} — ${(fichier.size/1024).toFixed(0)} Ko`; lbl.classList.remove('hidden');
+    // Carte 0 — original
+    afficherPreviewEtape(0, state.base64Source);
+    document.getElementById('badge-0').className = 'step-card-badge badge-done';
+    document.getElementById('badge-0').textContent = '✓';
+    document.getElementById('btn-reset').classList.remove('hidden');
+    // Init état sélection couleur
+    selState.historique = [evt.target.result];
+    selState.base = evt.target.result;
+    if (document.getElementById('panel-selection').style.display !== 'none') {
+      initCanvasSelection(evt.target.result);
+    }
+    verifierPret(); setEtape(0);
+    ajouterLog(`Image sélectionnée : ${fichier.name} (${(fichier.size/1024).toFixed(0)} Ko)`, 'success');
+  };
+  reader.readAsDataURL(fichier);
+}
+
+function verifierPret() { document.getElementById('btn-process').disabled = !(state.base64Source && !state.enTraitement); }
+
+/* Barre de progression */
+function setEtape(n) {
+  for (let i = 0; i <= 4; i++) {
+    const el = document.getElementById(`step-${i}`);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done'); else if (i === n) el.classList.add('active');
+  }
+}
+
+/* Journal */
+function ajouterLog(msg, type='info') {
+  const log = document.getElementById('step-log');
+  const heure = new Date().toTimeString().slice(0,8);
+  const div = document.createElement('div'); div.className = 'log-entry';
+  div.innerHTML = `<span class="log-time">${heure}</span><span class="log-msg ${type}">${escapeHtml(msg)}</span>`;
+  log.appendChild(div); log.scrollTop = log.scrollHeight;
+}
+function viderLog() { document.getElementById('step-log').innerHTML = ''; ajouterLog('Journal vidé.','info'); }
+function escapeHtml(s) { const d=document.createElement('div'); d.appendChild(document.createTextNode(s)); return d.innerHTML; }
+
+/* Toast */
+function afficherToast(msg, type='info', duree=4000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type; t.style.display = 'block';
+  clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.display='none'; }, duree);
+}
+
+/* Utilitaires */
+function extraireBase64Pur(dataUrl) { return dataUrl.split(',')[1]; }
+function blobVersBase64(blob) { return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(blob); }); }
+
+/* ============================================================
+   DÉTOURAGE LOCAL — BFS depuis les bords (fond uni → transparent)
+   ============================================================ */
+
+/* Distance euclidienne RGB */
+function _colorDist(a, b) {
+  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+}
+
+/* Analyse tous les pixels de bord pour détecter la couleur dominante du fond */
+function detecterCouleurFond(pixels, W, H) {
+  const comptage = {};
+  const analyserPixel = (x, y) => {
+    const i = (y * W + x) * 4;
+    if (pixels[i+3] < 10) return;
+    // Arrondir à 8 près pour regrouper les couleurs proches
+    const r = Math.round(pixels[i]   / 8) * 8;
+    const g = Math.round(pixels[i+1] / 8) * 8;
+    const b = Math.round(pixels[i+2] / 8) * 8;
+    const k = `${r},${g},${b}`;
+    comptage[k] = (comptage[k] || 0) + 1;
+  };
+  const STEP = 2;
+  for (let x = 0; x < W; x += STEP) { analyserPixel(x, 0); analyserPixel(x, H-1); }
+  for (let y = 0; y < H; y += STEP) { analyserPixel(0, y); analyserPixel(W-1, y); }
+  let best = null, bestN = 0;
+  for (const [k, n] of Object.entries(comptage)) { if (n > bestN) { bestN = n; best = k; } }
+  return best ? best.split(',').map(Number) : [pixels[0], pixels[1], pixels[2]];
+}
+
+/* Vérifie si un pixel appartient au fond */
+function _estFond(pixels, W, x, y, bgColor, tol) {
+  const i = (y * W + x) * 4;
+  if (pixels[i+3] === 0) return true;
+  return _colorDist([pixels[i], pixels[i+1], pixels[i+2]], bgColor) <= tol;
+}
+
+/* Supprime les îles intérieures (zones de même couleur que le fond, non connectées aux bords) */
+function supprimerIlesInterieures(pixels, W, H, bgColor, tolerance) {
+  const n = W * H;
+  // On cherche tous les pixels non-transparents correspondant au fond → îles
+  for (let i = 0; i < n; i++) {
+    const idx = i * 4;
+    if (pixels[idx+3] > 0 && _colorDist([pixels[idx], pixels[idx+1], pixels[idx+2]], bgColor) <= tolerance) {
+      pixels[idx+3] = 0;
+    }
+  }
+}
+
+/**
+ * Détourage fond uni :
+ * 1) Détecte la couleur dominante sur les 4 bords
+ * 2) BFS depuis tous les pixels de bord correspondants → transparent
+ * 3) (optionnel) Supprime aussi les îles intérieures de même couleur
+ */
+function detourer_local_canvas(imageDataUrl, tolerance = 30, inclureIles = false) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const W = img.naturalWidth, H = img.naturalHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, W, H);
+        const pixels = imgData.data;
+
+        // Étape 1 : détecter la couleur du fond depuis les bords
+        const bgColor = detecterCouleurFond(pixels, W, H);
+
+        // Étape 2 : BFS depuis les 4 bords
+        const visited = new Uint8Array(W * H);
+        const queue = [];
+        const ajouter = (x, y) => {
+          const pos = y * W + x;
+          if (visited[pos]) return;
+          if (_estFond(pixels, W, x, y, bgColor, tolerance)) {
+            visited[pos] = 1;
+            queue.push(pos);
+          }
+        };
+        for (let x = 0; x < W; x++) { ajouter(x, 0); ajouter(x, H-1); }
+        for (let y = 0; y < H; y++) { ajouter(0, y); ajouter(W-1, y); }
+
+        let head = 0;
+        while (head < queue.length) {
+          const pos = queue[head++];
+          pixels[pos * 4 + 3] = 0;
+          const px = pos % W, py = Math.floor(pos / W);
+          if (px > 0)   ajouter(px-1, py);
+          if (px < W-1) ajouter(px+1, py);
+          if (py > 0)   ajouter(px, py-1);
+          if (py < H-1) ajouter(px, py+1);
+        }
+
+        // Étape 3 (optionnelle) : supprimer îles intérieures de même couleur
+        if (inclureIles) supprimerIlesInterieures(pixels, W, H, bgColor, tolerance);
+
+        ctx.putImageData(imgData, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch(e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error("Impossible de charger l'image pour le détourage."));
+    img.src = imageDataUrl;
+  });
+}
+
+/* Pipeline principal */
+async function lancerPipeline() {
+  if (state.enTraitement || !state.base64Source) return;
+  const nomClient = document.getElementById('client-name').value.trim();
+  if (nomClient) { localStorage.setItem('hcs_dernier_client', nomClient); state.nomClient = nomClient; }
+  state.enTraitement = true;
+  document.getElementById('btn-process').disabled = true;
+  document.getElementById('btn-process-label').textContent = 'Traitement en cours...';
+  document.getElementById('btn-process-spinner').classList.remove('hidden');
+  masquerResultats();
+  // Carte 0 — re-afficher l'original après reset
+  afficherPreviewEtape(0, state.base64Source);
+  document.getElementById('badge-0').className = 'step-card-badge badge-done';
+  document.getElementById('badge-0').textContent = '✓';
+  try {
+    /* Étape 1 — Détourage local canvas (fond uni → transparent) */
+    setEtape(1); setEtapeEnCours(1);
+    const tolerance = parseInt(document.getElementById('tol-slider').value, 10);
+    const inclureIles = document.getElementById('chk-iles').checked;
+    ajouterLog(`Étape 1 — Détourage fond uni (tolérance ${tolerance}${inclureIles ? ', îles incluses' : ''})...`, 'info');
+    let img1;
+    try {
+      img1 = await detourer_local_canvas(state.base64Source, tolerance, inclureIles);
+      afficherPreviewEtape(1, img1); ajouterLog('Étape 1 — Détourage OK ✓', 'success');
+    } catch (e) {
+      ajouterLog(`Étape 1 — Erreur : ${e.message}`, 'error');
+      img1 = state.base64Source;
+      afficherPreviewEtape(1, img1);
+      document.getElementById('badge-1').textContent = '⚠ Erreur';
+      document.getElementById('badge-1').className = 'step-card-badge';
+      document.getElementById('badge-1').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
+    }
+    /* Étape 2 — Amélioration */
+    setEtape(2); setEtapeEnCours(2); ajouterLog('Étape 2 — Amélioration PicWish...', 'info');
+    let img2;
+    try {
+      const res2 = await appelPicWishAvecUrl('enhance', img1, 'Amélioration');
+      img2 = res2.dataUrl;
+      state.resultUrlStep2 = res2.resultUrl;
+      afficherPreviewEtape(2, img2); ajouterLog('Étape 2 — OK', 'success');
+    } catch (e) {
+      ajouterLog(`Étape 2 — Erreur : ${e.message}`, 'error');
+      img2 = img1; state.resultUrlStep2 = null;
+      afficherPreviewEtape(2, img2);
+      document.getElementById('badge-2').textContent = '⚠ Erreur';
+      document.getElementById('badge-2').className = 'step-card-badge';
+      document.getElementById('badge-2').style.cssText = 'background:rgba(248,113,113,0.12);color:#f87171;';
+    }
+    /* Étape 3 — Recadrage manuel sur base amélioration */
+    setEtape(3); setEtapeEnCours(3);
+    ajouterLog('Étape 3 — Prêt. Ajustez le cadre sur l\'image améliorée.', 'info');
+    // On utilise img2 (amélioration) comme base — qualité préservée
+    // Le Smart Crop sert uniquement à pré-positionner le cadre si dispo
+    let cropSuggestion = null;
+    if (state.resultUrlStep2) {
+      try {
+        cropSuggestion = await appelSmartCropBounds(state.resultUrlStep2);
+        ajouterLog('Smart Crop : suggestion de cadrage reçue.', 'info');
+      } catch (e) {
+        ajouterLog(`Smart Crop suggestion échouée : ${e.message}`, 'warn');
+      }
+    }
+    document.getElementById('loading-3').classList.add('hidden');
+    document.getElementById('badge-3').className = 'step-card-badge';
+    document.getElementById('badge-3').style.cssText = 'background:rgba(255,107,0,0.15);color:#FF6B00;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;';
+    document.getElementById('badge-3').textContent = '✎ Ajuster';
+    document.getElementById('card-3').classList.add('active');
+    // Base = image améliorée (img2), pas le smart crop
+    activerCropManuel(img2, cropSuggestion);
+    /* Résultat provisoire = img2 en attendant que l'utilisateur applique */
+    state.base64Traitee = img2;
+    document.getElementById('btn-download').disabled = false;
+    setEtape(4);
+    ajouterLog(`Pipeline terminé ! Client : "${state.nomClient || 'Sans nom'}". Recadrage manuel disponible.`, 'success');
+    afficherResultat(state.base64Traitee);
+    ['btn-download','btn-dropbox','btn-gmail','btn-compare','btn-mockup','btn-preview-full'].forEach(id => { document.getElementById(id).disabled = false; });
+    afficherToast('Traitement terminé ! Ajustez le recadrage si besoin.', 'success', 6000);
+  } catch (e) {
+    ajouterLog(`Erreur critique : ${e.message}`, 'error'); afficherToast(`Erreur : ${e.message}`, 'error', 6000);
+  } finally {
+    state.enTraitement = false;
+    document.getElementById('btn-process').disabled = false;
+    document.getElementById('btn-process-label').textContent = "Traiter l'image";
+    document.getElementById('btn-process-spinner').classList.add('hidden');
+  }
+}
+
+/* Appel Worker (détourage remove.bg ou amélioration PicWish) — retourne { dataUrl, resultUrl } */
+async function appelPicWishAvecUrl(operation, imageDataUrl, nom) {
+  const provider = operation === 'remove-background' ? 'remove.bg' : 'PicWish';
+  ajouterLog(`${nom} [${provider}] : appel via Worker Cloudflare...`, 'info');
+  const rep = await fetch(`${CONFIG.WORKER_URL}/api/picwish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': CONFIG.WORKER_SECRET },
+    body: JSON.stringify({ image_base64: extraireBase64Pur(imageDataUrl), operation })
+  });
+  if (!rep.ok) {
+    const txt = await rep.text().catch(() => '');
+    throw new Error(`Worker HTTP ${rep.status}${txt ? ' — ' + txt.slice(0, 100) : ''}`);
+  }
+  const data = await rep.json();
+  if (!data.success) throw new Error(data.error || 'Erreur Worker.');
+
+  /* remove.bg retourne directement le PNG en base64 (pas d'URL externe) */
+  if (data.result_base64) {
+    ajouterLog(`${nom} [${provider}] : image reçue ✓`, 'info');
+    return { dataUrl: data.result_base64, resultUrl: null };
+  }
+
+  /* PicWish retourne une URL → on télécharge l'image */
+  if (!data.result_url) throw new Error(data.error || 'Pas d\'URL de résultat.');
+  ajouterLog(`${nom} [${provider}] : téléchargement du résultat...`, 'info');
+  const repF = await fetch(data.result_url);
+  const blob = await repF.blob();
+  const dataUrl = await blobVersBase64(blob);
+  return { dataUrl, resultUrl: data.result_url };
+}
+
+/* Compat étape 1 détourage */
+async function appelPicWish(endpoint, imageDataUrl, nom) {
+  const operation = endpoint.includes('remove-image-background') ? 'remove-background' : 'enhance';
+  const res = await appelPicWishAvecUrl(operation, imageDataUrl, nom);
+  return res.dataUrl;
+}
+
+/* Smart Crop PicWish — retourne les bounds { rx, ry, rw, rh } relatifs à l'image d'entrée */
+async function appelSmartCropBounds(imageUrl) {
+  const rep = await fetch(`${CONFIG.WORKER_URL}/api/picwish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': CONFIG.WORKER_SECRET },
+    body: JSON.stringify({ operation: 'smart-crop', image_url: imageUrl })
+  });
+  if (!rep.ok) throw new Error(`Worker HTTP ${rep.status}`);
+  const data = await rep.json();
+  if (!data.success || !data.result_url) throw new Error(data.error || 'Smart Crop sans résultat.');
+
+  // Charger les 2 images pour calculer le ratio de recadrage
+  const [wSrc, hSrc] = await getImageDimensions(imageUrl);
+  const [wCrop, hCrop] = await getImageDimensions(data.result_url);
+
+  // Smart Crop centre le résultat — on estime la zone recadrée
+  const rw = Math.min(1, wCrop / wSrc);
+  const rh = Math.min(1, hCrop / hSrc);
+  const rx = (1 - rw) / 2;
+  const ry = (1 - rh) / 2;
+  return { rx, ry, rw, rh };
+}
+
+function getImageDimensions(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res([img.naturalWidth, img.naturalHeight]);
+    img.onerror = () => rej(new Error('Impossible de charger l\'image'));
+    img.src = url;
+  });
+}
+
+/* Smart Crop PicWish — prend l'URL du résultat étape 2 */
+async function appelSmartCrop(imageUrl) {
+  ajouterLog('Smart Crop : appel Worker...', 'info');
+  const rep = await fetch(`${CONFIG.WORKER_URL}/api/picwish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': CONFIG.WORKER_SECRET },
+    body: JSON.stringify({ operation: 'smart-crop', image_url: imageUrl })
+  });
+  if (!rep.ok) {
+    const txt = await rep.text().catch(() => '');
+    throw new Error(`Worker HTTP ${rep.status}${txt ? ' — ' + txt.slice(0, 100) : ''}`);
+  }
+  const data = await rep.json();
+  if (!data.success || !data.result_url) throw new Error(data.error || 'Smart Crop sans résultat.');
+  ajouterLog('Smart Crop : téléchargement...', 'info');
+  const repF = await fetch(data.result_url);
+  const blob = await repF.blob();
+  const dataUrl = await blobVersBase64(blob);
+  // PicWish Smart Crop ajoute un fond blanc — on le supprime
+  return await supprimerFondBlanc(dataUrl);
+}
+
+/* Supprime le fond blanc d'une image (remplace les pixels blancs/quasi-blancs par transparent) */
+function supprimerFondBlanc(dataUrl) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = img.width; cv.height = img.height;
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const px = ctx.getImageData(0, 0, cv.width, cv.height);
+      const d = px.data;
+      const SEUIL = 240; // pixels > 240 sur R,G,B = blanc
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] >= SEUIL && d[i+1] >= SEUIL && d[i+2] >= SEUIL) {
+          d[i+3] = 0; // transparent
+        }
+      }
+      ctx.putImageData(px, 0, 0);
+      res(cv.toDataURL('image/png'));
+    };
+    img.onerror = () => rej(new Error('Impossible de charger pour suppression fond blanc'));
+    img.src = dataUrl;
+  });
+}
+
+/* Recadrage automatique */
+function recadrerAuto(dataUrl) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width=img.width; c.height=img.height;
+        const ctx = c.getContext('2d'); ctx.drawImage(img,0,0);
+        const px = ctx.getImageData(0,0,img.width,img.height).data;
+        let xMin=img.width,yMin=img.height,xMax=0,yMax=0,found=false;
+        for (let y=0;y<img.height;y++) for (let x=0;x<img.width;x++) {
+          if (px[(y*img.width+x)*4+3]>10) { found=true; if(x<xMin)xMin=x; if(x>xMax)xMax=x; if(y<yMin)yMin=y; if(y>yMax)yMax=y; }
+        }
+        if (!found) { res(dataUrl); return; }
+        const mX=Math.round((xMax-xMin)*0.05), mY=Math.round((yMax-yMin)*0.05);
+        const xF=Math.max(0,xMin-mX), yF=Math.max(0,yMin-mY);
+        const wF=Math.min(img.width,xMax+mX+1)-xF, hF=Math.min(img.height,yMax+mY+1)-yF;
+        ajouterLog(`Recadrage : zone ${xMin},${yMin}→${xMax},${yMax}. Sortie : ${wF}×${hF}px.`,'info');
+        const cf=document.createElement('canvas'); cf.width=wF; cf.height=hF;
+        cf.getContext('2d').drawImage(c,xF,yF,wF,hF,0,0,wF,hF);
+        res(cf.toDataURL('image/png'));
+      } catch(e) { rej(e); }
+    };
+    img.onerror = () => rej(new Error('Impossible de charger l\'image pour le recadrage.'));
+    img.src = dataUrl;
+  });
+}
+
+/* Prévisualisation étapes */
+function setEtapeEnCours(n) {
+  // n = 1,2,3 → active le spinner de la carte n
+  const loading = document.getElementById(`loading-${n}`);
+  const card = document.getElementById(`card-${n}`);
+  const badge = document.getElementById(`badge-${n}`);
+  if (loading) loading.classList.remove('hidden');
+  if (card) card.classList.add('active');
+  if (badge) { badge.className = 'step-card-badge badge-loading'; badge.innerHTML = '<div class="spinner-sm" style="width:10px;height:10px;border-width:1.5px;"></div> En cours'; }
+}
+
+function afficherPreviewEtape(n, dataUrl) {
+  const loading = document.getElementById(`loading-${n}`);
+  const placeholder = document.getElementById(`placeholder-${n}`);
+  const img = document.getElementById(`img-${n}`);
+  const card = document.getElementById(`card-${n}`);
+  const badge = document.getElementById(`badge-${n}`);
+  if (loading) loading.classList.add('hidden');
+  if (placeholder) placeholder.classList.add('hidden');
+  if (img) { img.src = dataUrl; img.classList.remove('hidden'); }
+  if (card) { card.classList.remove('active'); card.classList.add('done'); }
+  if (badge) { badge.className = 'step-card-badge badge-done'; badge.textContent = '✓ OK'; }
+}
+
+function resetPreviews() {
+  [0,1,2,3].forEach(n => {
+    const loading = document.getElementById(`loading-${n}`);
+    const placeholder = document.getElementById(`placeholder-${n}`);
+    const img = document.getElementById(`img-${n}`);
+    const card = document.getElementById(`card-${n}`);
+    const badge = document.getElementById(`badge-${n}`);
+    if (loading) loading.classList.add('hidden');
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (img) { img.src = ''; img.classList.add('hidden'); }
+    if (card) { card.classList.remove('active','done'); }
+    if (badge) { badge.className = 'step-card-badge badge-wait'; badge.textContent = n === 0 ? '—' : 'En attente'; }
+  });
+}
+
+/* Afficher le résultat final */
+function afficherResultat(dataUrl) {
+  document.getElementById('cmp-before').src = state.base64Source;
+  document.getElementById('cmp-after').src = dataUrl;
+  const i = new Image();
+  i.onload = () => {
+    document.getElementById('meta-dimensions').textContent = `${i.width} × ${i.height}`;
+    document.getElementById('meta-panel').classList.remove('hidden');
+    const s = Math.round((dataUrl.length * 3) / 4);
+    document.getElementById('meta-size').textContent = s > 1024 ? `${(s/1024).toFixed(0)} Ko` : `${s} o`;
+  };
+  i.src = dataUrl;
+}
+
+function masquerResultats() {
+  resetPreviews();
+  ['btn-download','btn-dropbox','btn-gmail','btn-compare','btn-mockup','btn-preview-full'].forEach(id => { document.getElementById(id).disabled = true; });
+  document.getElementById('meta-panel').classList.add('hidden');
+  document.getElementById('preview-compare').classList.add('hidden');
+  document.getElementById('card-3').classList.remove('expanded');
+  // Remettre la barre crop-actions en mode ajustement
+  cropHistory.length = 0;
+  document.getElementById('crop-mode-adjust').style.display  = 'flex';
+  document.getElementById('crop-mode-applied').style.display = 'none';
+  document.getElementById('crop-actions').classList.add('hidden');
+  document.getElementById('crop-actions').style.display = 'none';
+  // Quitter le plein écran si actif
+  const c3 = document.getElementById('card-3');
+  c3.classList.remove('crop-fullscreen');
+  document.body.style.overflow = '';
+  document.getElementById('btn-crop-fullscreen').textContent = '⤢ Plein écran';
+  document.getElementById('btn-crop-fullscreen').style.display = 'none';
+}
+
+/* Réinitialisation */
+function resetAll() {
+  state.fichierSource=null; state.base64Source=null; state.base64Traitee=null; state.enTraitement=false;
+  selState.historique=[]; selState.base=null;
+  cropHistory.length=0;
+  document.getElementById('source-preview-inline').classList.add('hidden');
+  document.getElementById('upload-icon').style.display='block';
+  document.getElementById('file-name-label').classList.add('hidden');
+  document.getElementById('btn-reset').classList.add('hidden');
+  document.getElementById('file-input').value='';
+  masquerResultats();
+  for(let i=0;i<=4;i++){const el=document.getElementById(`step-${i}`);el.classList.remove('active','done');}
+  document.getElementById('step-0').classList.add('active');
+  document.getElementById('btn-process').disabled=true;
+  ajouterLog('Pipeline réinitialisé.','info');
+}
+
+/* Injecte chunk pHYs 300 DPI dans un PNG base64 */
+function injectPHYs300(dataUrl) {
+  const DPI = 300, CM_PER_IN = 2.54;
+  const ppm = Math.round(DPI / CM_PER_IN * 100); // 11811 px/m
+  const b64 = dataUrl.split(',')[1];
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  // CRC32 table
+  const crcT = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) { let c = i; for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); crcT[i] = c; }
+  function crc32(buf) { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = crcT[(c ^ buf[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function u32(n) { return [(n >> 24) & 0xff, (n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]; }
+  const cn = [0x70, 0x48, 0x59, 0x73]; // "pHYs"
+  const pd = new Uint8Array([...u32(ppm), ...u32(ppm), 1]); // x, y, unit=meter
+  const ci = new Uint8Array([...cn, ...pd]);
+  const pc = new Uint8Array([...u32(9), ...cn, ...pd, ...u32(crc32(ci))]);
+  const IHDR = 33; // after PNG sig (8) + IHDR chunk (4+4+13+4=25) = 33
+  const res = new Uint8Array(arr.length + pc.length);
+  res.set(arr.slice(0, IHDR)); res.set(pc, IHDR); res.set(arr.slice(IHDR), IHDR + pc.length);
+  let out = '', chunk = 8192;
+  for (let i = 0; i < res.length; i += chunk) out += String.fromCharCode.apply(null, res.slice(i, i + chunk));
+  return 'data:image/png;base64,' + btoa(out);
+}
+
+/* Télécharger PNG transparent 300 DPI */
+function telechargerImage() {
+  if (!state.base64Traitee) return;
+  const nom = `${(state.nomClient||'client').replace(/\s+/g,'_')}_logo_traite_300dpi.png`;
+  const url = injectPHYs300(state.base64Traitee);
+  const a = document.createElement('a'); a.href = url; a.download = nom;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  ajouterLog(`Téléchargement 300 DPI : ${nom}`, 'success');
+  afficherToast(`PNG transparent 300 DPI téléchargé`, 'success');
+}
+
+/* Plein écran image finale */
+function afficherPleinEcran() {
+  if (!state.base64Traitee) return;
+  const modal = document.getElementById('modal-fullscreen');
+  document.getElementById('modal-fs-img').src = state.base64Traitee;
+  const nom = state.nomClient || 'Image traitée';
+  const dim = document.getElementById('meta-dimensions').textContent;
+  document.getElementById('modal-fs-label').textContent = `${nom} · ${dim}`;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function fermerPleinEcran(e) {
+  if (e && e.target !== document.getElementById('modal-fullscreen')) return;
+  document.getElementById('modal-fullscreen').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+/* Recadrage direct — importe une image et saute les étapes 1 & 2 */
+function importerRecadrageDirect(event) {
+  const fichier = event.target.files?.[0];
+  if (!fichier) return;
+  if (!['image/png','image/jpeg','image/webp'].includes(fichier.type)) { afficherToast('Format non supporté.', 'error'); return; }
+  if (fichier.size > 10*1024*1024) { afficherToast('Fichier trop volumineux (max 10 MB).', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const dataUrl = evt.target.result;
+    // Initialiser l'état comme si l'image venait du pipeline
+    state.fichierSource = fichier;
+    state.base64Source  = dataUrl;
+    state.base64Traitee = dataUrl;
+    state.nomClient     = document.getElementById('client-name').value.trim();
+    // Afficher l'original dans la zone upload
+    const pi = document.getElementById('source-preview-inline');
+    pi.src = dataUrl; pi.classList.remove('hidden');
+    document.getElementById('upload-icon').style.display = 'none';
+    const lbl = document.getElementById('file-name-label');
+    lbl.textContent = fichier.name; lbl.classList.remove('hidden');
+    document.getElementById('btn-reset').classList.remove('hidden');
+    // Sauter les étapes 1 & 2 — aller directement au recadrage
+    masquerResultats();
+    afficherPreviewEtape(0, dataUrl);
+    setEtape(3);
+    setEtapeEnCours(3);
+    // Marquer étapes 1 & 2 comme passées
+    ['card-1','card-2'].forEach(id => {
+      const c = document.getElementById(id);
+      c.classList.remove('active'); c.classList.add('done');
+    });
+    document.getElementById('badge-1').className = 'step-card-badge badge-done'; document.getElementById('badge-1').textContent = '— Ignoré';
+    document.getElementById('badge-2').className = 'step-card-badge badge-done'; document.getElementById('badge-2').textContent = '— Ignoré';
+    afficherPreviewEtape(1, dataUrl);
+    afficherPreviewEtape(2, dataUrl);
+    // Activer le recadrage sur l'image originale
+    document.getElementById('badge-3').className = 'step-card-badge';
+    document.getElementById('badge-3').style.cssText = 'background:rgba(255,107,0,0.15);color:#FF6B00;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;';
+    document.getElementById('badge-3').textContent = '✎ Ajuster';
+    document.getElementById('card-3').classList.add('active');
+    document.getElementById('loading-3').classList.add('hidden');
+    activerCropManuel(dataUrl, null);
+    // Activer le bouton téléchargement
+    document.getElementById('btn-download').disabled = false;
+    document.getElementById('btn-preview-full').disabled = false;
+    ['btn-mockup'].forEach(id => { document.getElementById(id).disabled = false; });
+    ajouterLog(`Recadrage direct : ${fichier.name} chargé (${(fichier.size/1024).toFixed(0)} Ko)`, 'success');
+    afficherToast('Image chargée — ajustez le cadre puis Appliquer.', 'info', 5000);
+  };
+  reader.readAsDataURL(fichier);
+  event.target.value = '';
+}
+
+/* Archiver Dropbox via Worker */
+async function archiverDropbox() {
+  if (!state.base64Traitee) { afficherToast('Aucune image traitée.','error'); return; }
+  const client = (state.nomClient || 'client_sans_nom').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'');
+  const mois = MOIS_FR[new Date().getMonth()];
+  const cheminAffiche = `HCS/2026/CLIENTS/${mois}/${client}/logos/${client}_logo_traite.png`;
+  ajouterLog(`Dropbox : archivage via Worker → ${cheminAffiche}...`, 'info');
+  const sp = document.getElementById('btn-dropbox-spinner');
+  const bd = document.getElementById('btn-dropbox');
+  sp.classList.remove('hidden'); bd.disabled = true;
+  try {
+    const rep = await fetch(`${CONFIG.WORKER_URL}/api/dropbox/archive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Worker-Secret': CONFIG.WORKER_SECRET
+      },
+      body: JSON.stringify({
+        image_base64: extraireBase64Pur(state.base64Traitee),
+        client,
+        mois
+      })
+    });
+    if (!rep.ok) {
+      const txt = await rep.text().catch(() => '');
+      throw new Error(`Worker HTTP ${rep.status}${txt ? ' — ' + txt.slice(0,100) : ''}`);
+    }
+    const d = await rep.json();
+    ajouterLog(`Dropbox : archivé → ${d.path}`, 'success');
+    afficherToast(`Archivé : ${d.path}`, 'success', 6000);
+  } catch(e) {
+    ajouterLog(`Dropbox erreur : ${e.message}`, 'error');
+    afficherToast(`Erreur Dropbox : ${e.message}`, 'error', 6000);
+  } finally {
+    sp.classList.add('hidden'); bd.disabled = false;
+  }
+}
+
+/* MockupForge — banque images clients */
+/* IndexedDB partagé — hcs_picwish_db */
+const PicWishDB = {
+  _db: null,
+  open() {
+    return new Promise((res, rej) => {
+      if (this._db) { res(this._db); return; }
+      const req = indexedDB.open('hcs_picwish_db', 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('bank')) db.createObjectStore('bank', { keyPath: 'id' });
+      };
+      req.onsuccess = e => { this._db = e.target.result; res(this._db); };
+      req.onerror   = e => rej(e.target.error);
+    });
+  },
+  async put(entry) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('bank', 'readwrite');
+      tx.objectStore('bank').put(entry);
+      tx.oncomplete = res;
+      tx.onerror = e => rej(e.target.error);
+    });
+  },
+  async getAll() {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx  = db.transaction('bank', 'readonly');
+      const req = tx.objectStore('bank').getAll();
+      req.onsuccess = e => res(e.target.result);
+      req.onerror   = e => rej(e.target.error);
+    });
+  }
+};
+
+async function envoyerMockupForge() {
+  if (!state.base64Traitee) { afficherToast('Aucune image traitée.', 'error'); return; }
+  const client = (state.nomClient || 'Clients').trim();
+  const nom    = (state.nomClient || 'logo').replace(/\s+/g, '_');
+  const entry  = { id: Date.now().toString(36), name: nom + '_traite', src: state.base64Traitee, client, date: new Date().toLocaleDateString('fr-FR') };
+  try {
+    await PicWishDB.put(entry);
+    ajouterLog(`MockupForge : image envoyée → dossier "${client}"`, 'success');
+    afficherToast(`✓ Envoyé dans MockupForge — dossier "${client}"`, 'success', 5000);
+  } catch(e) {
+    ajouterLog('MockupForge erreur : ' + e.message, 'error');
+    afficherToast('Erreur : ' + e.message, 'error');
+  }
+}
+
+/* Gmail mailto */
+function envoyerGmail() {
+  const n=state.nomClient||'votre client';
+  const s=encodeURIComponent(`[HCS] Votre logo traité — ${n}`);
+  const b=encodeURIComponent(`Bonjour,\n\nVotre logo a été traité par High Coffee Shirt :\n  • Détourage\n  • Amélioration IA\n  • Recadrage automatique\n\nCordialement,\nHigh Coffee Shirt — Papeete`);
+  window.location.href=`mailto:?subject=${s}&body=${b}`;
+  ajouterLog('Gmail : ouverture client mail natif.','info'); afficherToast('Client mail ouvert. Ajoutez le PNG manuellement.','info',6000);
+}
+
+/* Comparaison */
+let modeCompare=false;
+function toggleCompare() {
+  if (!state.base64Traitee) return;
+  modeCompare=!modeCompare;
+  const btn=document.getElementById('btn-compare');
+  if (modeCompare) { document.getElementById('preview-steps-grid').classList.add('hidden'); document.getElementById('preview-compare').classList.remove('hidden'); btn.textContent='Vue normale'; btn.style.borderColor='#FF6B00'; btn.style.color='#FF6B00'; initSlider(); }
+  else { document.getElementById('preview-steps-grid').classList.remove('hidden'); document.getElementById('preview-compare').classList.add('hidden'); btn.textContent='Comparer'; btn.style.borderColor=''; btn.style.color=''; }
+}
+function initSlider() {
+  const c=document.getElementById('compare-container'), ov=document.getElementById('compare-overlay'), h=document.getElementById('compare-handle');
+  let drag=false;
+  function maj(x){const r=c.getBoundingClientRect();const p=Math.max(0.02,Math.min(0.98,(x-r.left)/r.width));ov.style.width=`${p*100}%`;h.style.left=`${p*100}%`;}
+  c.addEventListener('mousedown',(e)=>{drag=true;maj(e.clientX);e.preventDefault();});
+  document.addEventListener('mousemove',(e)=>{if(drag)maj(e.clientX);});
+  document.addEventListener('mouseup',()=>{drag=false;});
+  c.addEventListener('touchstart',(e)=>{drag=true;maj(e.touches[0].clientX);});
+  document.addEventListener('touchmove',(e)=>{if(drag)maj(e.touches[0].clientX);});
+  document.addEventListener('touchend',()=>{drag=false;});
+}
+
+/* ============================================================
+   MODAL ZOOM — Détourage vs Amélioration
+   ============================================================ */
+function ouvrirZoom() {
+  const img1 = document.getElementById('img-1');
+  const img2 = document.getElementById('img-2');
+  if (!img1.src || !img2.src || img1.classList.contains('hidden')) return;
+
+  const before = document.getElementById('modal-zoom-before');
+  const after  = document.getElementById('modal-zoom-after');
+  before.src = img1.src;
+  after.src  = img2.src;
+
+  // Attendre que les images soient chargées pour synchroniser la largeur de l'overlay
+  after.onload = () => {
+    const ov = document.getElementById('modal-zoom-overlay');
+    ov.style.width = '50%';
+    document.getElementById('modal-zoom-handle').style.left = '50%';
+    initSliderModal();
+  };
+
+  document.getElementById('modal-zoom').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function fermerZoom(e) {
+  if (e && e.target !== document.getElementById('modal-zoom') && !e.target.matches('button')) return;
+  document.getElementById('modal-zoom').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function initSliderModal() {
+  const c  = document.getElementById('modal-zoom-container');
+  const ov = document.getElementById('modal-zoom-overlay');
+  const h  = document.getElementById('modal-zoom-handle');
+  // Supprimer les anciens listeners en clonant
+  const c2 = c.cloneNode(true);
+  c.parentNode.replaceChild(c2, c);
+  // Ré-attacher images après cloneNode
+  document.getElementById('modal-zoom-before').src = document.getElementById('img-1').src;
+  document.getElementById('modal-zoom-after').src  = document.getElementById('img-2').src;
+
+  let drag = false;
+  function maj(x) {
+    const r = document.getElementById('modal-zoom-container').getBoundingClientRect();
+    const p = Math.max(0.02, Math.min(0.98, (x - r.left) / r.width));
+    document.getElementById('modal-zoom-overlay').style.width = `${p * 100}%`;
+    document.getElementById('modal-zoom-handle').style.left   = `${p * 100}%`;
+  }
+  document.getElementById('modal-zoom-container').addEventListener('mousedown', (e) => { drag = true; maj(e.clientX); e.preventDefault(); });
+  document.addEventListener('mousemove',  (e) => { if (drag) maj(e.clientX); });
+  document.addEventListener('mouseup',    ()  => { drag = false; });
+  document.getElementById('modal-zoom-container').addEventListener('touchstart', (e) => { drag = true; maj(e.touches[0].clientX); });
+  document.addEventListener('touchmove',  (e) => { if (drag) maj(e.touches[0].clientX); });
+  document.addEventListener('touchend',   ()  => { drag = false; });
+}
+
+// Afficher bouton zoom sur carte 2 quand done
+const _origAfficher = afficherPreviewEtape;
+afficherPreviewEtape = function(n, dataUrl) {
+  _origAfficher(n, dataUrl);
+  if (n === 2) {
+    const btn = document.getElementById('btn-zoom-2');
+    if (btn) btn.classList.remove('hidden');
+  }
+};
+
+/* ============================================================
+   RECADRAGE MANUEL
+   ============================================================ */
+const cropState = { active: false, startX: 0, startY: 0, rect: { x: 0, y: 0, w: 1, h: 1 }, dragging: false, resizing: null, imgBounds: { ox: 0, oy: 0, sx: 1, sy: 1 } };
+
+/* Calcule la position réelle de l'image dans l'overlay (object-fit:contain laisse des marges) */
+function getImageBounds() {
+  const img  = document.getElementById('img-3');
+  const wrap = document.getElementById('wrap-3');
+  const wR   = wrap.getBoundingClientRect();
+  const iR   = img.getBoundingClientRect();
+  return {
+    ox: (iR.left - wR.left) / wR.width,
+    oy: (iR.top  - wR.top)  / wR.height,
+    sx: iR.width  / wR.width,
+    sy: iR.height / wR.height
+  };
+}
+
+function activerCropManuel(imageDataUrl, cropSuggestion = null) {
+  const wrap = document.getElementById('wrap-3');
+  const overlay = document.getElementById('crop-overlay');
+  const img3 = document.getElementById('img-3');
+
+  // Afficher l'image source dans la carte 3 pour le crop
+  img3.src = imageDataUrl;
+  img3.classList.remove('hidden');
+  document.getElementById('placeholder-3').classList.add('hidden');
+
+  overlay.classList.add('active');
+  document.getElementById('crop-actions').classList.remove('hidden');
+  document.getElementById('crop-actions').style.display = 'flex';
+
+  cropState.active = true;
+  const initCrop = () => {
+    const b = getImageBounds();
+    cropState.imgBounds = b;
+    if (cropSuggestion) {
+      // Pré-positionner le cadre selon la suggestion Smart Crop
+      // cropSuggestion = { rx, ry, rw, rh } relatif à l'image (0→1)
+      cropState.rect = {
+        x: b.ox + cropSuggestion.rx * b.sx,
+        y: b.oy + cropSuggestion.ry * b.sy,
+        w: cropSuggestion.rw * b.sx,
+        h: cropSuggestion.rh * b.sy
+      };
+    } else {
+      cropState.rect = { x: b.ox, y: b.oy, w: b.sx, h: b.sy };
+    }
+    dessinCropRect();
+  };
+  img3.onload = initCrop;
+  if (img3.complete && img3.naturalWidth) initCrop();
+
+  // Drag pour déplacer / redimensionner le rectangle
+  overlay.addEventListener('mousedown', onCropMouseDown);
+  overlay.addEventListener('touchstart', onCropTouchStart, { passive: false });
+
+  // Agrandir la carte pour mieux voir les bords
+  document.getElementById('card-3').classList.add('expanded');
+  // Afficher le bouton plein écran
+  document.getElementById('btn-crop-fullscreen').style.display = 'inline-block';
+  // Recalculer imgBounds après que la carte s'est agrandie
+  requestAnimationFrame(() => { cropState.imgBounds = getImageBounds(); dessinCropRect(); });
+}
+
+function dessinCropRect() {
+  const r = cropState.rect;
+  const el = document.getElementById('crop-rect');
+  el.style.left   = `${r.x * 100}%`;
+  el.style.top    = `${r.y * 100}%`;
+  el.style.width  = `${r.w * 100}%`;
+  el.style.height = `${r.h * 100}%`;
+}
+
+function onCropMouseDown(e) {
+  e.preventDefault();
+  const overlay = document.getElementById('crop-overlay');
+  const rect = overlay.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width;
+  const py = (e.clientY - rect.top)  / rect.height;
+  cropState.startX = px; cropState.startY = py;
+
+  const r = cropState.rect;
+  const edge = 0.05;
+  const inX = px >= r.x && px <= r.x + r.w;
+  const inY = py >= r.y && py <= r.y + r.h;
+  const nearR = Math.abs(px - (r.x + r.w)) < edge;
+  const nearB = Math.abs(py - (r.y + r.h)) < edge;
+  const nearL = Math.abs(px - r.x) < edge;
+  const nearT = Math.abs(py - r.y) < edge;
+
+  if (nearR && nearB) cropState.resizing = 'se';
+  else if (nearL && nearT) cropState.resizing = 'nw';
+  else if (nearR && nearT) cropState.resizing = 'ne';
+  else if (nearL && nearB) cropState.resizing = 'sw';
+  else if (nearR) cropState.resizing = 'e';
+  else if (nearB) cropState.resizing = 's';
+  else if (nearL) cropState.resizing = 'w';
+  else if (nearT) cropState.resizing = 'n';
+  else if (inX && inY) cropState.resizing = 'move';
+  else { cropState.startX = px; cropState.startY = py; cropState.resizing = 'new'; }
+
+  document.addEventListener('mousemove', onCropMouseMove);
+  document.addEventListener('mouseup',   onCropMouseUp);
+}
+
+function onCropTouchStart(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  onCropMouseDown({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => {} });
+  document.addEventListener('touchmove',  onCropTouchMove, { passive: false });
+  document.addEventListener('touchend',   onCropTouchEnd);
+}
+function onCropTouchMove(e) { e.preventDefault(); onCropMouseMove({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }); }
+function onCropTouchEnd()   { onCropMouseUp(); document.removeEventListener('touchmove', onCropTouchMove); document.removeEventListener('touchend', onCropTouchEnd); }
+
+function onCropMouseMove(e) {
+  const overlay = document.getElementById('crop-overlay');
+  const rect = overlay.getBoundingClientRect();
+  const px = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  const py = Math.max(0, Math.min(1, (e.clientY - rect.top)  / rect.height));
+  const dx = px - cropState.startX;
+  const dy = py - cropState.startY;
+  // En mode 'new', on conserve startX/Y comme origine du tracé
+  if (cropState.resizing !== 'new') {
+    cropState.startX = px; cropState.startY = py;
+  }
+  const r = cropState.rect;
+  const MIN = 0.05;
+
+  const b = cropState.imgBounds; // bornes réelles de l'image dans l'overlay
+  const xMin = b.ox, xMax = b.ox + b.sx, yMin = b.oy, yMax = b.oy + b.sy;
+  if (cropState.resizing === 'new') {
+    r.x = Math.max(xMin, Math.min(xMax, Math.min(cropState.startX, px)));
+    r.y = Math.max(yMin, Math.min(yMax, Math.min(cropState.startY, py)));
+    r.w = Math.min(xMax - r.x, Math.abs(px - cropState.startX));
+    r.h = Math.min(yMax - r.y, Math.abs(py - cropState.startY));
+  } else if (cropState.resizing === 'move') {
+    r.x = Math.max(xMin, Math.min(xMax - r.w, r.x + dx));
+    r.y = Math.max(yMin, Math.min(yMax - r.h, r.y + dy));
+  } else if (cropState.resizing === 'se') {
+    r.w = Math.max(MIN, Math.min(1 - r.x, r.w + dx));
+    r.h = Math.max(MIN, Math.min(1 - r.y, r.h + dy));
+  } else if (cropState.resizing === 'e') {
+    r.w = Math.max(MIN, Math.min(1 - r.x, r.w + dx));
+  } else if (cropState.resizing === 's') {
+    r.h = Math.max(MIN, Math.min(1 - r.y, r.h + dy));
+  } else if (cropState.resizing === 'n') {
+    const ny = r.y + dy; const nh = r.h - dy;
+    if (nh > MIN) { r.y = ny; r.h = nh; }
+  } else if (cropState.resizing === 'w') {
+    const nx = r.x + dx; const nw = r.w - dx;
+    if (nw > MIN) { r.x = nx; r.w = nw; }
+  } else if (cropState.resizing === 'nw') {
+    const nx = r.x + dx; const nw = r.w - dx; const ny = r.y + dy; const nh = r.h - dy;
+    if (nw > MIN) { r.x = nx; r.w = nw; }
+    if (nh > MIN) { r.y = ny; r.h = nh; }
+  } else if (cropState.resizing === 'ne') {
+    const ny = r.y + dy; const nh = r.h - dy;
+    r.w = Math.max(MIN, Math.min(1 - r.x, r.w + dx));
+    if (nh > MIN) { r.y = ny; r.h = nh; }
+  } else if (cropState.resizing === 'sw') {
+    const nx = r.x + dx; const nw = r.w - dx;
+    if (nw > MIN) { r.x = nx; r.w = nw; }
+    r.h = Math.max(MIN, Math.min(1 - r.y, r.h + dy));
+  }
+  dessinCropRect();
+}
+
+function onCropMouseUp() {
+  document.removeEventListener('mousemove', onCropMouseMove);
+  document.removeEventListener('mouseup',   onCropMouseUp);
+}
+
+function resetCrop() {
+  const b = getImageBounds();
+  cropState.imgBounds = b;
+  cropState.rect = { x: b.ox, y: b.oy, w: b.sx, h: b.sy };
+  dessinCropRect();
+}
+
+function appliquerCropManuel() {
+  const img = document.getElementById('img-3');
+  if (!img.src) return;
+  const r = cropState.rect;
+  const b = cropState.imgBounds;
+  const source = new Image();
+  source.onload = () => {
+    // Sauvegarder l'état AVANT le recadrage pour pouvoir annuler
+    cropHistory.push({
+      src:  img.src,
+      dim:  document.getElementById('meta-dimensions').textContent,
+      size: document.getElementById('meta-size').textContent
+    });
+
+    // Convertir coordonnées overlay → coordonnées image (0→1 relatif à l'image)
+    const imgX = (r.x - b.ox) / b.sx;
+    const imgY = (r.y - b.oy) / b.sy;
+    const imgW = r.w / b.sx;
+    const imgH = r.h / b.sy;
+    const cx = Math.max(0, imgX);
+    const cy = Math.max(0, imgY);
+    const cw = Math.min(1 - cx, imgW);
+    const ch = Math.min(1 - cy, imgH);
+    const xF = Math.round(cx * source.width);
+    const yF = Math.round(cy * source.height);
+    const wF = Math.max(1, Math.round(cw * source.width));
+    const hF = Math.max(1, Math.round(ch * source.height));
+    const cv = document.createElement('canvas'); cv.width = wF; cv.height = hF;
+    cv.getContext('2d').drawImage(source, xF, yF, wF, hF, 0, 0, wF, hF);
+    const result = cv.toDataURL('image/png');
+
+    img.src = result;
+    state.base64Traitee = result;
+    document.getElementById('cmp-after').src = result;
+    document.getElementById('crop-overlay').classList.remove('active');
+    document.getElementById('card-3').classList.remove('expanded');
+    document.getElementById('badge-3').className = 'step-card-badge badge-done';
+    document.getElementById('badge-3').textContent = '✓ OK';
+    document.getElementById('card-3').classList.add('done');
+    document.getElementById('meta-dimensions').textContent = `${wF} × ${hF}`;
+    const s = Math.round((result.length * 3) / 4);
+    document.getElementById('meta-size').textContent = s > 1024 ? `${(s/1024).toFixed(0)} Ko` : `${s} o`;
+
+    // Basculer vers le mode "appliqué" dans la barre d'actions
+    document.getElementById('crop-mode-adjust').style.display  = 'none';
+    document.getElementById('crop-mode-applied').style.display = 'flex';
+    document.getElementById('crop-actions').classList.remove('hidden');
+    document.getElementById('crop-actions').style.display = 'block';
+
+    ajouterLog(`Recadrage appliqué : ${wF}×${hF}px`, 'success');
+    afficherToast('Recadrage appliqué ! Vous pouvez annuler ou ré-ajuster.', 'success', 5000);
+  };
+  source.src = img.src;
+}
+
+/* Annule le dernier recadrage appliqué */
+function annulerCrop() {
+  if (!cropHistory.length) return;
+  const prev = cropHistory.pop();
+  const img  = document.getElementById('img-3');
+  img.src = prev.src;
+  state.base64Traitee = prev.src;
+  document.getElementById('cmp-after').src = prev.src;
+  document.getElementById('meta-dimensions').textContent = prev.dim;
+  document.getElementById('meta-size').textContent       = prev.size;
+  // Réactiver le mode ajustement
+  activerCropManuel(prev.src, null);
+  document.getElementById('crop-mode-applied').style.display = 'none';
+  document.getElementById('crop-mode-adjust').style.display  = 'flex';
+  document.getElementById('badge-3').className = 'step-card-badge';
+  document.getElementById('badge-3').style.cssText = 'background:rgba(255,107,0,0.15);color:#FF6B00;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;';
+  document.getElementById('badge-3').textContent = '✎ Ajuster';
+  document.getElementById('card-3').classList.remove('done');
+  document.getElementById('card-3').classList.add('active');
+  ajouterLog('Recadrage annulé — image précédente restaurée.', 'info');
+  afficherToast('Recadrage annulé.', 'info');
+}
+
+/* Ré-ouvre le mode ajustement sur l'image déjà recadrée */
+function reajusterCrop() {
+  const img = document.getElementById('img-3');
+  if (!img.src) return;
+  activerCropManuel(img.src, null);
+  document.getElementById('crop-mode-applied').style.display = 'none';
+  document.getElementById('crop-mode-adjust').style.display  = 'flex';
+  document.getElementById('badge-3').className = 'step-card-badge';
+  document.getElementById('badge-3').style.cssText = 'background:rgba(255,107,0,0.15);color:#FF6B00;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;';
+  document.getElementById('badge-3').textContent = '✎ Ajuster';
+}
+
+/* ============================================================
+   RECADRAGE — PLEIN ÉCRAN pour précision sur les bords
+   ============================================================ */
+function toggleCropFullscreen() {
+  const card = document.getElementById('card-3');
+  const btn  = document.getElementById('btn-crop-fullscreen');
+  const isFS = card.classList.contains('crop-fullscreen');
+
+  if (isFS) {
+    // Quitter le plein écran
+    card.classList.remove('crop-fullscreen');
+    document.body.style.overflow = '';
+    btn.textContent = '⤢ Plein écran';
+    // Recalculer les bounds pour la taille normale
+    requestAnimationFrame(() => { cropState.imgBounds = getImageBounds(); dessinCropRect(); });
+  } else {
+    // Entrer en plein écran
+    card.classList.add('crop-fullscreen');
+    document.body.style.overflow = 'hidden';
+    btn.textContent = '✕ Quitter plein écran';
+    // Recalculer les bounds pour la grande taille
+    requestAnimationFrame(() => { cropState.imgBounds = getImageBounds(); dessinCropRect(); });
+  }
+}
+
+/* ============================================================
+   SÉLECTION COULEUR — canvas interactif avec BFS au clic
+   ============================================================ */
+
+/* Bascule entre les deux onglets détourage */
+function switchDetourageTab(tab) {
+  const isFond = tab === 'fond-uni';
+  document.getElementById('tab-fond-uni').classList.toggle('active-tab', isFond);
+  document.getElementById('tab-selection').classList.toggle('active-tab', !isFond);
+  document.getElementById('panel-fond-uni').style.display  = isFond ? '' : 'none';
+  document.getElementById('panel-selection').style.display = isFond ? 'none' : '';
+  if (!isFond && state.base64Source) initCanvasSelection(state.base64Source);
+}
+
+/* Initialise (ou rafraîchit) le canvas avec l'image courante */
+function initCanvasSelection(dataUrl) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas  = document.getElementById('sel-canvas');
+    const zone    = document.getElementById('sel-zone');
+    const hint    = document.getElementById('sel-hint');
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    canvas.style.display = 'block';
+    hint.style.display   = 'none';
+    zone.classList.add('has-image');
+    document.getElementById('btn-sel-reset').disabled = false;
+    // Éviter les doublons d'écouteurs
+    canvas.removeEventListener('click', _onCanvasClick);
+    canvas.addEventListener('click', _onCanvasClick);
+  };
+  img.src = dataUrl;
+}
+
+/* Handler clic sur le canvas */
+function _onCanvasClick(e) {
+  const canvas = document.getElementById('sel-canvas');
+  const rect   = canvas.getBoundingClientRect();
+  const rx = (e.clientX - rect.left) / rect.width;
+  const ry = (e.clientY - rect.top)  / rect.height;
+  const tol = parseInt(document.getElementById('sel-tol-slider').value, 10);
+  const courant = selState.historique[selState.historique.length - 1];
+
+  // Feedback visuel
+  canvas.style.opacity = '0.55';
+  canvas.style.cursor  = 'wait';
+
+  supprimerParSelection(courant, rx, ry, tol)
+    .then(nouveau => {
+      selState.historique.push(nouveau);
+      // Rafraîchir canvas
+      const img2 = new Image();
+      img2.onload = () => {
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        canvas.getContext('2d').drawImage(img2, 0, 0);
+        canvas.style.opacity = '1';
+        canvas.style.cursor  = 'crosshair';
+      };
+      img2.src = nouveau;
+      // Mettre à jour l'image source dans state (utilisée par le pipeline)
+      state.base64Source = nouveau;
+      document.getElementById('img-0').src = nouveau;
+      document.getElementById('source-preview-inline').src = nouveau;
+      // Activer Annuler
+      document.getElementById('btn-sel-undo').disabled = selState.historique.length <= 1;
+      // Ajouter couleur à la palette visuelle
+      _ajouterCouleurPalette(courant, rx, ry);
+      ajouterLog(`Sélection couleur : zone supprimée (tolérance ${tol})`, 'success');
+    })
+    .catch(err => {
+      canvas.style.opacity = '1';
+      canvas.style.cursor  = 'crosshair';
+      ajouterLog('Sélection couleur erreur : ' + err.message, 'error');
+    });
+}
+
+/* Affiche un point coloré dans la palette d'historique */
+function _ajouterCouleurPalette(dataUrl, rx, ry) {
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    cv.getContext('2d').drawImage(img, 0, 0);
+    const x = Math.round(rx * img.naturalWidth);
+    const y = Math.round(ry * img.naturalHeight);
+    const d = cv.getContext('2d').getImageData(x, y, 1, 1).data;
+    const col = `rgb(${d[0]},${d[1]},${d[2]})`;
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:16px;height:16px;border-radius:3px;background:${col};border:1px solid #444;flex-shrink:0;cursor:default;`;
+    dot.title = col;
+    document.getElementById('sel-palette').appendChild(dot);
+  };
+  img.src = dataUrl;
+}
+
+/* Annule la dernière sélection */
+function annulerSelection() {
+  if (selState.historique.length <= 1) return;
+  selState.historique.pop();
+  const prev = selState.historique[selState.historique.length - 1];
+  state.base64Source = prev;
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.getElementById('sel-canvas');
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d').drawImage(img, 0, 0);
+  };
+  img.src = prev;
+  document.getElementById('img-0').src = prev;
+  document.getElementById('source-preview-inline').src = prev;
+  document.getElementById('btn-sel-undo').disabled = selState.historique.length <= 1;
+  // Retirer le dernier point de la palette
+  const pal = document.getElementById('sel-palette');
+  if (pal.lastChild) pal.removeChild(pal.lastChild);
+  ajouterLog('Sélection couleur annulée.', 'info');
+}
+
+/* Remet l'image originale */
+function reinitialiserSelection() {
+  if (!selState.base) return;
+  selState.historique = [selState.base];
+  state.base64Source  = selState.base;
+  document.getElementById('img-0').src = selState.base;
+  document.getElementById('source-preview-inline').src = selState.base;
+  document.getElementById('sel-palette').innerHTML = '';
+  document.getElementById('btn-sel-undo').disabled = true;
+  initCanvasSelection(selState.base);
+  ajouterLog('Sélection couleur réinitialisée.', 'info');
+}
+
+/**
+ * BFS depuis un point (rx,ry) relatif → supprime la zone connexe de même couleur
+ * @param {string} imageDataUrl  data URL PNG
+ * @param {number} rx            0..1 horizontal
+ * @param {number} ry            0..1 vertical
+ * @param {number} tolerance     distance couleur max
+ * @returns {Promise<string>}    data URL PNG résultant
+ */
+function supprimerParSelection(imageDataUrl, rx, ry, tolerance) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const W = img.naturalWidth, H = img.naturalHeight;
+        const cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, W, H);
+        const pixels  = imgData.data;
+
+        const xi = Math.max(0, Math.min(W-1, Math.round(rx * W)));
+        const yi = Math.max(0, Math.min(H-1, Math.round(ry * H)));
+        const si = (yi * W + xi) * 4;
+
+        // Pixel déjà transparent → rien à faire
+        if (pixels[si+3] === 0) { resolve(imageDataUrl); return; }
+
+        const targetColor = [pixels[si], pixels[si+1], pixels[si+2]];
+
+        const visited = new Uint8Array(W * H);
+        const queue   = [];
+
+        const tenter = (x, y) => {
+          if (x < 0 || x >= W || y < 0 || y >= H) return;
+          const pos = y * W + x;
+          if (visited[pos]) return;
+          visited[pos] = 1;
+          const i = pos * 4;
+          if (pixels[i+3] === 0) return;
+          if (_colorDist([pixels[i], pixels[i+1], pixels[i+2]], targetColor) <= tolerance) {
+            queue.push(pos);
+          }
+        };
+
+        tenter(xi, yi);
+        let head = 0;
+        while (head < queue.length) {
+          const pos = queue[head++];
+          pixels[pos * 4 + 3] = 0;
+          const px = pos % W, py = Math.floor(pos / W);
+          tenter(px-1, py); tenter(px+1, py);
+          tenter(px, py-1); tenter(px, py+1);
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        resolve(cv.toDataURL('image/png'));
+      } catch(e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error('Erreur suppression par sélection.'));
+    img.src = imageDataUrl;
+  });
+}
+</script>
+</body>
+</html>
