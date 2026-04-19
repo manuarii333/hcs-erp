@@ -1356,6 +1356,13 @@ const Inventory = (() => {
     _refreshAvancesSection(sec, produit);
   }
 
+  /* Formats DTF/transfert par défaut HCS (utilisés si attr custom "format" vide) */
+  const _DTF_FORMATS_DEFAUT = [
+    'A5 (14×20)', 'A4 (20×28)', 'A3 (28×40)', 'A2 (40×56)',
+    'Coeur 10×10', 'Poitrine 24×24', 'Dos 24×24',
+    'Nuque 8×8', 'Manche 10×10'
+  ];
+
   function _getAttrValues(attrName) {
     /* Retourne les valeurs connues pour un attribut donné */
     if (attrName === 'taille') {
@@ -1376,6 +1383,14 @@ const Inventory = (() => {
       if (vals.length) return vals;
       return [...new Set(_currentVariantes.map(v => v.coupe).filter(Boolean))];
     }
+    if (attrName === 'format_transfert') {
+      /* Lire depuis l'attribut custom "format" s'il existe, sinon liste DTF par défaut */
+      const customFmt = _currentCustomAttrs.find(ca =>
+        ca.nom.toLowerCase() === 'format' || ca.nom.toLowerCase() === 'format transfert'
+      );
+      if (customFmt && customFmt.valeurs.length) return customFmt.valeurs;
+      return _DTF_FORMATS_DEFAUT;
+    }
     const custom = _currentCustomAttrs.find(ca => ca.nom === attrName);
     return custom ? custom.valeurs : [];
   }
@@ -1383,10 +1398,11 @@ const Inventory = (() => {
   function _refreshAvancesSection(sec, produit) {
     /* Options de l'attribut prix */
     const attrOptions = [
-      { val: '', lbl: '— Aucun (prix fixe) —' },
-      { val: 'taille',  lbl: '📏 Taille' },
-      { val: 'couleur', lbl: '🎨 Couleur' },
-      { val: 'coupe',   lbl: '✂ Coupe / Style' },
+      { val: '',                lbl: '— Aucun (prix fixe) —' },
+      { val: 'taille',          lbl: '📏 Taille' },
+      { val: 'couleur',         lbl: '🎨 Couleur' },
+      { val: 'coupe',           lbl: '✂ Coupe / Style' },
+      { val: 'format_transfert',lbl: '🖨 Format Transfert (DTF)' },
       ..._currentCustomAttrs.filter(ca => ca.nom).map(ca => ({ val: ca.nom, lbl: '⬡ ' + ca.nom }))
     ];
 
@@ -1620,6 +1636,23 @@ const Inventory = (() => {
                 placeholder="Regular, Slim, Loose" />
             </div>
           </div>
+
+          <!-- Champ 4e dimension : attribut custom ou format transfert -->
+          <div id="var-attr-custom-wrap" style="margin-bottom:12px;display:none;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label" id="var-attr-custom-label">⬡ Attribut</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="text" class="form-control" id="var-attr-custom"
+                  placeholder="valeurs de l'attribut" style="flex:1;" />
+                <button class="btn btn-ghost btn-sm" id="btn-sync-attr-custom"
+                  title="Synchroniser depuis l'attribut">↺ Sync</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+                Chaque valeur générera une variante avec son prix correspondant.
+              </div>
+            </div>
+          </div>
+
           <div style="display:flex;gap:8px;align-items:center;">
             <button class="btn btn-primary btn-sm" id="btn-var-generate">
               ⚡ Générer les variantes
@@ -1769,6 +1802,12 @@ const Inventory = (() => {
       </div>`;
     }
 
+    /* Détecter si la colonne "Format" est utilisée */
+    const hasFormat = _currentVariantes.some(v => v.format);
+    const formatLabel = _attrPrix && !['taille','couleur','coupe',''].includes(_attrPrix)
+      ? (_attrPrix === 'format_transfert' ? 'Format' : _attrPrix)
+      : 'Format';
+
     const rows = _currentVariantes.map((v, i) => `
       <tr data-var-idx="${i}">
         <td><input type="text" class="line-input" data-var-field="taille" data-var-i="${i}"
@@ -1777,6 +1816,8 @@ const Inventory = (() => {
           value="${_escI(v.couleur || '')}" placeholder="Blanc" style="width:80px;" /></td>
         <td><input type="text" class="line-input" data-var-field="coupe" data-var-i="${i}"
           value="${_escI(v.coupe || '')}" placeholder="Regular" style="width:80px;" /></td>
+        ${hasFormat ? `<td><input type="text" class="line-input" data-var-field="format" data-var-i="${i}"
+          value="${_escI(v.format || '')}" placeholder="${_escI(formatLabel)}" style="width:90px;" /></td>` : ''}
         <td><input type="text" class="line-input" data-var-field="ref" data-var-i="${i}"
           value="${_escI(v.ref || '')}" placeholder="SKU-001" style="width:90px;" /></td>
         <td><input type="number" class="line-input num-input" data-var-field="prix" data-var-i="${i}"
@@ -1792,6 +1833,7 @@ const Inventory = (() => {
 
     /* Total stock */
     const totalQte = _currentVariantes.reduce((s, v) => s + (parseInt(v.quantite) || 0), 0);
+    const colSpanFoot = hasFormat ? 7 : 6;
 
     return `
       <div class="table-wrapper">
@@ -1801,6 +1843,7 @@ const Inventory = (() => {
               <th style="width:70px;">Taille</th>
               <th style="width:90px;">Couleur</th>
               <th style="width:90px;">Coupe</th>
+              ${hasFormat ? `<th style="width:100px;">${_escI(formatLabel)}</th>` : ''}
               <th style="width:100px;">Réf / SKU</th>
               <th style="width:95px;text-align:right;">Prix vente HT</th>
               <th style="width:95px;text-align:right;">Prix revient</th>
@@ -1813,7 +1856,7 @@ const Inventory = (() => {
           </tbody>
           <tfoot>
             <tr style="border-top:2px solid var(--border);">
-              <td colspan="6" style="text-align:right;font-size:12px;
+              <td colspan="${colSpanFoot}" style="text-align:right;font-size:12px;
                 color:var(--text-muted);padding:8px 12px;">
                 Stock total calculé :
               </td>
@@ -1830,16 +1873,43 @@ const Inventory = (() => {
 
   /** Lie tous les événements de la section variantes */
   function _bindVariantesEvents(produit) {
+    /* ── Champ 4e dimension : apparaît si attrPrix est un attribut custom ou format_transfert ── */
+    const _updateCustomDimField = () => {
+      const wrap  = document.getElementById('var-attr-custom-wrap');
+      const label = document.getElementById('var-attr-custom-label');
+      const inp   = document.getElementById('var-attr-custom');
+      if (!wrap) return;
+
+      const isCustomAttr = _attrPrix && !['taille','couleur','coupe'].includes(_attrPrix);
+      wrap.style.display = isCustomAttr ? 'block' : 'none';
+
+      if (isCustomAttr && label) {
+        const nom = _attrPrix === 'format_transfert' ? 'Format Transfert' : _attrPrix;
+        label.textContent = `⬡ ${nom}`;
+      }
+    };
+    _updateCustomDimField();
+
+    /* Sync depuis l'attribut custom */
+    document.getElementById('btn-sync-attr-custom')?.addEventListener('click', () => {
+      const vals = _getAttrValues(_attrPrix);
+      const inp  = document.getElementById('var-attr-custom');
+      if (inp && vals.length) inp.value = vals.join(', ');
+    });
+
     /* Aperçu du nombre de combinaisons à générer */
     const _updateGenPreview = () => {
-      const t  = _splitAttr(document.getElementById('var-attr-tailles')?.value);
-      const c  = _splitAttr(document.getElementById('var-attr-couleurs')?.value);
-      const co = _splitAttr(document.getElementById('var-attr-coupe')?.value);
-      const n  = Math.max(t.length, 1) * Math.max(c.length, 1) * Math.max(co.length, 1);
+      const t   = _splitAttr(document.getElementById('var-attr-tailles')?.value);
+      const c   = _splitAttr(document.getElementById('var-attr-couleurs')?.value);
+      const co  = _splitAttr(document.getElementById('var-attr-coupe')?.value);
+      const cu  = _splitAttr(document.getElementById('var-attr-custom')?.value);
+      const isCustom = _attrPrix && !['taille','couleur','coupe'].includes(_attrPrix);
+      const n = Math.max(t.length, 1) * Math.max(c.length, 1) * Math.max(co.length, 1)
+              * (isCustom ? Math.max(cu.length, 1) : 1);
       const prev = document.getElementById('var-gen-preview');
       if (prev) prev.textContent = n > 1 ? `→ ${n} combinaison${n > 1 ? 's' : ''}` : '';
     };
-    ['var-attr-tailles', 'var-attr-couleurs', 'var-attr-coupe'].forEach(id => {
+    ['var-attr-tailles', 'var-attr-couleurs', 'var-attr-coupe', 'var-attr-custom'].forEach(id => {
       document.getElementById(id)?.addEventListener('input', _updateGenPreview);
     });
     _updateGenPreview();
@@ -1849,10 +1919,14 @@ const Inventory = (() => {
       const tailles  = _splitAttr(document.getElementById('var-attr-tailles')?.value);
       const couleurs = _splitAttr(document.getElementById('var-attr-couleurs')?.value);
       const coupes   = _splitAttr(document.getElementById('var-attr-coupe')?.value);
+      const customs  = _splitAttr(document.getElementById('var-attr-custom')?.value);
+
+      const isCustomDim = _attrPrix && !['taille','couleur','coupe'].includes(_attrPrix) && customs.length > 0;
 
       const tList  = tailles.length  ? tailles  : [''];
       const cList  = couleurs.length ? couleurs : [''];
       const coList = coupes.length   ? coupes   : [''];
+      const cuList = isCustomDim     ? customs  : [''];
 
       /* Prix et coût par défaut depuis le formulaire principal */
       const prixDefaut = parseFloat(document.querySelector('[name="prix"]')?.value) || 0;
@@ -1860,38 +1934,43 @@ const Inventory = (() => {
 
       /* Générer toutes les combinaisons, dédupliquer avec l'existant */
       const existingKeys = new Set(_currentVariantes.map(v =>
-        `${v.taille}|${v.couleur}|${v.coupe}`
+        `${v.taille}|${v.couleur}|${v.coupe}|${v.format || ''}`
       ));
 
       let ajouts = 0;
       tList.forEach(t => {
         cList.forEach(c => {
           coList.forEach(co => {
-            const key = `${t}|${c}|${co}`;
-            if (!existingKeys.has(key)) {
-              /* Calculer le prix avec l'incrément si attrPrix défini */
-              let prixVariante = prixDefaut;
-              if (_attrPrix && Object.keys(_attrIncrements).length) {
-                let valAttr = '';
-                if (_attrPrix === 'taille')  valAttr = t;
-                else if (_attrPrix === 'couleur') valAttr = c;
-                else if (_attrPrix === 'coupe')   valAttr = co;
-                if (valAttr && _attrIncrements[valAttr] !== undefined) {
-                  prixVariante = prixDefaut + (_attrIncrements[valAttr] || 0);
+            cuList.forEach(cu => {
+              const key = `${t}|${c}|${co}|${cu}`;
+              if (!existingKeys.has(key)) {
+                /* Calculer le prix avec l'incrément si attrPrix défini */
+                let prixVariante = prixDefaut;
+                if (_attrPrix && Object.keys(_attrIncrements).length) {
+                  let valAttr = '';
+                  if (_attrPrix === 'taille')       valAttr = t;
+                  else if (_attrPrix === 'couleur')  valAttr = c;
+                  else if (_attrPrix === 'coupe')    valAttr = co;
+                  else if (isCustomDim)              valAttr = cu;
+                  if (valAttr && _attrIncrements[valAttr] !== undefined) {
+                    prixVariante = prixDefaut + (_attrIncrements[valAttr] || 0);
+                  }
                 }
+                const variante = {
+                  taille:   t,
+                  couleur:  c,
+                  coupe:    co,
+                  ref:      '',
+                  prix:     prixVariante,
+                  cout:     coutDefaut,
+                  quantite: 0
+                };
+                if (isCustomDim && cu) variante.format = cu;
+                _currentVariantes.push(variante);
+                existingKeys.add(key);
+                ajouts++;
               }
-              _currentVariantes.push({
-                taille:   t,
-                couleur:  c,
-                coupe:    co,
-                ref:      '',
-                prix:     prixVariante,
-                cout:     coutDefaut,
-                quantite: 0
-              });
-              existingKeys.add(key);
-              ajouts++;
-            }
+            });
           });
         });
       });
