@@ -18,6 +18,7 @@ const LS_KEY = 'hcs_erp_db';
 const DB_DEFAULT = {
   produits:          [],
   contacts:          [],
+  clients:           [],   // Fiches clients entreprises / organisations
   fournisseurs:      [],
   opportunites:      [],
   devis:             [],
@@ -189,6 +190,10 @@ const Store = (() => {
 
     db[collection].push(record);
     save();
+
+    /* Sync MySQL asynchrone (fire-and-forget) */
+    _syncMySQLCreate(collection, record);
+
     return record;
   }
 
@@ -208,6 +213,10 @@ const Store = (() => {
       _updatedAt: new Date().toISOString()
     });
     save();
+
+    /* Sync MySQL asynchrone (fire-and-forget) */
+    _syncMySQLUpdate(collection, id, updates);
+
     return db[collection][idx];
   }
 
@@ -221,6 +230,10 @@ const Store = (() => {
     if (!db) load();
     if (!db[collection]) return false;
     const len = db[collection].length;
+
+    /* Sync MySQL avant la suppression (on a encore le record) */
+    _syncMySQLDelete(collection, id);
+
     db[collection] = db[collection].filter(item => item.id !== id);
     save();
     return db[collection].length < len;
@@ -420,6 +433,230 @@ const Store = (() => {
     console.info('[Store] Base réinitialisée');
   }
 
+  /* ================================================================
+     SYNC MYSQL — miroir asynchrone vers l'API PHP
+     Fire-and-forget : ne bloque jamais les opérations locales.
+     ================================================================ */
+
+  /* Tables du Store qui ont une contrepartie MySQL */
+  const MYSQL_TABLES = new Set([
+    'contacts', 'produits', 'fournisseurs', 'devis', 'commandes',
+    'factures', 'employes', 'conges', 'commandes_atelier', 'planning_atelier',
+    'taches_agents'
+  ]);
+
+  /**
+   * Envoie une création vers MySQL.
+   * Stocke l'ID MySQL retourné dans le record Store (_mysql_id).
+   */
+  async function _syncMySQLCreate(collection, record) {
+    if (!window.MYSQL || !MYSQL_TABLES.has(collection)) return;
+    try {
+      const payload = _buildMySQLPayload(record);
+      const created = await window.MYSQL.create(collection, payload);
+      if (created && created.id) {
+        /* Stocker l'ID MySQL sans déclencher une nouvelle sync */
+        const idx = (db[collection] || []).findIndex(r => r.id === record.id);
+        if (idx !== -1) {
+          db[collection][idx]._mysql_id = created.id;
+          try { localStorage.setItem(LS_KEY, JSON.stringify(db)); } catch (_) {}
+        }
+      }
+    } catch (e) {
+      console.warn(`[Store] MySQL create ${collection} échoué:`, e.message);
+    }
+  }
+
+  /**
+   * Envoie une mise à jour vers MySQL.
+   * Utilise _mysql_id si disponible, sinon ignore.
+   */
+  async function _syncMySQLUpdate(collection, storeId, updates) {
+    if (!window.MYSQL || !MYSQL_TABLES.has(collection)) return;
+    try {
+      const record = (db[collection] || []).find(r => r.id === storeId);
+      if (!record || !record._mysql_id) return;
+      const payload = _buildMySQLPayload(updates);
+      await window.MYSQL.update(collection, record._mysql_id, payload);
+    } catch (e) {
+      console.warn(`[Store] MySQL update ${collection} échoué:`, e.message);
+    }
+  }
+
+  /**
+   * Envoie une suppression vers MySQL.
+   */
+  async function _syncMySQLDelete(collection, storeId) {
+    if (!window.MYSQL || !MYSQL_TABLES.has(collection)) return;
+    try {
+      const record = (db[collection] || []).find(r => r.id === storeId);
+      if (!record || !record._mysql_id) return;
+      await window.MYSQL.delete(collection, record._mysql_id);
+    } catch (e) {
+      console.warn(`[Store] MySQL delete ${collection} échoué:`, e.message);
+    }
+  }
+
+  /**
+   * Prépare les données pour MySQL.
+   * - Exclut les champs internes (_createdAt, _updatedAt, _mysql_id)
+   * - Mappe 'id' → 'store_id' (colonne de liaison dans MySQL)
+   * - Arrays/objects laissés tels quels (base.php les JSON-encode)
+   */
+  function _buildMySQLPayload(record) {
+    const exclude = new Set(['_createdAt', '_updatedAt', '_mysql_id']);
+    const payload = {};
+    for (const [k, v] of Object.entries(record || {})) {
+      if (exclude.has(k)) continue;
+      payload[k === 'id' ? 'store_id' : k] = v;
+    }
+    return payload;
+  }
+
+  /**
+   * Convertit une ligne MySQL en record Store local.
+   * Utilise store_id comme id local si disponible.
+   * Parse automatiquement les champs JSON (lignes, paiements, variantes…).
+   * @private
+   */
+  /* snake_case → camelCase (client_nom → clientNom, total_ht → totalHT) */
+  function _snakeToCamel(str) {
+    return str.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+              .replace(/_([A-Z]+)/g, (_, g) => g);
+  }
+
+  function _mysqlRowToLocal(collection, row) {
+    const record = {
+      id:         row.store_id || (collection + '-mysql-' + row.id + '-' + Math.random().toString(36).substr(2, 5)),
+      _mysql_id:  row.id,
+      _createdAt: row.created_at || new Date().toISOString(),
+      _updatedAt: row.updated_at || new Date().toISOString()
+    };
+    for (const [k, v] of Object.entries(row)) {
+      if (['id', 'store_id', 'created_at', 'updated_at'].includes(k)) continue;
+      const camelKey = _snakeToCamel(k);
+      if (typeof v === 'string' && v.length > 1 && (v[0] === '[' || v[0] === '{')) {
+        try { record[camelKey] = JSON.parse(v); } catch { record[camelKey] = v; }
+      } else {
+        record[camelKey] = v;
+      }
+    }
+    return record;
+  }
+
+  /**
+   * MySQL → localStorage : importe les records MySQL absents en local.
+   * Identifie les doublons via store_id (fiable) OU _mysql_id (fallback).
+   * Recale les compteurs de numérotation.
+   *
+   * @param {string[]} [collections]
+   * @returns {Promise<{synced: number, errors: string[]}>}
+   */
+  async function syncFromMySQL(collections) {
+    if (!window.MYSQL) return { synced: 0, errors: ['MySQL non disponible'] };
+    if (!db) load();
+
+    const SYNC_COLS = collections || ['devis', 'factures', 'commandes', 'contacts', 'produits', 'fournisseurs'];
+    const COUNTER_MAP = { devis: 'devis', factures: 'factures', commandes: 'commandes' };
+    let synced = 0;
+    const errors = [];
+
+    for (const col of SYNC_COLS) {
+      try {
+        const rows = await window.MYSQL.getAll(col, { limit: 2000 });
+        if (!Array.isArray(rows) || !rows.length) continue;
+
+        /* Double index : par _mysql_id et par store_id (= id local) */
+        const byMysqlId = new Map();
+        const byStoreId = new Map();
+        (db[col] || []).forEach(r => {
+          if (r._mysql_id) byMysqlId.set(String(r._mysql_id), r);
+          if (r.id)        byStoreId.set(r.id, r);
+        });
+
+        for (const row of rows) {
+          const alreadyLinked  = byMysqlId.has(String(row.id));
+          const alreadyByStore = row.store_id && byStoreId.has(row.store_id);
+          if (alreadyLinked || alreadyByStore) {
+            /* Mettre à jour _mysql_id si le record local l'avait perdu */
+            if (alreadyByStore && !alreadyLinked) {
+              const local = byStoreId.get(row.store_id);
+              local._mysql_id = row.id;
+            }
+            continue;
+          }
+
+          const record = _mysqlRowToLocal(col, row);
+          if (!db[col]) db[col] = [];
+          db[col].push(record);
+          synced++;
+
+          /* Recaler le compteur si on détecte un numéro de référence plus élevé */
+          const cKey = COUNTER_MAP[col];
+          if (cKey && record.ref) {
+            const m = String(record.ref).match(/(\d+)$/);
+            if (m) {
+              const n = parseInt(m[1], 10);
+              if (!db._meta.counters) db._meta.counters = {};
+              if (n > (db._meta.counters[cKey] || 0)) db._meta.counters[cKey] = n;
+            }
+          }
+        }
+      } catch (e) {
+        errors.push(`${col}: ${e.message}`);
+        console.warn(`[Store] syncFromMySQL ${col} échoué:`, e.message);
+      }
+    }
+
+    if (synced > 0) {
+      save();
+      console.info(`[Store] syncFromMySQL: ${synced} enregistrement(s) restauré(s) depuis MySQL`);
+    }
+    return { synced, errors };
+  }
+
+  /**
+   * localStorage → MySQL : envoie les records locaux sans _mysql_id.
+   * Corrige les records créés quand MySQL était hors-ligne.
+   *
+   * @param {string[]} [collections]
+   * @returns {Promise<{pushed: number, errors: string[]}>}
+   */
+  async function pushMissingToMySQL(collections) {
+    if (!window.MYSQL) return { pushed: 0, errors: ['MySQL non disponible'] };
+    if (!db) load();
+
+    const PUSH_COLS = collections || ['devis', 'factures', 'commandes', 'contacts', 'produits', 'fournisseurs'];
+    let pushed = 0;
+    const errors = [];
+
+    for (const col of PUSH_COLS) {
+      /* Ignorer les records du seed (IDs statiques type prod-001, cont-001) */
+      const isSeedId = r => /^[a-z]+-\d{3,4}$/.test(r.id);
+      const orphans = (db[col] || []).filter(r => !r._mysql_id && !isSeedId(r));
+      for (const record of orphans) {
+        try {
+          const payload = _buildMySQLPayload(record);
+          const created = await window.MYSQL.create(col, payload);
+          if (created && created.id) {
+            const idx = db[col].findIndex(r => r.id === record.id);
+            if (idx !== -1) db[col][idx]._mysql_id = created.id;
+            pushed++;
+          }
+        } catch (e) {
+          errors.push(`${col}/${record.id}: ${e.message}`);
+          console.warn(`[Store] pushMissingToMySQL ${col} échoué:`, e.message);
+        }
+      }
+    }
+
+    if (pushed > 0) {
+      save();
+      console.info(`[Store] pushMissingToMySQL: ${pushed} enregistrement(s) envoyé(s) vers MySQL`);
+    }
+    return { pushed, errors };
+  }
+
   /* ---------- API PUBLIQUE ---------- */
   return {
     load,
@@ -439,9 +676,32 @@ const Store = (() => {
     addAuditLog,
     exportJSON,
     importJSON,
-    reset
+    reset,
+    syncFromMySQL,
+    pushMissingToMySQL
   };
 })();
 
 /* Initialiser la base au chargement du script */
 Store.load();
+
+/* Sync bidirectionnelle au démarrage :
+   1. MySQL → local : récupère les records absents (restauration après perte localStorage)
+   2. Local → MySQL : pousse les records sans _mysql_id (créés hors-ligne)
+*/
+(async () => {
+  /* Attendre que mysql-api.js soit chargé (window.MYSQL dispo) */
+  await new Promise(r => setTimeout(r, 300));
+
+  const [fromMySQL, toMySQL] = await Promise.all([
+    Store.syncFromMySQL(),
+    Store.pushMissingToMySQL()
+  ]);
+
+  const total = fromMySQL.synced + toMySQL.pushed;
+  if (total > 0) {
+    console.info(`[Store] Sync démarrage : ↓${fromMySQL.synced} restauré(s), ↑${toMySQL.pushed} envoyé(s)`);
+    /* Rafraîchir l'affichage si l'app est montée */
+    if (typeof App !== 'undefined' && typeof App.refresh === 'function') App.refresh();
+  }
+})();

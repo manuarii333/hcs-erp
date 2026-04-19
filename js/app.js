@@ -61,6 +61,7 @@ const APPS = [
     pinned: true,
     views: [
       { id: 'planning',     label: 'Planning',       icon: '📅', section: 'Atelier'    },
+      { id: 'hcs-designer', label: '⬡ HCS Designer', icon: '🎨', section: 'Atelier'    },
       { id: 'mo',           label: 'Ordres de fab.', icon: '🔧', section: 'Atelier'    },
       { id: 'bom',          label: 'Nomenclatures',  icon: '📐', section: 'Paramètres' },
       { id: 'work-centers', label: 'Postes',         icon: '🏭', section: 'Paramètres' }
@@ -127,6 +128,7 @@ const APPS = [
       { id: 'bilan',           label: 'Bilan',               icon: '⚖',  section: 'Rapports'    },
       { id: 'balance',         label: 'Balance',             icon: '📊', section: 'Rapports'    },
       { id: 'tax-report',      label: 'Rapport TVA',         icon: '📑', section: 'Rapports'    },
+      { id: 'stats-ventes',   label: 'Stats ventes & TVA',  icon: '📦', section: 'Rapports'    },
       { id: 'assistant',       label: '✨ Assistant Comptable', icon: '🤖', section: 'IA'       }
     ]
   },
@@ -170,6 +172,7 @@ const APPS = [
       { id: 'dtf-plaques-transfert',   label: 'DTF Plaques Transfert', icon: '🖨', section: 'Production'       },
       { id: 'signmaster-guide',        label: 'SignMaster Guide',      icon: '✂️', section: 'Production'       },
       { id: 'admin-photos-produits',   label: 'Photos Produits',       icon: '📸', section: 'Visuel & Contenu' },
+      { id: 'hcs-designer',            label: '⬡ HCS Designer',        icon: '🎨', section: 'Visuel & Contenu' },
       { id: 'picwish-pipeline',        label: 'PicWish Pipeline',      icon: '🖼',  section: 'Visuel & Contenu', external: true, url: 'apps/picwish-pipeline.html' },
       { id: 'content-generator',       label: 'Content Generator',     icon: '✍️', section: 'Visuel & Contenu' },
       { id: 'stock-dashboard',         label: 'Stock Dashboard',       icon: '📦', section: 'Gestion'          },
@@ -180,9 +183,10 @@ const APPS = [
       { id: 'routine-dashboard',       label: 'Routines',              icon: '🔄', section: 'Supervision'      },
       { id: 'vocal-dashboard',         label: 'Agent Vocal',           icon: '🎙', section: 'Supervision'      },
       { id: 'advisor',                  label: '⬡ Grace — Advisor IA',  icon: '🤖', section: 'Supervision'      },
+      { id: 'dev-studio',               label: 'Dev Studio',            icon: '🛠',  section: 'Développement'    },
       /* ── Applications HCS externes ── */
       { id: 'ext-andromeda',   label: 'Andromeda Builder', icon: '📡', section: 'Applications HCS', external: true, url: '../campaign/andromeda-campaign.html' },
-      { id: 'ext-mockupforge', label: 'MockupForge v12',   icon: '🖼️', section: 'Applications HCS', external: true, url: '../mockup-forge-v12.html' },
+      { id: 'mockup-forge-v12', label: 'MockupForge v12',   icon: '🖼️', section: 'Applications HCS' },
       { id: 'ext-dtf-composer',label: 'DTF Composer v4',   icon: '🎨', section: 'Applications HCS', external: true, url: '../agents/agent3_visuel/dtf-composer-v4.html' },
       { id: 'ext-dtf-calc',    label: 'Calculateur DTF',   icon: '🧮', section: 'Applications HCS', external: true, url: '../dtf-calculator-hcs-v2.html' },
       { id: 'ext-hcs-builder', label: 'HCS Builder v2',    icon: '🏗️', section: 'Applications HCS', external: true, url: '../hcs-builder-v2-fixed.html' },
@@ -451,6 +455,9 @@ function renderView() {
       // La vue Planning charge le dashboard standalone en iframe
       if (view === 'planning') {
         renderIframe('modules/planning-dashboard.html', container);
+      } else if (view === 'hcs-designer') {
+        // Agent HCS Designer : DTF Studio + Lecture Devis + Envoi Atelier
+        renderIframe('modules/hcs-designer.html', container);
       } else if (typeof Manufacturing !== 'undefined') {
         Manufacturing.init(document.getElementById('toolbar-actions'), container, view);
       }
@@ -484,8 +491,8 @@ function renderView() {
       if (view === 'advisor') {
         container.style.padding = '';
         container.style.overflow = '';
-        if (typeof AdvisorModule !== 'undefined') {
-          AdvisorModule.render();
+        if (typeof Advisor !== 'undefined') {
+          Advisor.init(document.getElementById('toolbar-actions'), container);
         } else {
           container.innerHTML = `<div class="table-empty"><p>⬡ Module Advisor non chargé — vérifiez js/modules/advisor.js</p></div>`;
         }
@@ -773,7 +780,7 @@ function renderDashboard(view, container) {
     }
 
     /* Factures impayées */
-    const impayees = (db.factures || []).filter(f => !['Payé','Annulée','Annulé'].includes(f.statut));
+    const impayees = (db.factures || []).filter(f => !['Payé','Payée','Annulée','Annulé'].includes(f.statut));
     if (impayees.length > 0) {
       const totalImp = impayees.reduce((s,f) => s+(f.totalTTC||0), 0);
       alerts.push({ type: 'error', icon: '🧾', msg: `${impayees.length} facture(s) en attente de paiement — ${fmt(totalImp)}` });

@@ -72,7 +72,8 @@ const Accounting = (() => {
       case 'pl-report':       _renderPLReport(toolbar, area);    break;
       case 'bilan':           _renderBilan(toolbar, area);       break;
       case 'balance':         _renderBalance(toolbar, area);     break;
-      case 'tax-report':      _renderTaxReport(toolbar, area);   break;
+      case 'tax-report':      _renderTaxReport(toolbar, area);    break;
+      case 'stats-ventes':   _renderStatsVentes(toolbar, area);  break;
       case 'assistant':       _renderAssistant(toolbar, area);   break;
       default:                _renderTableauBord(toolbar, area);
     }
@@ -697,6 +698,385 @@ const Accounting = (() => {
     toolbar.querySelector('#bal-csv').addEventListener('click', () => _dlCSV('hcs-balance', balHdrs, balRows()));
     toolbar.querySelector('#bal-xls').addEventListener('click', () => _dlXLS('hcs-balance', balHdrs, balRows(), 'Balance'));
     toolbar.querySelector('#bal-pdf').addEventListener('click', () => _dlPDF('Balance générale des comptes', 'Tous exercices', balHdrs, balRows()));
+  }
+
+  /* ================================================================
+     VUE : STATISTIQUES VENTES & TVA
+     Articles vendus par catégorie + TVA encaissée + TVA déductible
+     ================================================================ */
+  function _renderStatsVentes(toolbar, area) {
+
+    /* Sélecteur de période */
+    toolbar.innerHTML = `
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label style="font-size:13px;color:var(--text-muted);font-weight:600;">Période :</label>
+        <select id="sv-period" class="form-control" style="width:180px;padding:5px 10px;">
+          <option value="all">Tout l'historique</option>
+          <option value="month">Ce mois</option>
+          <option value="quarter">Ce trimestre</option>
+          <option value="year" selected>Cette année</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="sv-refresh">↺ Actualiser</button>
+      </div>`;
+
+    const _build = () => _buildStatsVentes(area,
+      document.getElementById('sv-period')?.value || 'year'
+    );
+
+    toolbar.querySelector('#sv-period').addEventListener('change', _build);
+    toolbar.querySelector('#sv-refresh').addEventListener('click',  _build);
+
+    _build();
+  }
+
+  /** Construit le contenu du panneau Stats ventes selon la période */
+  function _buildStatsVentes(area, period) {
+    const now    = new Date();
+    const year   = now.getFullYear();
+    const month  = now.getMonth();
+    const q      = Math.floor(month / 3);
+
+    /* Filtre date selon période */
+    const _inPeriod = (dateStr) => {
+      if (!dateStr || period === 'all') return true;
+      const d = new Date(dateStr);
+      if (isNaN(d)) return true;
+      if (period === 'year')    return d.getFullYear() === year;
+      if (period === 'month')   return d.getFullYear() === year && d.getMonth() === month;
+      if (period === 'quarter') {
+        const dq = Math.floor(d.getMonth() / 3);
+        return d.getFullYear() === year && dq === q;
+      }
+      return true;
+    };
+
+    /* ---- Données sources ---- */
+    const factures  = Store.getAll('factures').filter(f => _inPeriod(f.date));
+    const produits  = Store.getAll('produits');
+    const ecritures = Store.getAll('ecritures').filter(e => _inPeriod(e.date));
+
+    /* Index produits : par id et par nom */
+    const prodById  = {};
+    const prodByNom = {};
+    produits.forEach(p => {
+      if (p.id)  prodById[p.id]                         = p;
+      if (p.nom) prodByNom[(p.nom || '').toLowerCase()] = p;
+    });
+
+    /* ---- 1. Articles vendus par catégorie ---- */
+    const catStats = {};   /* { cat: { qte, ht, tva, ttc, articles: Set } } */
+    let totalQteGlobal = 0, totalHTGlobal = 0, totalTTCGlobal = 0;
+
+    factures.forEach(fac => {
+      (fac.lignes || []).forEach(l => {
+        const prod = prodById[l.produitId]
+          || prodByNom[(l.produit || '').toLowerCase()]
+          || {};
+        const cat  = prod.categorie || l.categorie || '(Non classé)';
+        const qte  = parseFloat(l.qte)          || 0;
+        const pu   = parseFloat(l.prixUnitaire)  || 0;
+        const rem  = parseFloat(l.remise)        || 0;
+        const ht   = Math.round(qte * pu * (1 - rem / 100));
+        const taux = l.tauxTVA !== undefined ? parseFloat(l.tauxTVA) : 16;
+        const tva  = Math.round(ht * taux / 100);
+        const ttc  = ht + tva;
+
+        if (!catStats[cat]) catStats[cat] = { qte: 0, ht: 0, tva: 0, ttc: 0, articles: new Set() };
+        catStats[cat].qte     += qte;
+        catStats[cat].ht      += ht;
+        catStats[cat].tva     += tva;
+        catStats[cat].ttc     += ttc;
+        catStats[cat].articles.add(l.produit || l.description || '?');
+
+        totalQteGlobal  += qte;
+        totalHTGlobal   += ht;
+        totalTTCGlobal  += ttc;
+      });
+    });
+
+    /* Trier par CA HT décroissant */
+    const catRows = Object.entries(catStats)
+      .sort((a, b) => b[1].ht - a[1].ht);
+
+    /* ---- 2. TVA encaissée — comptes 445700 / 4458xx (crédit) ---- */
+    const tvaEncaissee = ecritures
+      .filter(e => e.compte && (
+        e.compte.startsWith('44570') ||
+        e.compte.startsWith('44581') ||
+        e.compte.startsWith('44582') ||
+        e.compte.startsWith('44583') ||
+        e.compte.startsWith('44580')
+      ) && (e.credit || 0) > 0)
+      .reduce((s, e) => s + (e.credit || 0), 0);
+
+    /* Aussi somme des TVA des lignes de factures (source secondaire) */
+    const tvaEncaisseeLignes = factures.reduce((s, f) =>
+      s + ((f.totalTVA || (f.totalTTC || 0) - (f.totalHT || 0)) || 0), 0
+    );
+    const tvaEncFinal = tvaEncaissee > 0 ? Math.round(tvaEncaissee) : Math.round(tvaEncaisseeLignes);
+
+    /* ---- 3. TVA déductible — comptes 4456xx (débit) ---- */
+    const tvaDed = ecritures
+      .filter(e => e.compte && (
+        e.compte.startsWith('44566') ||
+        e.compte.startsWith('44560')
+      ) && (e.debit || 0) > 0)
+      .reduce((s, e) => s + (e.debit || 0), 0);
+
+    /* TVA nette à payer */
+    const tvaNette = Math.max(0, tvaEncFinal - Math.round(tvaDed));
+
+    /* ---- Libellé période ---- */
+    const PERIOD_LABEL = {
+      all: 'Tout l\'historique',
+      year: `Exercice ${year}`,
+      month: now.toLocaleString('fr-FR', { month: 'long', year: 'numeric' }),
+      quarter: `T${q + 1} ${year}`
+    };
+    const periodLabel = PERIOD_LABEL[period] || period;
+
+    /* ---- Couleurs par catégorie (palette) ---- */
+    const PALETTE = ['#4a5fff','#00d4aa','#ffc857','#ff6b6b','#b07bff',
+                     '#00b4d8','#f77f00','#9b5de5','#06d6a0','#ef476f'];
+
+    /* ---- HTML ---- */
+    const catTableRows = catRows.length === 0
+      ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">
+           Aucune vente sur cette période.</td></tr>`
+      : catRows.map(([cat, s], i) => {
+          const pct = totalHTGlobal > 0 ? Math.round((s.ht / totalHTGlobal) * 100) : 0;
+          const col = PALETTE[i % PALETTE.length];
+          return `
+            <tr>
+              <td style="padding:10px 12px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="width:10px;height:10px;border-radius:3px;background:${col};flex-shrink:0;"></div>
+                  <span style="font-weight:600;color:var(--text-primary);">${_escA(cat)}</span>
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:2px;padding-left:18px;">
+                  ${[...s.articles].slice(0, 3).map(_escA).join(', ')}${s.articles.size > 3 ? ' …' : ''}
+                </div>
+              </td>
+              <td style="text-align:center;padding:10px 8px;font-family:var(--font-mono);
+                font-weight:700;color:var(--text-primary);">${s.qte}</td>
+              <td style="text-align:right;padding:10px 8px;font-family:var(--font-mono);">
+                ${_fmtA(Math.round(s.ht))}</td>
+              <td style="text-align:right;padding:10px 8px;font-family:var(--font-mono);
+                color:var(--accent-orange);">${_fmtA(Math.round(s.tva))}</td>
+              <td style="text-align:right;padding:10px 8px;font-family:var(--font-mono);
+                font-weight:700;color:var(--text-primary);">${_fmtA(Math.round(s.ttc))}</td>
+              <td style="padding:10px 8px;min-width:100px;">
+                <div style="background:var(--bg-elevated);border-radius:4px;height:8px;overflow:hidden;">
+                  <div style="background:${col};height:100%;width:${pct}%;transition:width .4s;"></div>
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);text-align:right;margin-top:2px;">${pct}%</div>
+              </td>
+            </tr>`;
+        }).join('');
+
+    area.innerHTML = `
+      <div style="max-width:1100px;margin:0 auto;padding:24px 0;">
+
+        <!-- Titre période -->
+        <div style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:24px;">
+          Statistiques ventes &amp; TVA
+          <span style="font-size:13px;font-weight:400;color:var(--text-muted);margin-left:10px;">${_escA(periodLabel)}</span>
+        </div>
+
+        <!-- KPI bande supérieure -->
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:28px;">
+
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
+            padding:16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+              letter-spacing:.07em;margin-bottom:6px;">Articles vendus</div>
+            <div style="font-size:22px;font-weight:800;font-family:var(--font-mono);
+              color:var(--text-primary);">${totalQteGlobal}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${catRows.length} catégorie${catRows.length > 1 ? 's' : ''}</div>
+          </div>
+
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
+            padding:16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+              letter-spacing:.07em;margin-bottom:6px;">CA HT total</div>
+            <div style="font-size:20px;font-weight:800;font-family:var(--font-mono);
+              color:var(--accent-blue);">${_fmtA(Math.round(totalHTGlobal))}</div>
+          </div>
+
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
+            padding:16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+              letter-spacing:.07em;margin-bottom:6px;">TVA encaissée</div>
+            <div style="font-size:20px;font-weight:800;font-family:var(--font-mono);
+              color:var(--accent-orange);">${_fmtA(tvaEncFinal)}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Collectée sur ventes</div>
+          </div>
+
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
+            padding:16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+              letter-spacing:.07em;margin-bottom:6px;">TVA déductible</div>
+            <div style="font-size:20px;font-weight:800;font-family:var(--font-mono);
+              color:var(--accent-green);">${_fmtA(Math.round(tvaDed))}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Sur achats &amp; charges</div>
+          </div>
+
+          <div style="background:${tvaNette > 0 ? '#FEF3C7' : '#DCFCE7'};
+            border:1px solid ${tvaNette > 0 ? '#FCD34D' : '#86EFAC'};
+            border-radius:12px;padding:16px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:${tvaNette > 0 ? '#92400E' : '#15803D'};
+              text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">TVA nette à payer</div>
+            <div style="font-size:20px;font-weight:800;font-family:var(--font-mono);
+              color:${tvaNette > 0 ? '#D97706' : '#16A34A'};">${_fmtA(tvaNette)}</div>
+            <div style="font-size:10px;color:${tvaNette > 0 ? '#92400E' : '#15803D'};margin-top:4px;">
+              Encaissée − Déductible</div>
+          </div>
+        </div>
+
+        <!-- Tableau catégories -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);
+          border-radius:12px;overflow:hidden;margin-bottom:28px;">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border);
+            display:flex;align-items:center;justify-content:space-between;">
+            <div style="font-size:14px;font-weight:700;color:var(--text-primary);">
+              Articles vendus par catégorie
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);">
+              ${factures.length} facture${factures.length > 1 ? 's' : ''} analysée${factures.length > 1 ? 's' : ''}
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:var(--bg-elevated);">
+                  <th style="text-align:left;padding:10px 12px;font-size:11px;font-weight:700;
+                    color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Catégorie</th>
+                  <th style="text-align:center;padding:10px 8px;font-size:11px;font-weight:700;
+                    color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Qté vendue</th>
+                  <th style="text-align:right;padding:10px 8px;font-size:11px;font-weight:700;
+                    color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">CA HT</th>
+                  <th style="text-align:right;padding:10px 8px;font-size:11px;font-weight:700;
+                    color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">TVA</th>
+                  <th style="text-align:right;padding:10px 8px;font-size:11px;font-weight:700;
+                    color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">TTC</th>
+                  <th style="padding:10px 8px;font-size:11px;font-weight:700;
+                    color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;min-width:120px;">
+                    Part CA</th>
+                </tr>
+              </thead>
+              <tbody>${catTableRows}</tbody>
+              <tfoot>
+                <tr style="background:var(--bg-elevated);border-top:2px solid var(--border);">
+                  <td style="padding:10px 12px;font-weight:700;color:var(--text-primary);">Total</td>
+                  <td style="text-align:center;padding:10px 8px;font-family:var(--font-mono);
+                    font-weight:700;color:var(--text-primary);">${totalQteGlobal}</td>
+                  <td style="text-align:right;padding:10px 8px;font-family:var(--font-mono);
+                    font-weight:700;color:var(--accent-blue);">${_fmtA(Math.round(totalHTGlobal))}</td>
+                  <td style="text-align:right;padding:10px 8px;font-family:var(--font-mono);
+                    font-weight:700;color:var(--accent-orange);">${_fmtA(tvaEncFinal)}</td>
+                  <td style="text-align:right;padding:10px 8px;font-family:var(--font-mono);
+                    font-weight:700;color:var(--text-primary);">${_fmtA(Math.round(totalTTCGlobal))}</td>
+                  <td style="padding:10px 8px;"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Détail TVA -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+          <!-- TVA encaissée par taux -->
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-orange);margin-bottom:14px;">
+              TVA encaissée (sur ventes)
+            </div>
+            ${(function() {
+              const byTaux = {};
+              factures.forEach(fac => {
+                (fac.lignes || []).forEach(l => {
+                  const taux = l.tauxTVA !== undefined ? parseFloat(l.tauxTVA) : 16;
+                  const qte  = parseFloat(l.qte) || 0;
+                  const pu   = parseFloat(l.prixUnitaire) || 0;
+                  const rem  = parseFloat(l.remise) || 0;
+                  const ht   = Math.round(qte * pu * (1 - rem / 100));
+                  const tva  = Math.round(ht * taux / 100);
+                  if (!byTaux[taux]) byTaux[taux] = { ht: 0, tva: 0 };
+                  byTaux[taux].ht  += ht;
+                  byTaux[taux].tva += tva;
+                });
+              });
+              return Object.entries(byTaux).length === 0
+                ? '<div style="color:var(--text-muted);font-size:13px;">Aucune vente.</div>'
+                : Object.entries(byTaux).sort((a,b) => b[0]-a[0]).map(([taux, s]) => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;
+                    padding:10px 0;border-bottom:1px solid var(--border-light);">
+                    <div>
+                      <span style="font-weight:600;color:var(--text-primary);">TVA ${taux}%</span>
+                      <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">
+                        Base HT : ${_fmtA(Math.round(s.ht))}</span>
+                    </div>
+                    <span style="font-family:var(--font-mono);font-weight:700;
+                      color:var(--accent-orange);">${_fmtA(Math.round(s.tva))}</span>
+                  </div>`).join('');
+            })()}
+            <div style="display:flex;justify-content:space-between;padding-top:12px;
+              font-weight:700;color:var(--accent-orange);">
+              <span>Total TVA collectée</span>
+              <span style="font-family:var(--font-mono);">${_fmtA(tvaEncFinal)}</span>
+            </div>
+          </div>
+
+          <!-- TVA déductible depuis journal -->
+          <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;padding:20px;">
+            <div style="font-size:13px;font-weight:700;color:var(--accent-green);margin-bottom:14px;">
+              TVA déductible (sur achats)
+            </div>
+            ${(function() {
+              const dedLines = ecritures.filter(e =>
+                e.compte && (e.compte.startsWith('44566') || e.compte.startsWith('44560')) &&
+                (e.debit || 0) > 0
+              );
+              if (dedLines.length === 0) return `
+                <div style="color:var(--text-muted);font-size:13px;padding:8px 0;">
+                  Aucune écriture de TVA déductible sur la période.<br>
+                  <span style="font-size:11px;">Les achats fournisseurs génèrent des écritures 4456xx automatiquement.</span>
+                </div>`;
+              const byCompte = {};
+              dedLines.forEach(e => {
+                const c = e.compte;
+                if (!byCompte[c]) byCompte[c] = { libelle: e.libelle || c, total: 0 };
+                byCompte[c].total += (e.debit || 0);
+              });
+              return Object.entries(byCompte).map(([c, s]) => `
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                  padding:10px 0;border-bottom:1px solid var(--border-light);">
+                  <div>
+                    <span style="font-weight:600;color:var(--text-primary);">${c}</span>
+                    <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">
+                      ${_escA(PLAN_COMPTABLE.find(p => p.numero === c)?.libelle || s.libelle)}</span>
+                  </div>
+                  <span style="font-family:var(--font-mono);font-weight:700;
+                    color:var(--accent-green);">${_fmtA(Math.round(s.total))}</span>
+                </div>`).join('');
+            })()}
+            <div style="display:flex;justify-content:space-between;padding-top:12px;
+              font-weight:700;color:var(--accent-green);">
+              <span>Total TVA déductible</span>
+              <span style="font-family:var(--font-mono);">${_fmtA(Math.round(tvaDed))}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>`;
+  }
+
+  /* Helpers locaux pour Stats ventes */
+  function _fmtA(n) {
+    return (n || 0).toLocaleString('fr-FR') + ' XPF';
+  }
+  function _escA(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   /* ================================================================

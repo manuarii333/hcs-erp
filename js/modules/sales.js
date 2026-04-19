@@ -223,12 +223,21 @@ const Sales = (() => {
       (l.qte || 0) * (l.prixUnitaire || 0) * (1 - (l.remise || 0) / 100)
     );
 
+    /* Vérifier si le produit sélectionné a des variantes */
+    const produitLigne = l.produitId ? Store.getById('produits', l.produitId) : null;
+    const hasVariantes = produitLigne && (produitLigne.variantes || []).length > 0;
+
     return `
       <tr data-line="${i}">
         <td>
           <select class="line-input" data-field="produitId" data-line="${i}">
             ${_produitOptions(l.produitId)}
           </select>
+          ${hasVariantes ? `<button class="btn btn-ghost btn-sm" data-pick-variante="${i}"
+            title="Choisir une variante"
+            style="margin-top:3px;font-size:10px;padding:2px 6px;width:100%;justify-content:center;">
+            ⚡ Variantes
+          </button>` : ''}
         </td>
         <td>
           <input type="text" class="line-input" data-field="description"
@@ -355,16 +364,20 @@ const Sales = (() => {
         const produit = Store.getById('produits', el.value);
         if (produit) {
           _state.lignes[idx].produitId    = el.value;
-          _state.lignes[idx].description  = produit.nom;
           _state.lignes[idx].prixUnitaire = produit.prix || 0;
-          /* TVA : 13% pour les services, 16% pour les produits */
-          _state.lignes[idx].tauxTVA = (produit.categorie === 'Service') ? 13 : 16;
-          /* Appliquer immédiatement le palier selon la qte actuelle */
+          _state.lignes[idx].tauxTVA      = (produit.categorie === 'Service') ? 13 : 16;
+          /* Description : nom + attributs principaux si définis */
+          const descParts = [produit.nom];
+          if (produit.attrPrix && produit.variantes && produit.variantes.length > 0) {
+            descParts.push(`(${produit.variantes.length} variante${produit.variantes.length > 1 ? 's' : ''})`);
+          }
+          _state.lignes[idx].description = descParts.join(' ');
           _applyPalierPrix(idx);
         } else {
-          _state.lignes[idx].produitId = '';
+          _state.lignes[idx].produitId   = '';
+          _state.lignes[idx].description = '';
         }
-        _refreshLineTable(); // redessiner pour afficher les nouvelles valeurs
+        _refreshLineTable();
         return;
       }
 
@@ -402,10 +415,33 @@ const Sales = (() => {
 
     /* Supprimer une ligne */
     tbody.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-remove]');
-      if (!btn) return;
-      _state.lignes.splice(parseInt(btn.dataset.remove, 10), 1);
-      _refreshLineTable();
+      const btnRemove = e.target.closest('[data-remove]');
+      if (btnRemove) {
+        _state.lignes.splice(parseInt(btnRemove.dataset.remove, 10), 1);
+        _refreshLineTable();
+        return;
+      }
+
+      /* Picker de variantes */
+      const btnPick = e.target.closest('[data-pick-variante]');
+      if (btnPick) {
+        const idx = parseInt(btnPick.dataset.pickVariante, 10);
+        const ligne = _state.lignes[idx];
+        const produit = ligne.produitId ? Store.getById('produits', ligne.produitId) : null;
+        if (!produit || !(produit.variantes || []).length) return;
+        if (typeof Inventory !== 'undefined' && Inventory.showVariantePicker) {
+          Inventory.showVariantePicker(produit, (variante, descriptionAuto) => {
+            if (!variante) return;
+            _state.lignes[idx].taille       = variante.taille  || ligne.taille  || '';
+            _state.lignes[idx].couleur      = variante.couleur || ligne.couleur || '';
+            _state.lignes[idx].coupe        = variante.coupe   || '';
+            _state.lignes[idx].prixUnitaire = variante.prix    || ligne.prixUnitaire || 0;
+            _state.lignes[idx].description  = descriptionAuto  || ligne.description  || produit.nom;
+            _applyPalierPrix(idx);
+            _refreshLineTable();
+          });
+        }
+      }
     });
   }
 
@@ -1051,11 +1087,12 @@ const Sales = (() => {
       typeLabel = 'partielle';
     }
 
+    const today   = new Date().toISOString().slice(0, 10);
     const facData = {
       _type:     'Facture',
       contactId: devis.contactId,
       client:    devis.client,
-      date:      new Date().toISOString().slice(0, 10),
+      date:      today,
       statut:    facStatut,
       devisId:   devis.id,
       lignes:    lignesFac,
@@ -1066,22 +1103,114 @@ const Sales = (() => {
 
     /* Cherche une facture déjà liée à ce devis */
     const existante = Store.getAll('factures').find(f => f.devisId === devis.id);
+    let facRef;
 
     if (existante) {
       /* Mise à jour de la facture existante */
+      facRef = existante.ref;
       Store.update('factures', existante.id, facData);
-      toast(`📄 Facture ${existante.ref} mise à jour (${typeLabel}, ${_fmt(totalRegle)} réglé).`, 'info');
+      toast(`📄 Facture ${facRef} mise à jour (${typeLabel}, ${_fmt(totalRegle)} réglé).`, 'info');
     } else {
       /* Création d'une nouvelle facture */
-      const facRef = _genRef('FAC', 'factures');
+      facRef = _genRef('FAC', 'factures');
       Store.create('factures', { ref: facRef, ...facData });
       toast(`📄 Facture ${facRef} créée (${typeLabel}, ${_fmt(totalRegle)} réglé).`, 'success');
     }
+
+    /* ----------------------------------------------------------------
+       ÉCRITURES COMPTABLES AUTOMATIQUES
+       Supprimer les écritures précédentes de cette pièce, puis recréer
+       ---------------------------------------------------------------- */
+    const now = new Date().toISOString();
+
+    /* Nettoyer les anciennes écritures automatiques pour cette pièce */
+    Store.getAll('ecritures')
+      .filter(e => e.pieceRef === facRef && e.type === 'vente')
+      .forEach(e => Store.remove('ecritures', e.id));
+
+    /* 1 — Constatation de la vente : Débit Clients / Crédit Ventes + TVA */
+    const totalHT  = totauxFac.totalHT  || 0;
+    const totalTVA = (totauxFac.totalTTC || 0) - totalHT;
+    const totalTTC = totauxFac.totalTTC  || 0;
+
+    Store.create('ecritures', {
+      date: today, createdAt: now,
+      compte:   '411000',
+      journal:  'Ventes',
+      libelle:  `Vente — ${devis.client} / ${facRef}`,
+      debit:    Math.round(totalTTC),
+      credit:   0,
+      pieceRef: facRef,
+      type:     'vente'
+    });
+    Store.create('ecritures', {
+      date: today, createdAt: now,
+      compte:   '700000',
+      journal:  'Ventes',
+      libelle:  `CA — ${devis.client} / ${facRef}`,
+      debit:    0,
+      credit:   Math.round(totalHT),
+      pieceRef: facRef,
+      type:     'vente'
+    });
+    if (totalTVA > 0) {
+      Store.create('ecritures', {
+        date: today, createdAt: now,
+        compte:   '445700',
+        journal:  'Ventes',
+        libelle:  `TVA collectée — ${facRef}`,
+        debit:    0,
+        credit:   Math.round(totalTVA),
+        pieceRef: facRef,
+        type:     'vente'
+      });
+    }
+
+    /* 2 — Règlements reçus : Débit Trésorerie / Crédit Clients */
+    const COMPTE_TRESORERIE = {
+      'Espèces':   '530000', // Caisse
+      'Chèque':    '512000',
+      'Virement':  '512000',
+      'CB':        '512000',
+      'Carte':     '512000',
+      'Mobile':    '512000',
+      'Mixte':     '512000'
+    };
+
+    facPaiements.forEach(p => {
+      const compteTresor = COMPTE_TRESORERIE[p.methode] || '512000';
+      const libTresor    = compteTresor === '530000' ? 'Caisse' : 'Banque';
+
+      /* Débit trésorerie */
+      Store.create('ecritures', {
+        date: today, createdAt: now,
+        compte:   compteTresor,
+        journal:  'Trésorerie',
+        libelle:  `${libTresor} — ${p.methode} / ${facRef}`,
+        debit:    Math.round(p.montant || 0),
+        credit:   0,
+        pieceRef: facRef,
+        type:     'vente'
+      });
+      /* Crédit 411 Clients */
+      Store.create('ecritures', {
+        date: today, createdAt: now,
+        compte:   '411000',
+        journal:  'Trésorerie',
+        libelle:  `Règlement ${devis.client} — ${facRef}`,
+        debit:    0,
+        credit:   Math.round(p.montant || 0),
+        pieceRef: facRef,
+        type:     'vente'
+      });
+    });
   }
 
   function _quoteActionBtns(statut, isNew) {
     if (isNew) return '';
     const btns = [];
+    /* Aperçu disponible pour tous les devis enregistrés */
+    btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="apercu" title="Aperçu du document devis">📄 Aperçu</button>`);
     if (statut === 'Brouillon') {
       btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="envoyer">📤 Envoyer</button>`);
     }
@@ -1183,6 +1312,11 @@ const Sales = (() => {
       btn.addEventListener('click', () => {
         const action = btn.dataset.qAction;
 
+        if (action === 'apercu') {
+          _previewDevis(doc, toolbar, area);
+          return;
+        }
+
         if (action === 'convertir') {
           _convertQuoteToOrder(doc, toolbar, area);
           return;
@@ -1202,6 +1336,341 @@ const Sales = (() => {
           });
         }
       });
+    });
+  }
+
+  /* ----------------------------------------------------------------
+     APERÇU DEVIS — document mis en forme + options impression / facture
+     ---------------------------------------------------------------- */
+
+  /**
+   * Ouvre une fenêtre d'aperçu du devis avec mise en forme professionnelle.
+   * Propose d'imprimer le document et, si le statut le permet, de convertir en facture.
+   */
+  function _previewDevis(devis, toolbar, area) {
+    const contact = Store.getById('contacts', devis.contactId) || {};
+    const peutFacturer = ['Envoyé', 'Confirmé'].includes(devis.statut);
+
+    /* Calcul des totaux ligne par ligne pour affichage détaillé */
+    const lignesHtml = (devis.lignes || []).map(l => {
+      const brut   = (l.qte || 0) * (l.prixUnitaire || 0);
+      const remise = brut * ((l.remise || 0) / 100);
+      const ht     = brut - remise;
+      const taux   = (l.tauxTVA !== undefined ? l.tauxTVA : 16);
+      const tva    = Math.round(ht * taux / 100);
+      const ttc    = Math.round(ht + tva);
+      return `
+        <tr>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;">
+            ${_esc(l.produit || l.description || '—')}
+            ${l.description && l.produit ? `<br><span style="color:#6b7280;font-size:11px;">${_esc(l.description)}</span>` : ''}
+          </td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;">${l.qte || 0}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:13px;font-family:monospace;">${_fmt(l.prixUnitaire || 0)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;">${l.remise ? l.remise + ' %' : '—'}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:12px;color:#6b7280;">${taux} %</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:13px;font-weight:600;font-family:monospace;">${_fmt(ttc)}</td>
+        </tr>`;
+    }).join('');
+
+    /* Ligne de règlements déjà enregistrés */
+    const reglHtml = (devis.paiementsDevis || []).filter(p => p.montant > 0).map(p =>
+      `<div style="display:flex;justify-content:space-between;font-size:12px;color:#374151;padding:3px 0;">
+        <span>${REG_ICONS[p.mode] || '💰'} ${_esc(p.mode)}</span>
+        <span style="font-family:monospace;font-weight:600;">${_fmt(p.montant)}</span>
+      </div>`
+    ).join('');
+
+    /* Statut badge couleurs */
+    const BADGE_COLORS = {
+      'Brouillon': { bg: '#f3f4f6', color: '#374151' },
+      'Envoyé':    { bg: '#dbeafe', color: '#1d4ed8' },
+      'Confirmé':  { bg: '#dcfce7', color: '#15803d' },
+      'Annulé':    { bg: '#fee2e2', color: '#dc2626' }
+    };
+    const badgeStyle = BADGE_COLORS[devis.statut] || BADGE_COLORS['Brouillon'];
+
+    const documentHtml = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Devis ${_esc(devis.ref)}</title>
+        <style>
+          * { margin:0; padding:0; box-sizing:border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; color:#111827; background:#fff; }
+          .page { max-width:800px; margin:0 auto; padding:40px 32px; }
+
+          /* En-tête société */
+          .header { display:flex; justify-content:space-between; align-items:flex-start;
+                    padding-bottom:24px; border-bottom:3px solid #4a5fff; margin-bottom:28px; }
+          .brand-name { font-size:22px; font-weight:800; color:#4a5fff; letter-spacing:-0.5px; }
+          .brand-sub  { font-size:11px; color:#6b7280; margin-top:2px; }
+          .brand-contact { text-align:right; font-size:11px; color:#6b7280; line-height:1.8; }
+
+          /* Bloc doc info */
+          .doc-meta { display:flex; justify-content:space-between; align-items:flex-start;
+                      margin-bottom:28px; }
+          .doc-title { font-size:26px; font-weight:800; color:#111827; }
+          .doc-ref   { font-size:13px; color:#6b7280; font-family:monospace; margin-top:4px; }
+          .doc-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px;
+                       font-weight:700; background:${badgeStyle.bg}; color:${badgeStyle.color};
+                       margin-top:8px; }
+          .doc-dates { text-align:right; font-size:12px; color:#374151; line-height:2; }
+          .doc-dates strong { color:#111827; }
+
+          /* Bloc client */
+          .section-title { font-size:10px; font-weight:700; color:#6b7280; text-transform:uppercase;
+                           letter-spacing:1px; margin-bottom:8px; }
+          .client-box { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px;
+                        padding:14px 18px; margin-bottom:28px; }
+          .client-name { font-size:15px; font-weight:700; color:#111827; margin-bottom:4px; }
+          .client-detail { font-size:12px; color:#6b7280; line-height:1.8; }
+
+          /* Tableau articles */
+          table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+          thead th { background:#4a5fff; color:#fff; padding:10px 10px; text-align:left;
+                     font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+          thead th:not(:first-child) { text-align:center; }
+          thead th:last-child { text-align:right; }
+          tbody tr:last-child td { border-bottom:none; }
+
+          /* Totaux */
+          .totaux { display:flex; justify-content:flex-end; margin-bottom:24px; }
+          .totaux-box { width:280px; }
+          .totaux-row { display:flex; justify-content:space-between; padding:5px 0;
+                        font-size:13px; color:#374151; border-bottom:1px solid #f3f4f6; }
+          .totaux-row.ttc { font-size:16px; font-weight:800; color:#111827;
+                            border-top:2px solid #4a5fff; border-bottom:none;
+                            padding-top:10px; margin-top:4px; }
+          .mono { font-family:monospace; }
+
+          /* Règlements */
+          .regl-box { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px;
+                      padding:12px 16px; margin-bottom:24px; }
+          .regl-title { font-size:11px; font-weight:700; color:#15803d; margin-bottom:8px; }
+
+          /* Notes */
+          .notes-box { background:#fffbeb; border:1px solid #fde68a; border-radius:8px;
+                       padding:12px 16px; margin-bottom:28px; font-size:12px; color:#374151;
+                       line-height:1.7; }
+
+          /* Footer doc */
+          .doc-footer { text-align:center; font-size:10px; color:#9ca3af;
+                        border-top:1px solid #e5e7eb; padding-top:16px; margin-top:8px; }
+
+          /* Boutons interface (masqués à l'impression) */
+          .ui-actions { display:flex; gap:10px; justify-content:flex-end;
+                        padding:16px 0 4px 0; margin-bottom:16px; }
+          .btn-print   { padding:9px 20px; background:#4a5fff; color:#fff; border:none;
+                         border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+          .btn-facture { padding:9px 20px; background:#22c55e; color:#fff; border:none;
+                         border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+          .btn-email   { padding:9px 20px; background:#f97316; color:#fff; border:none;
+                         border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+          .btn-close   { padding:9px 16px; background:#f3f4f6; color:#374151; border:none;
+                         border-radius:8px; font-size:13px; cursor:pointer; }
+          .email-tip   { background:#fffbeb; border:1px solid #fde68a; border-radius:8px;
+                         padding:12px 16px; font-size:12px; color:#374151; margin-bottom:12px;
+                         display:none; line-height:1.7; }
+
+          @media print {
+            .ui-actions { display:none !important; }
+            body { padding:0; }
+            .page { padding:20px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+
+          <!-- Boutons interface -->
+          <div class="email-tip" id="email-tip">
+            <strong>📧 Comment envoyer par email :</strong><br>
+            1. Clique sur <strong>🖨 Imprimer</strong> → dans la boîte d'impression, choisis <strong>"Enregistrer en PDF"</strong><br>
+            2. Reviens ici et clique <strong>📧 Composer l'email</strong> — ton client de messagerie s'ouvrira avec le devis pré-rempli<br>
+            3. Joint le PDF que tu viens de sauvegarder et envoie !
+          </div>
+          <div class="ui-actions">
+            <button class="btn-close" onclick="window.close()">✕ Fermer</button>
+            ${peutFacturer
+              ? `<button class="btn-facture" id="btn-doc-facturer">🧾 Convertir en Facture</button>`
+              : ''}
+            <button class="btn-email" id="btn-doc-email">📧 Envoyer par email</button>
+            <button class="btn-print" id="btn-doc-print">🖨 Imprimer / PDF</button>
+          </div>
+
+          <!-- En-tête société -->
+          <div class="header">
+            <div>
+              <div class="brand-name">HCS — High Coffee Shirts</div>
+              <div class="brand-sub">Tenue · Sublimation · DTF · Broderie · Impression textile</div>
+            </div>
+            <div class="brand-contact">
+              Tahiti, Polynésie française<br>
+              contact@highcoffeeshirts.com<br>
+              highcoffeeshirts.com
+            </div>
+          </div>
+
+          <!-- Identité du document -->
+          <div class="doc-meta">
+            <div>
+              <div class="doc-title">DEVIS</div>
+              <div class="doc-ref">${_esc(devis.ref)}</div>
+              <div class="doc-badge">${_esc(devis.statut)}</div>
+            </div>
+            <div class="doc-dates">
+              <div>Date : <strong>${_fmtDate(devis.date)}</strong></div>
+              ${devis.dateExpiration
+                ? `<div>Validité : <strong>${_fmtDate(devis.dateExpiration)}</strong></div>`
+                : ''}
+            </div>
+          </div>
+
+          <!-- Client -->
+          <div class="section-title">Client</div>
+          <div class="client-box">
+            <div class="client-name">${_esc(devis.client || contact.nom || '—')}</div>
+            <div class="client-detail">
+              ${contact.email ? `📧 ${_esc(contact.email)}<br>` : ''}
+              ${contact.tel   ? `📞 ${_esc(contact.tel)}<br>`   : ''}
+              ${contact.type  ? `🏷 ${_esc(contact.type)}`      : ''}
+            </div>
+          </div>
+
+          <!-- Articles -->
+          <div class="section-title">Articles</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40%;">Désignation</th>
+                <th style="width:8%;">Qté</th>
+                <th style="width:14%;">PU HT</th>
+                <th style="width:10%;">Remise</th>
+                <th style="width:10%;">TVA</th>
+                <th style="width:18%;">Total TTC</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lignesHtml || '<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280;">Aucun article</td></tr>'}
+            </tbody>
+          </table>
+
+          <!-- Totaux -->
+          <div class="totaux">
+            <div class="totaux-box">
+              <div class="totaux-row">
+                <span>Total HT</span>
+                <span class="mono">${_fmt(devis.totalHT || 0)}</span>
+              </div>
+              <div class="totaux-row">
+                <span>TVA</span>
+                <span class="mono">${_fmt(devis.totalTVA || 0)}</span>
+              </div>
+              <div class="totaux-row ttc">
+                <span>Total TTC</span>
+                <span class="mono">${_fmt(devis.totalTTC || 0)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Règlements enregistrés -->
+          ${reglHtml ? `
+          <div class="regl-box">
+            <div class="regl-title">✅ Règlements enregistrés</div>
+            ${reglHtml}
+            ${devis.resteAPayer > 0.01
+              ? `<div style="font-size:12px;color:#dc2626;font-weight:700;margin-top:8px;padding-top:8px;border-top:1px solid #bbf7d0;">
+                  Reste à payer : ${_fmt(devis.resteAPayer)}
+                </div>`
+              : `<div style="font-size:12px;color:#15803d;font-weight:700;margin-top:8px;">✔ Entièrement réglé</div>`}
+          </div>` : ''}
+
+          <!-- Notes / Conditions -->
+          ${devis.notes ? `
+          <div class="section-title">Notes &amp; Conditions</div>
+          <div class="notes-box">${_esc(devis.notes).replace(/\n/g, '<br>')}</div>` : ''}
+
+          <!-- Pied de page -->
+          <div class="doc-footer">
+            Document généré le ${new Date().toLocaleDateString('fr-FR')} — HCS ERP
+            ${peutFacturer ? '' : '<br>Ce devis est en statut <strong>' + _esc(devis.statut) + '</strong> — envoyez-le au client pour qu\'il le valide.'}
+          </div>
+
+        </div>
+      </body>
+      </html>`;
+
+    /* Ouvrir dans une nouvelle fenêtre navigateur */
+    const win = window.open('', '_blank', 'width=860,height=750,scrollbars=yes,toolbar=no,menubar=no');
+    if (!win) {
+      toast('Le navigateur a bloqué l\'ouverture de la fenêtre. Autorisez les popups pour ce site.', 'warning');
+      return;
+    }
+    win.document.write(documentHtml);
+    win.document.close();
+
+    /* Bouton "Convertir en Facture" dans la nouvelle fenêtre */
+    if (peutFacturer) {
+      win.document.getElementById('btn-doc-facturer')?.addEventListener('click', () => {
+        win.close();
+        _createInvoiceFromQuote(devis, toolbar, area);
+      });
+    }
+
+    /* Bouton "Imprimer / PDF" */
+    win.document.getElementById('btn-doc-print')?.addEventListener('click', () => {
+      win.print();
+    });
+
+    /* Bouton "Envoyer par email" — génère un mailto: avec le résumé du devis */
+    win.document.getElementById('btn-doc-email')?.addEventListener('click', () => {
+      /* Afficher le guide étape par étape */
+      const tip = win.document.getElementById('email-tip');
+      if (tip) tip.style.display = tip.style.display === 'block' ? 'none' : 'block';
+
+      /* Construire le corps de l'email */
+      const lignesTxt = (devis.lignes || []).map(l => {
+        const brut = (l.qte || 0) * (l.prixUnitaire || 0);
+        const ht   = brut * (1 - ((l.remise || 0) / 100));
+        const taux = (l.tauxTVA !== undefined ? l.tauxTVA : 16) / 100;
+        const ttc  = Math.round(ht * (1 + taux));
+        return `- ${l.produit || l.description || '?'} × ${l.qte || 0}  →  ${ttc.toLocaleString('fr-FR')} XPF`;
+      }).join('\n');
+
+      const corps = [
+        `Bonjour,`,
+        ``,
+        `Veuillez trouver ci-joint le devis ${devis.ref} établi à votre attention.`,
+        ``,
+        `─── Récapitulatif ───`,
+        `Référence : ${devis.ref}`,
+        `Date      : ${devis.date || ''}`,
+        devis.dateExpiration ? `Validité  : ${devis.dateExpiration}` : '',
+        ``,
+        `Articles :`,
+        lignesTxt,
+        ``,
+        `Total HT  : ${(devis.totalHT || 0).toLocaleString('fr-FR')} XPF`,
+        `TVA       : ${(devis.totalTVA || 0).toLocaleString('fr-FR')} XPF`,
+        `Total TTC : ${(devis.totalTTC || 0).toLocaleString('fr-FR')} XPF`,
+        ``,
+        devis.notes ? `Conditions : ${devis.notes}` : '',
+        ``,
+        `Pour toute question, n'hésitez pas à nous contacter.`,
+        ``,
+        `Cordialement,`,
+        `High Coffee Shirts — HCS`,
+        `contact@highcoffeeshirts.com`
+      ].filter(l => l !== '').join('\n');
+
+      const email    = (contact.email || '').trim();
+      const sujet    = encodeURIComponent(`Devis ${devis.ref} — High Coffee Shirts`);
+      const body     = encodeURIComponent(corps);
+      const mailto   = `mailto:${email}?subject=${sujet}&body=${body}`;
+
+      win.location.href = mailto;
     });
   }
 
@@ -2606,11 +3075,11 @@ const Sales = (() => {
     `);
 
     document.getElementById('qc-cancel')?.addEventListener('click', () => closeModal());
-    document.getElementById('qc-save')?.addEventListener('click', () => {
+    document.getElementById('qc-save')?.addEventListener('click', async () => {
       const nom = (document.getElementById('qc-nom')?.value || '').trim();
       if (!nom) { toast('Le nom est obligatoire.', 'error'); return; }
 
-      /* Création dans le store */
+      /* 1 — Sauvegarde localStorage (instantanée) */
       const newClient = Store.create('contacts', {
         nom,
         type:      document.getElementById('qc-type')?.value    || '',
@@ -2621,7 +3090,7 @@ const Sales = (() => {
       });
       Store.addAuditLog(`Créé client "${nom}" (création rapide)`, 'ventes');
 
-      /* Injecter et sélectionner le nouveau client dans le select cible */
+      /* 2 — Injecter et sélectionner dans le select */
       closeModal();
       const sel = document.getElementById(selectId);
       if (sel) {
@@ -2631,7 +3100,22 @@ const Sales = (() => {
         opt.selected = true;
         sel.appendChild(opt);
       }
-      toast(`Client "${_esc(nom)}" créé et sélectionné.`, 'success');
+
+      /* 3 — Vérifier la sync MySQL et afficher le statut */
+      if (window.MYSQL) {
+        try {
+          const ping = await window.MYSQL.ping();
+          if (ping.ok) {
+            toast(`✅ Client "${_esc(nom)}" créé — enregistré dans la base MySQL.`, 'success');
+          } else {
+            toast(`⚠ Client "${_esc(nom)}" créé en local — MySQL hors-ligne (sera sync à la reconnexion).`, 'warning');
+          }
+        } catch (_) {
+          toast(`⚠ Client "${_esc(nom)}" créé en local — MySQL non disponible.`, 'warning');
+        }
+      } else {
+        toast(`Client "${_esc(nom)}" créé.`, 'success');
+      }
     });
   }
 

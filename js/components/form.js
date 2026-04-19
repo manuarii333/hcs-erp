@@ -79,7 +79,8 @@ function _drawForm(containerId) {
   html += `<div class="form-grid cols-${cols}" style="grid-template-columns:repeat(${cols},1fr);">`;
 
   fields.forEach(field => {
-    const span = field.colSpan && field.colSpan > 1 ? `grid-column:span ${field.colSpan};` : '';
+    const spanVal = field.colSpan || field.cols || 1;
+    const span = spanVal > 1 ? `grid-column:span ${spanVal};` : '';
     html += `<div class="form-group" style="${span}">`;
     html += _renderLabel(field);
     html += _renderField(field, formData, containerId);
@@ -87,7 +88,7 @@ function _drawForm(containerId) {
       html += `<div class="form-hint">${_escF(field.hint)}</div>`;
     }
     // Zone d'erreur par champ
-    html += `<div class="form-error" id="err-${containerId}-${field.key}" style="display:none;"></div>`;
+    html += `<div class="form-error" id="err-${containerId}-${field.key || field.name || ''}" style="display:none;"></div>`;
     html += `</div>`;
   });
 
@@ -130,20 +131,23 @@ function _drawForm(containerId) {
    ---------------------------------------------------------------- */
 function _renderLabel(field) {
   if (field.type === 'static') return '';
+  const key = field.key || field.name || '';
   const req = field.required ? ' required' : '';
-  return `<label class="form-label${req}" for="field-${field.key}">${_escF(field.label)}</label>`;
+  return `<label class="form-label${req}" for="field-${key}">${_escF(field.label)}</label>`;
 }
 
 /* ----------------------------------------------------------------
    _renderField — génère l'input selon le type
+   Supporte field.key (API officielle) ET field.name (alias legacy)
    ---------------------------------------------------------------- */
 function _renderField(field, formData, containerId) {
-  const id       = `field-${field.key}`;
-  const val      = formData[field.key] !== undefined ? formData[field.key] : '';
+  const key      = field.key || field.name || '';
+  const id       = `field-${key}`;
+  const val      = formData[key] !== undefined ? formData[key] : '';
   const disabled = field.disabled ? 'disabled' : '';
   const required = field.required ? 'required' : '';
   const ph       = field.placeholder ? `placeholder="${_escF(field.placeholder)}"` : '';
-  const dataAttr = `data-form-field="${containerId}" data-field-key="${field.key}"`;
+  const dataAttr = `data-form-field="${containerId}" data-field-key="${key}" name="${key}"`;
 
   switch (field.type) {
 
@@ -224,10 +228,10 @@ function _bindFormEvents(containerId) {
 
   /* Synchronisation en temps réel des champs → formData */
   container.querySelectorAll(`[data-form-field="${containerId}"]`).forEach(el => {
-    const key = el.dataset.fieldKey;
+    const key = el.dataset.fieldKey || el.getAttribute('name') || '';
+    if (!key) return;
     el.addEventListener('input', () => {
       state.formData[key] = el.type === 'number' ? Number(el.value) : el.value;
-      // Effacer l'erreur sur ce champ
       _clearFieldError(containerId, key);
     });
     el.addEventListener('change', () => {
@@ -274,10 +278,11 @@ function _handleSubmit(containerId) {
 
   (config.fields || []).forEach(field => {
     if (!field.required) return;
-    const val = state.formData[field.key];
+    const k   = field.key || field.name || '';
+    const val = state.formData[k];
     const isEmpty = val === null || val === undefined || String(val).trim() === '';
     if (isEmpty) {
-      _showFieldError(containerId, field.key, `Le champ "${field.label}" est obligatoire.`);
+      _showFieldError(containerId, k, `Le champ "${field.label}" est obligatoire.`);
       valid = false;
     }
   });
