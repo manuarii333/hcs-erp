@@ -39,6 +39,9 @@ const Inventory = (() => {
   /* Incréments de prix par valeur d'attribut — {valeur: increment} */
   let _attrIncrements = {};
 
+  /* Type de produit en cours d'édition : 'simple' | 'variable' */
+  let _currentProductKind = 'simple';
+
   /* ================================================================
      POINT D'ENTRÉE — init(toolbar, area, viewId)
      ================================================================ */
@@ -76,6 +79,8 @@ const Inventory = (() => {
     const showArch = _state.showArchived || false;
     toolbar.innerHTML = `
       <button class="btn btn-primary" id="btn-new-product">+ Nouveau produit</button>
+      <button class="btn btn-ghost btn-sm" id="btn-import-products" title="Importer depuis CSV ou Excel" style="margin-left:8px;">📥 Importer</button>
+      <button class="btn btn-ghost btn-sm" id="btn-export-products" title="Exporter vers CSV" style="margin-left:4px;">📤 Exporter CSV</button>
       <div style="display:flex;gap:4px;margin-left:8px;">
         <button class="btn ${!isKanban ? 'btn-primary' : 'btn-ghost'} btn-sm" id="btn-view-list" title="Vue liste">☰ Liste</button>
         <button class="btn ${isKanban ? 'btn-primary' : 'btn-ghost'} btn-sm" id="btn-view-kanban" title="Vue kanban">⊞ Kanban</button>
@@ -86,10 +91,14 @@ const Inventory = (() => {
       </div>`;
 
     toolbar.querySelector('#btn-new-product').addEventListener('click', () => {
-      _state.mode       = 'form';
-      _state.currentId  = null;
-      _pendingImage     = null;
-      _currentVariantes = [];
+      _state.mode          = 'form';
+      _state.currentId     = null;
+      _pendingImage        = null;
+      _currentVariantes    = [];
+      _currentCustomAttrs  = [];
+      _attrPrix            = '';
+      _attrIncrements      = {};
+      _currentProductKind  = 'simple';
       _renderProductForm(toolbar, area);
     });
     toolbar.querySelector('#btn-view-list').addEventListener('click', () => {
@@ -108,6 +117,8 @@ const Inventory = (() => {
       _state.showArchived = true;
       _renderProductList(toolbar, area);
     });
+    toolbar.querySelector('#btn-import-products')?.addEventListener('click', () => _openImportModal(toolbar, area));
+    toolbar.querySelector('#btn-export-products')?.addEventListener('click', () => _exportProductsCSV());
 
     const showArch2 = _state.showArchived || false;
     const produits = Store.getAll('produits').filter(p =>
@@ -410,9 +421,10 @@ const Inventory = (() => {
       ` : ''}`;
 
     toolbar.querySelector('#btn-prod-back').addEventListener('click', () => {
-      _state.mode        = 'list';
-      _pendingImage      = null;
-      _currentVariantes  = [];
+      _state.mode         = 'list';
+      _pendingImage       = null;
+      _currentVariantes   = [];
+      _currentProductKind = 'simple';
       _renderProductList(toolbar, area);
     });
     toolbar.querySelector('#btn-save-prod').addEventListener('click', () => _saveProduct(produit));
@@ -547,13 +559,46 @@ const Inventory = (() => {
           </div>
         </div>
 
+        <!-- Toggle Produit simple / Avec variations -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:12px;
+          padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:13px;font-weight:600;color:var(--text-secondary);white-space:nowrap;">
+            Type de produit :
+          </span>
+          <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;
+            border:1px solid var(--border);flex-shrink:0;">
+            <button id="btn-type-simple" data-prodtype="simple"
+              class="btn btn-sm"
+              style="border-radius:0;border:none;padding:7px 18px;font-size:13px;
+                font-weight:600;transition:background .15s;
+                background:${(produit.productKind||'simple')==='simple' ? 'var(--accent-blue)' : 'var(--bg-elevated)'};
+                color:${(produit.productKind||'simple')==='simple' ? '#fff' : 'var(--text-secondary)'};">
+              📦 Produit simple
+            </button>
+            <button id="btn-type-variable" data-prodtype="variable"
+              class="btn btn-sm"
+              style="border-radius:0;border:none;border-left:1px solid var(--border);
+                padding:7px 18px;font-size:13px;font-weight:600;transition:background .15s;
+                background:${(produit.productKind||'simple')==='variable' ? 'var(--accent-blue)' : 'var(--bg-elevated)'};
+                color:${(produit.productKind||'simple')==='variable' ? '#fff' : 'var(--text-secondary)'};">
+              ⚡ Produit avec variations
+            </button>
+          </div>
+          <span style="font-size:12px;color:var(--text-muted);" id="prodtype-hint">
+            ${(produit.productKind||'simple')==='simple'
+              ? 'Prix unique, pas de variantes.'
+              : 'Prix variable selon les attributs (taille, format…)'}
+          </span>
+        </div>
+
         <div id="product-form-container"></div>
 
-        <!-- Section attributs personnalisés + incréments prix -->
-        <div id="avances-section" style="margin-top:8px;"></div>
-
-        <!-- Section variantes dynamique -->
-        <div id="variantes-section" style="margin-top:8px;"></div>
+        <!-- Sections variantes — masquées pour produit simple -->
+        <div id="variations-sections"
+          style="display:${(produit.productKind||'simple')==='variable' ? 'block' : 'none'};">
+          <!-- Bloc unifié : attributs + tarification + génération + tableau variantes -->
+          <div id="variantes-section" style="margin-top:8px;"></div>
+        </div>
 
         <!-- Section paliers de prix (tarification dégressive) -->
         <div id="paliers-section" style="margin-top:8px;"></div>
@@ -602,14 +647,41 @@ const Inventory = (() => {
       cols:   2
     });
 
-    /* Rendre la section attributs avancés (custom attrs + incréments prix) */
-    _renderAvancesSection(produit);
-
-    /* Rendre la section variantes */
+    /* Rendre le bloc variantes unifié (inclut attributs + tarification + générateur + tableau) */
     _renderVariantesSection(produit);
 
     /* Rendre la section paliers de prix */
     _renderPaliersSection(produit);
+
+    /* ---- Toggle Produit simple / Avec variations ---- */
+    (function _bindProductTypeToggle() {
+      _currentProductKind = produit.productKind || 'simple';
+
+      function applyKind(kind) {
+        _currentProductKind = kind;
+        const varSec  = document.getElementById('variations-sections');
+        const btnSimp = document.getElementById('btn-type-simple');
+        const btnVar  = document.getElementById('btn-type-variable');
+        const hint    = document.getElementById('prodtype-hint');
+        if (varSec)  varSec.style.display  = kind === 'variable' ? 'block' : 'none';
+        if (btnSimp) {
+          btnSimp.style.background = kind === 'simple' ? 'var(--accent-blue)' : 'var(--bg-elevated)';
+          btnSimp.style.color      = kind === 'simple' ? '#fff' : 'var(--text-secondary)';
+        }
+        if (btnVar) {
+          btnVar.style.background  = kind === 'variable' ? 'var(--accent-blue)' : 'var(--bg-elevated)';
+          btnVar.style.color       = kind === 'variable' ? '#fff' : 'var(--text-secondary)';
+        }
+        if (hint) hint.textContent = kind === 'simple'
+          ? 'Prix unique, pas de variantes.'
+          : 'Prix variable selon les attributs (taille, format…)';
+      }
+
+      applyKind(_currentProductKind);
+
+      document.getElementById('btn-type-simple')?.addEventListener('click',   () => applyKind('simple'));
+      document.getElementById('btn-type-variable')?.addEventListener('click',  () => applyKind('variable'));
+    })();
 
     /* Auto-sélection TVA selon le type d'article */
     (function _bindAutoTVA() {
@@ -834,8 +906,23 @@ const Inventory = (() => {
 
   /* Sauvegarde produit */
   function _saveProduct(produitExist) {
-    const data = getFormData('product-form-container');
-    if (!data) return;
+    let data = getFormData('product-form-container');
+    if (!data) {
+      /* Fallback : lire les champs directement depuis le DOM */
+      data = {};
+      document.querySelectorAll('[data-form-field="product-form-container"]').forEach(el => {
+        const key = el.dataset.fieldKey || el.getAttribute('name');
+        if (!key) return;
+        data[key] = el.type === 'number' ? Number(el.value) : el.value;
+      });
+      if (!data.nom) {
+        toastError('Formulaire produit introuvable. Rechargez la page.');
+        return;
+      }
+    }
+
+    /* Type de produit depuis l'état module (plus fiable que formData) */
+    data.productKind = _currentProductKind;
 
     /* Convertir les champs numériques */
     data.tva              = parseFloat(data.tva)              || 16;
@@ -867,28 +954,30 @@ const Inventory = (() => {
       data.image = _pendingImage;
     }
 
-    /* Lire les variantes depuis le tableau éditable */
-    const variantesMAJ = _collectVariantesFromDOM();
-    data.variantes = variantesMAJ;
+    /* Produit simple : pas de variantes ni d'attributs */
+    const isVariable = (data.productKind || 'simple') === 'variable';
 
-    /* Lire les paliers de prix (tarification dégressive) */
-    data.paliers = _collectPaliersFromDOM();
-
-    /* Lire attributs personnalisés + attribut prix + incréments */
-    data.customAttrs    = _currentCustomAttrs.filter(ca => ca.nom);
-    data.attrPrix       = _attrPrix;
-    data.attrIncrements = Object.assign({}, _attrIncrements);
-
-    /* Stock = somme des quantités variantes si variantes existent, sinon stock saisi */
-    if (variantesMAJ.length > 0) {
-      data.stock = variantesMAJ.reduce((s, v) => s + (parseInt(v.quantite) || 0), 0);
-    }
-
-    /* Reconstruire les attributs depuis les variantes */
-    if (variantesMAJ.length > 0) {
-      data.tailles  = [...new Set(variantesMAJ.map(v => v.taille).filter(Boolean))].join(', ');
-      data.couleurs = [...new Set(variantesMAJ.map(v => v.couleur).filter(Boolean))].join(', ');
-      data.coupe    = [...new Set(variantesMAJ.map(v => v.coupe).filter(Boolean))].join(', ');
+    if (isVariable) {
+      const variantesMAJ = _collectVariantesFromDOM();
+      data.variantes = variantesMAJ;
+      data.paliers   = _collectPaliersFromDOM();
+      data.customAttrs    = _currentCustomAttrs.filter(ca => ca.nom);
+      data.attrPrix       = _attrPrix;
+      data.attrIncrements = Object.assign({}, _attrIncrements);
+      /* Stock = somme quantités variantes */
+      if (variantesMAJ.length > 0) {
+        data.stock = variantesMAJ.reduce((s, v) => s + (parseInt(v.quantite) || 0), 0);
+        data.tailles  = [...new Set(variantesMAJ.map(v => v.taille).filter(Boolean))].join(', ');
+        data.couleurs = [...new Set(variantesMAJ.map(v => v.couleur).filter(Boolean))].join(', ');
+        data.coupe    = [...new Set(variantesMAJ.map(v => v.coupe).filter(Boolean))].join(', ');
+      }
+    } else {
+      /* Produit simple : on efface toute donnée de variantes */
+      data.variantes      = [];
+      data.paliers        = [];
+      data.customAttrs    = [];
+      data.attrPrix       = '';
+      data.attrIncrements = {};
     }
 
     if (!data.nom) { toastError('Le nom du produit est obligatoire.'); return; }
@@ -1356,12 +1445,31 @@ const Inventory = (() => {
     _refreshAvancesSection(sec, produit);
   }
 
-  /* Formats DTF/transfert par défaut HCS (utilisés si attr custom "format" vide) */
-  const _DTF_FORMATS_DEFAUT = [
-    'A5 (14×20)', 'A4 (20×28)', 'A3 (28×40)', 'A2 (40×56)',
-    'Coeur 10×10', 'Poitrine 24×24', 'Dos 24×24',
-    'Nuque 8×8', 'Manche 10×10'
-  ];
+  /* Catalogue des types de formats avec leurs valeurs par défaut */
+  const _FORMAT_TYPES = {
+    format_dtf: {
+      lbl:  '🖨 Format Transfert DTF',
+      vals: ['A5 (14×20)', 'A4 (20×28)', 'A3 (28×40)', 'A2 (40×56)', 'A1 (56×80)',
+             'Coeur 10×10', 'Poitrine 24×24', 'Dos 24×24', 'Nuque 8×8', 'Manche 10×10']
+    },
+    format_thermocollant: {
+      lbl:  '🔥 Format Thermocollant',
+      vals: ['A5 (14×20)', 'A4 (20×28)', 'A3 (28×40)',
+             'Coeur 8×8', 'Poitrine 20×20', 'Dos 28×28', 'Manche 8×8']
+    },
+    format_sticker: {
+      lbl:  '🏷 Format Stickers',
+      vals: ['A6 (10×14)', 'A5 (14×20)', 'A4 (20×28)',
+             '5×5 cm', '10×10 cm', '15×15 cm', '20×20 cm']
+    }
+  };
+
+  /* Mots-clés pour fusionner un type de format avec un attribut custom */
+  const _FORMAT_KEYWORDS = {
+    format_dtf:           ['dtf', 'transfert dtf', 'format dtf', 'format'],
+    format_thermocollant: ['thermocollant', 'thermo', 'transfert thermo', 'format thermo'],
+    format_sticker:       ['sticker', 'stickers', 'format sticker', 'autocollant']
+  };
 
   function _getAttrValues(attrName) {
     /* Retourne les valeurs connues pour un attribut donné */
@@ -1383,13 +1491,17 @@ const Inventory = (() => {
       if (vals.length) return vals;
       return [...new Set(_currentVariantes.map(v => v.coupe).filter(Boolean))];
     }
-    if (attrName === 'format_transfert') {
-      /* Lire depuis l'attribut custom "format" s'il existe, sinon liste DTF par défaut */
-      const customFmt = _currentCustomAttrs.find(ca =>
-        ca.nom.toLowerCase() === 'format' || ca.nom.toLowerCase() === 'format transfert'
-      );
+    /* Types de formats : fusion avec l'attribut custom correspondant */
+    if (_FORMAT_TYPES[attrName]) {
+      const keywords = _FORMAT_KEYWORDS[attrName] || [];
+      /* Chercher un attribut custom dont le nom correspond */
+      const customFmt = _currentCustomAttrs.find(ca => {
+        const nom = ca.nom.toLowerCase();
+        return keywords.some(k => nom.includes(k));
+      });
+      /* Priorité : valeurs custom si renseignées, sinon valeurs par défaut du type */
       if (customFmt && customFmt.valeurs.length) return customFmt.valeurs;
-      return _DTF_FORMATS_DEFAUT;
+      return _FORMAT_TYPES[attrName].vals;
     }
     const custom = _currentCustomAttrs.find(ca => ca.nom === attrName);
     return custom ? custom.valeurs : [];
@@ -1397,14 +1509,38 @@ const Inventory = (() => {
 
   function _refreshAvancesSection(sec, produit) {
     /* Options de l'attribut prix */
+    /* Identifier les attrs custom qui ne correspondent pas à un type de format connu */
+    const formatKeywordsAll = Object.values(_FORMAT_KEYWORDS).flat();
+    const customNonFormat = _currentCustomAttrs.filter(ca => {
+      if (!ca.nom) return false;
+      const nom = ca.nom.toLowerCase();
+      return !formatKeywordsAll.some(k => nom.includes(k));
+    });
+
     const attrOptions = [
-      { val: '',                lbl: '— Aucun (prix fixe) —' },
-      { val: 'taille',          lbl: '📏 Taille' },
-      { val: 'couleur',         lbl: '🎨 Couleur' },
-      { val: 'coupe',           lbl: '✂ Coupe / Style' },
-      { val: 'format_transfert',lbl: '🖨 Format Transfert (DTF)' },
-      ..._currentCustomAttrs.filter(ca => ca.nom).map(ca => ({ val: ca.nom, lbl: '⬡ ' + ca.nom }))
+      { val: '',    lbl: '— Aucun (prix fixe) —', group: '' },
+      { val: 'taille',  lbl: '📏 Taille',         group: 'Dimensions' },
+      { val: 'couleur', lbl: '🎨 Couleur',          group: 'Dimensions' },
+      { val: 'coupe',   lbl: '✂ Coupe / Style',     group: 'Dimensions' },
+      /* Types de formats */
+      ...Object.entries(_FORMAT_TYPES).map(([val, { lbl }]) => ({ val, lbl, group: 'Formats' })),
+      /* Attributs custom restants */
+      ...customNonFormat.map(ca => ({ val: ca.nom, lbl: '⬡ ' + ca.nom, group: 'Personnalisés' }))
     ];
+
+    /* Construire le select avec optgroups */
+    const groups = {};
+    attrOptions.forEach(o => {
+      const g = o.group || '';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(o);
+    });
+    const selectHtml = Object.entries(groups).map(([grp, opts]) => {
+      const optsHtml = opts.map(o =>
+        `<option value="${_escI(o.val)}" ${_attrPrix === o.val ? 'selected' : ''}>${_escI(o.lbl)}</option>`
+      ).join('');
+      return grp ? `<optgroup label="${_escI(grp)}">${optsHtml}</optgroup>` : optsHtml;
+    }).join('');
 
     /* Valeurs + incréments pour l'attribut sélectionné */
     const attrVals = _attrPrix ? _getAttrValues(_attrPrix) : [];
@@ -1469,10 +1605,8 @@ const Inventory = (() => {
             <label style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">
               Attribut qui varie le prix :
             </label>
-            <select class="form-control" id="avance-attrprix" style="width:200px;">
-              ${attrOptions.map(o =>
-                `<option value="${_escI(o.val)}" ${_attrPrix === o.val ? 'selected' : ''}>${_escI(o.lbl)}</option>`
-              ).join('')}
+            <select class="form-control" id="avance-attrprix" style="width:220px;">
+              ${selectHtml}
             </select>
           </div>
 
@@ -1540,7 +1674,10 @@ const Inventory = (() => {
       inp.addEventListener('input', () => {
         const i = parseInt(inp.dataset.caValeurs);
         _currentCustomAttrs[i].valeurs = inp.value.split(',').map(s => s.trim()).filter(Boolean);
-        if (_attrPrix === _currentCustomAttrs[i].nom) _refreshAvancesSection(sec, produit);
+        if (_attrPrix === _currentCustomAttrs[i].nom) {
+          _refreshAvancesSection(sec, produit);
+        }
+        _updateVarAttrsSummary();
       });
     });
 
@@ -1548,6 +1685,7 @@ const Inventory = (() => {
     document.getElementById('avance-attrprix')?.addEventListener('change', (e) => {
       _attrPrix = e.target.value;
       _refreshAvancesSection(sec, produit);
+      _updateVarAttrsSummary();
     });
 
     /* Éditer un incrément */
@@ -1560,13 +1698,22 @@ const Inventory = (() => {
     /* Appliquer les incréments aux variantes */
     document.getElementById('btn-apply-increments')?.addEventListener('click', () => {
       const prixBase = parseFloat(document.querySelector('[name="prix"]')?.value) || 0;
+      /* Résoudre le nom de clé réel : format type → custom attr nom */
+      let resolvedKey = _attrPrix;
+      if (_FORMAT_TYPES[_attrPrix]) {
+        const keywords = _FORMAT_KEYWORDS[_attrPrix] || [];
+        const matchAttr = _currentCustomAttrs.find(ca => {
+          const n = ca.nom.toLowerCase();
+          return keywords.some(k => n.includes(k));
+        });
+        if (matchAttr) resolvedKey = matchAttr.nom;
+      }
       let nb = 0;
       _currentVariantes.forEach(v => {
-        let valAttr = '';
-        if (_attrPrix === 'taille')  valAttr = v.taille;
-        else if (_attrPrix === 'couleur') valAttr = v.couleur;
-        else if (_attrPrix === 'coupe')   valAttr = v.coupe;
-        else if (v.customAttrs)           valAttr = v.customAttrs[_attrPrix] || '';
+        /* Chercher la valeur de l'attr dans les champs directs ou customDims */
+        const valAttr = v[resolvedKey] !== undefined
+          ? v[resolvedKey]
+          : ((v.customDims || {})[resolvedKey] || '');
         if (valAttr && _attrIncrements[valAttr] !== undefined) {
           v.prix = prixBase + (_attrIncrements[valAttr] || 0);
           nb++;
@@ -1581,96 +1728,92 @@ const Inventory = (() => {
     const sec = document.getElementById('variantes-section');
     if (!sec) return;
 
-    /* Valeurs actuelles des attributs (depuis variantes existantes ou produit) */
-    const tDefaut  = produit.tailles  || '';
-    const cDefaut  = produit.couleurs || '';
-    const coDefaut = produit.coupe    || '';
+    const tDefaut = produit.tailles || '';
 
     sec.innerHTML = `
       <div style="background:var(--bg-surface);border:1px solid var(--border);
         border-radius:12px;padding:20px;margin-bottom:24px;">
 
-        <!-- En-tête -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-          <div>
-            <div style="font-size:14px;font-weight:700;color:var(--text-primary);">
-              Variantes de l'article
-              <span id="var-count-badge" style="font-size:12px;color:var(--text-muted);
-                font-weight:400;margin-left:6px;">
-                (${_currentVariantes.length} variante${_currentVariantes.length !== 1 ? 's' : ''})
-              </span>
-            </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-              Définissez les attributs puis cliquez sur "Générer" pour créer toutes les combinaisons.
-            </div>
+        <!-- EN-TÊTE -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+          <div style="font-size:14px;font-weight:700;color:var(--text-primary);">
+            ⚡ Variantes de l'article
+            <span id="var-count-badge" style="font-size:12px;font-weight:400;
+              color:var(--text-muted);margin-left:6px;">
+              (${_currentVariantes.length} variante${_currentVariantes.length !== 1 ? 's' : ''})
+            </span>
           </div>
           <button class="btn btn-ghost btn-sm" id="btn-var-clear-all"
-            style="color:var(--accent-red);font-size:11px;">
-            ✕ Tout effacer
-          </button>
+            style="color:var(--accent-red);">✕ Tout effacer</button>
         </div>
 
-        <!-- Générateur d'attributs -->
+        <!-- ATTRIBUTS & TARIFICATION (intégré) -->
+        <div id="avances-section" style="margin-bottom:16px;"></div>
+
+        <!-- GÉNÉRATION -->
         <div style="background:var(--bg-elevated);border-radius:10px;padding:14px;margin-bottom:16px;">
-          <div style="font-size:12px;font-weight:600;color:var(--text-muted);
-            text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;">
-            Attributs — séparez les valeurs par des virgules
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">📏 Tailles</label>
-              <input type="text" class="form-control" id="var-attr-tailles"
-                value="${_escI(tDefaut)}"
-                placeholder="S, M, L, XL, XXL" />
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">🎨 Couleurs</label>
-              <input type="text" class="form-control" id="var-attr-couleurs"
-                value="${_escI(cDefaut)}"
-                placeholder="Blanc, Noir, Rouge" />
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label class="form-label">✂ Coupe / Style</label>
-              <input type="text" class="form-control" id="var-attr-coupe"
-                value="${_escI(coDefaut)}"
-                placeholder="Regular, Slim, Loose" />
-            </div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;
+            letter-spacing:.06em;color:var(--text-muted);margin-bottom:12px;">
+            Génération des variantes
           </div>
 
-          <!-- Champ 4e dimension : attribut custom ou format transfert -->
-          <div id="var-attr-custom-wrap" style="margin-bottom:12px;display:none;">
-            <div class="form-group" style="margin:0;">
-              <label class="form-label" id="var-attr-custom-label">⬡ Attribut</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="text" class="form-control" id="var-attr-custom"
-                  placeholder="valeurs de l'attribut" style="flex:1;" />
-                <button class="btn btn-ghost btn-sm" id="btn-sync-attr-custom"
-                  title="Synchroniser depuis l'attribut">↺ Sync</button>
-              </div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
-                Chaque valeur générera une variante avec son prix correspondant.
-              </div>
-            </div>
+          <!-- Taille optionnelle -->
+          <div class="form-group" style="margin-bottom:10px;">
+            <label class="form-label">📏 Taille
+              <span style="font-size:10px;font-weight:400;color:var(--text-muted);">
+                — optionnel, laisser vide si non applicable (ex: transferts vinyl)
+              </span>
+            </label>
+            <input type="text" class="form-control" id="var-attr-tailles"
+              value="${_escI(tDefaut)}" placeholder="S, M, L, XL, XXL" />
           </div>
 
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button class="btn btn-primary btn-sm" id="btn-var-generate">
-              ⚡ Générer les variantes
-            </button>
-            <button class="btn btn-ghost btn-sm" id="btn-var-add-manual">
-              + Ajouter manuellement
-            </button>
-            <span style="font-size:11px;color:var(--text-muted);margin-left:4px;" id="var-gen-preview"></span>
+          <!-- Résumé des attributs utilisés -->
+          <div id="var-attrs-summary" style="margin-bottom:12px;"></div>
+
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" id="btn-var-generate">⚡ Générer les variantes</button>
+            <button class="btn btn-warning btn-sm" id="btn-var-regenerate">🔄 Régénérer</button>
+            <button class="btn btn-ghost btn-sm" id="btn-var-add-manual">+ Ajouter manuellement</button>
+            <span id="var-gen-preview" style="font-size:11px;color:var(--text-muted);margin-left:4px;"></span>
           </div>
         </div>
 
-        <!-- Tableau éditable des variantes -->
-        <div id="variantes-table-wrap">
-          ${_renderVariantesTable()}
-        </div>
+        <!-- TABLEAU VARIANTES -->
+        <div id="variantes-table-wrap">${_renderVariantesTable()}</div>
       </div>`;
 
+    /* Rendre les attributs à l'intérieur du bloc */
+    _renderAvancesSection(produit);
+    /* Résumé des attrs pour le générateur */
+    _updateVarAttrsSummary();
     _bindVariantesEvents(produit);
+  }
+
+  /* Résumé des attributs inclus dans la génération */
+  function _updateVarAttrsSummary() {
+    const el = document.getElementById('var-attrs-summary');
+    if (!el) return;
+    const actives = _currentCustomAttrs.filter(ca => ca.nom && ca.valeurs.length > 0);
+    if (!actives.length) {
+      el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);font-style:italic;">
+        Ajoutez des attributs ci-dessus — chaque attribut devient une dimension des variantes.</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+        Attributs inclus dans la génération :
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${actives.map(ca => `
+          <span style="background:var(--bg-surface);
+            border:1px solid ${_attrPrix === ca.nom ? 'var(--accent-blue)' : 'var(--border)'};
+            border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;
+            color:${_attrPrix === ca.nom ? 'var(--accent-blue)' : 'var(--text-primary)'};">
+            ${_escI(ca.nom)}${_attrPrix === ca.nom ? ' ⭐' : ''}
+            <span style="font-weight:400;color:var(--text-muted);">(${ca.valeurs.length})</span>
+          </span>`).join('')}
+      </div>`;
   }
 
   /* ================================================================
@@ -1798,72 +1941,65 @@ const Inventory = (() => {
   function _renderVariantesTable() {
     if (_currentVariantes.length === 0) {
       return `<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
-        Aucune variante. Utilisez le générateur ou ajoutez manuellement.
+        Aucune variante. Définissez des attributs puis cliquez sur "Générer".
       </div>`;
     }
 
-    /* Détecter si la colonne "Format" est utilisée */
-    const hasFormat = _currentVariantes.some(v => v.format);
-    const formatLabel = _attrPrix && !['taille','couleur','coupe',''].includes(_attrPrix)
-      ? (_attrPrix === 'format_transfert' ? 'Format' : _attrPrix)
-      : 'Format';
+    /* Colonnes dynamiques : taille + attrs custom actifs */
+    const hasTaille  = _currentVariantes.some(v => v.taille);
+    /* Colonnes custom : basées sur les attrs définis ET les customDims stockés */
+    const customCols = [...new Set([
+      ..._currentCustomAttrs.filter(ca => ca.nom).map(ca => ca.nom),
+      ..._currentVariantes.flatMap(v => Object.keys(v.customDims || {}))
+    ])];
 
     const rows = _currentVariantes.map((v, i) => `
       <tr data-var-idx="${i}">
-        <td><input type="text" class="line-input" data-var-field="taille" data-var-i="${i}"
-          value="${_escI(v.taille || '')}" placeholder="S" style="width:60px;" /></td>
-        <td><input type="text" class="line-input" data-var-field="couleur" data-var-i="${i}"
-          value="${_escI(v.couleur || '')}" placeholder="Blanc" style="width:80px;" /></td>
-        <td><input type="text" class="line-input" data-var-field="coupe" data-var-i="${i}"
-          value="${_escI(v.coupe || '')}" placeholder="Regular" style="width:80px;" /></td>
-        ${hasFormat ? `<td><input type="text" class="line-input" data-var-field="format" data-var-i="${i}"
-          value="${_escI(v.format || '')}" placeholder="${_escI(formatLabel)}" style="width:90px;" /></td>` : ''}
+        ${hasTaille ? `<td><input type="text" class="line-input" data-var-field="taille" data-var-i="${i}"
+          value="${_escI(v.taille || '')}" placeholder="S" style="width:60px;" /></td>` : ''}
+        ${customCols.map(col => {
+          /* Cherche la valeur dans les champs standard ou customDims */
+          const val = v[col] !== undefined ? v[col] : ((v.customDims || {})[col] || '');
+          return `<td><input type="text" class="line-input" data-var-field="${_escI(col)}" data-var-i="${i}"
+            value="${_escI(val)}" placeholder="${_escI(col)}" style="width:85px;" /></td>`;
+        }).join('')}
         <td><input type="text" class="line-input" data-var-field="ref" data-var-i="${i}"
-          value="${_escI(v.ref || '')}" placeholder="SKU-001" style="width:90px;" /></td>
+          value="${_escI(v.ref || '')}" placeholder="SKU-001" style="width:85px;" /></td>
         <td><input type="number" class="line-input num-input" data-var-field="prix" data-var-i="${i}"
-          value="${v.prix || ''}" placeholder="0" min="0" step="1" style="width:80px;" /></td>
+          value="${v.prix || ''}" min="0" step="1" style="width:80px;" /></td>
         <td><input type="number" class="line-input num-input" data-var-field="cout" data-var-i="${i}"
-          value="${v.cout || ''}" placeholder="0" min="0" step="1" style="width:80px;" /></td>
+          value="${v.cout || ''}" min="0" step="1" style="width:80px;" /></td>
         <td><input type="number" class="line-input num-input" data-var-field="quantite" data-var-i="${i}"
           value="${v.quantite || 0}" min="0" step="1" style="width:60px;" /></td>
-        <td style="text-align:center;">
-          <button class="btn-remove-line" data-var-del="${i}" title="Supprimer cette variante">✕</button>
-        </td>
+        <td><button class="btn-remove-line" data-var-del="${i}" title="Supprimer">✕</button></td>
       </tr>`).join('');
 
-    /* Total stock */
-    const totalQte = _currentVariantes.reduce((s, v) => s + (parseInt(v.quantite) || 0), 0);
-    const colSpanFoot = hasFormat ? 7 : 6;
+    const totalQte  = _currentVariantes.reduce((s, v) => s + (parseInt(v.quantite) || 0), 0);
+    const colCount  = (hasTaille ? 1 : 0) + customCols.length + 4; /* ref + prix + cout + qte */
 
     return `
       <div class="table-wrapper">
         <table class="data-table" style="font-size:12px;">
           <thead>
             <tr>
-              <th style="width:70px;">Taille</th>
-              <th style="width:90px;">Couleur</th>
-              <th style="width:90px;">Coupe</th>
-              ${hasFormat ? `<th style="width:100px;">${_escI(formatLabel)}</th>` : ''}
-              <th style="width:100px;">Réf / SKU</th>
-              <th style="width:95px;text-align:right;">Prix vente HT</th>
-              <th style="width:95px;text-align:right;">Prix revient</th>
-              <th style="width:70px;text-align:right;">Qté stock</th>
+              ${hasTaille ? '<th style="width:70px;">Taille</th>' : ''}
+              ${customCols.map(col =>
+                `<th style="width:90px;text-transform:capitalize;">${_escI(col)}</th>`
+              ).join('')}
+              <th style="width:95px;">Réf / SKU</th>
+              <th style="width:90px;text-align:right;">Prix HT</th>
+              <th style="width:90px;text-align:right;">Coût</th>
+              <th style="width:65px;text-align:right;">Qté</th>
               <th style="width:36px;"></th>
             </tr>
           </thead>
-          <tbody id="var-tbody">
-            ${rows}
-          </tbody>
+          <tbody id="var-tbody">${rows}</tbody>
           <tfoot>
             <tr style="border-top:2px solid var(--border);">
-              <td colspan="${colSpanFoot}" style="text-align:right;font-size:12px;
-                color:var(--text-muted);padding:8px 12px;">
-                Stock total calculé :
-              </td>
+              <td colspan="${colCount}" style="text-align:right;font-size:12px;
+                color:var(--text-muted);padding:8px 12px;">Stock total :</td>
               <td style="font-family:var(--font-mono);font-weight:700;
-                color:var(--accent-green);padding:8px 6px;">
-                ${totalQte}
-              </td>
+                color:var(--accent-green);padding:8px 6px;">${totalQte}</td>
               <td></td>
             </tr>
           </tfoot>
@@ -1873,106 +2009,86 @@ const Inventory = (() => {
 
   /** Lie tous les événements de la section variantes */
   function _bindVariantesEvents(produit) {
-    /* ── Champ 4e dimension : apparaît si attrPrix est un attribut custom ou format_transfert ── */
-    const _updateCustomDimField = () => {
-      const wrap  = document.getElementById('var-attr-custom-wrap');
-      const label = document.getElementById('var-attr-custom-label');
-      const inp   = document.getElementById('var-attr-custom');
-      if (!wrap) return;
 
-      const isCustomAttr = _attrPrix && !['taille','couleur','coupe'].includes(_attrPrix);
-      wrap.style.display = isCustomAttr ? 'block' : 'none';
-
-      if (isCustomAttr && label) {
-        const nom = _attrPrix === 'format_transfert' ? 'Format Transfert' : _attrPrix;
-        label.textContent = `⬡ ${nom}`;
-      }
-    };
-    _updateCustomDimField();
-
-    /* Sync depuis l'attribut custom */
-    document.getElementById('btn-sync-attr-custom')?.addEventListener('click', () => {
-      const vals = _getAttrValues(_attrPrix);
-      const inp  = document.getElementById('var-attr-custom');
-      if (inp && vals.length) inp.value = vals.join(', ');
-    });
-
-    /* Aperçu du nombre de combinaisons à générer */
+    /* Aperçu du nombre de combinaisons */
     const _updateGenPreview = () => {
-      const t   = _splitAttr(document.getElementById('var-attr-tailles')?.value);
-      const c   = _splitAttr(document.getElementById('var-attr-couleurs')?.value);
-      const co  = _splitAttr(document.getElementById('var-attr-coupe')?.value);
-      const cu  = _splitAttr(document.getElementById('var-attr-custom')?.value);
-      const isCustom = _attrPrix && !['taille','couleur','coupe'].includes(_attrPrix);
-      const n = Math.max(t.length, 1) * Math.max(c.length, 1) * Math.max(co.length, 1)
-              * (isCustom ? Math.max(cu.length, 1) : 1);
+      const t    = _splitAttr(document.getElementById('var-attr-tailles')?.value);
+      const dims = _currentCustomAttrs.filter(ca => ca.nom && ca.valeurs.length > 0);
+      let n = Math.max(t.length, 1);
+      dims.forEach(d => { n *= d.valeurs.length; });
       const prev = document.getElementById('var-gen-preview');
       if (prev) prev.textContent = n > 1 ? `→ ${n} combinaison${n > 1 ? 's' : ''}` : '';
     };
-    ['var-attr-tailles', 'var-attr-couleurs', 'var-attr-coupe', 'var-attr-custom'].forEach(id => {
-      document.getElementById(id)?.addEventListener('input', _updateGenPreview);
-    });
+    document.getElementById('var-attr-tailles')?.addEventListener('input', _updateGenPreview);
     _updateGenPreview();
 
-    /* Générer les combinaisons */
+    /* Générer : taille × TOUS les attributs personnalisés */
     document.getElementById('btn-var-generate')?.addEventListener('click', () => {
       const tailles  = _splitAttr(document.getElementById('var-attr-tailles')?.value);
-      const couleurs = _splitAttr(document.getElementById('var-attr-couleurs')?.value);
-      const coupes   = _splitAttr(document.getElementById('var-attr-coupe')?.value);
-      const customs  = _splitAttr(document.getElementById('var-attr-custom')?.value);
-
-      const isCustomDim = _attrPrix && !['taille','couleur','coupe'].includes(_attrPrix) && customs.length > 0;
-
-      const tList  = tailles.length  ? tailles  : [''];
-      const cList  = couleurs.length ? couleurs : [''];
-      const coList = coupes.length   ? coupes   : [''];
-      const cuList = isCustomDim     ? customs  : [''];
-
-      /* Prix et coût par défaut depuis le formulaire principal */
+      const dims     = _currentCustomAttrs.filter(ca => ca.nom && ca.valeurs.length > 0);
       const prixDefaut = parseFloat(document.querySelector('[name="prix"]')?.value) || 0;
       const coutDefaut = parseFloat(document.querySelector('[name="cout"]')?.value) || 0;
 
-      /* Générer toutes les combinaisons, dédupliquer avec l'existant */
-      const existingKeys = new Set(_currentVariantes.map(v =>
-        `${v.taille}|${v.couleur}|${v.coupe}|${v.format || ''}`
-      ));
+      if (!dims.length && !tailles.length) {
+        if (typeof toast === 'function') toast('Ajoutez au moins un attribut avec des valeurs.', 'info');
+        return;
+      }
+
+      /* Construire toutes les combinaisons : taille × dim1 × dim2 × … */
+      let combos = tailles.length ? tailles.map(t => ({ taille: t })) : [{}];
+      dims.forEach(dim => {
+        combos = combos.flatMap(combo =>
+          dim.valeurs.map(v => ({ ...combo, [dim.nom]: v }))
+        );
+      });
+
+      /* Clé de déduplication */
+      const makeKey = combo =>
+        Object.entries(combo).sort(([a],[b]) => a.localeCompare(b))
+          .map(([k,v]) => `${k}:${v}`).join('|');
+
+      const existingKeys = new Set(_currentVariantes.map(v => {
+        const c = {};
+        if (v.taille) c.taille = v.taille;
+        _currentCustomAttrs.forEach(ca => {
+          const val = v[ca.nom] !== undefined ? v[ca.nom] : ((v.customDims || {})[ca.nom]);
+          if (val) c[ca.nom] = val;
+        });
+        return makeKey(c);
+      }));
 
       let ajouts = 0;
-      tList.forEach(t => {
-        cList.forEach(c => {
-          coList.forEach(co => {
-            cuList.forEach(cu => {
-              const key = `${t}|${c}|${co}|${cu}`;
-              if (!existingKeys.has(key)) {
-                /* Calculer le prix avec l'incrément si attrPrix défini */
-                let prixVariante = prixDefaut;
-                if (_attrPrix && Object.keys(_attrIncrements).length) {
-                  let valAttr = '';
-                  if (_attrPrix === 'taille')       valAttr = t;
-                  else if (_attrPrix === 'couleur')  valAttr = c;
-                  else if (_attrPrix === 'coupe')    valAttr = co;
-                  else if (isCustomDim)              valAttr = cu;
-                  if (valAttr && _attrIncrements[valAttr] !== undefined) {
-                    prixVariante = prixDefaut + (_attrIncrements[valAttr] || 0);
-                  }
-                }
-                const variante = {
-                  taille:   t,
-                  couleur:  c,
-                  coupe:    co,
-                  ref:      '',
-                  prix:     prixVariante,
-                  cout:     coutDefaut,
-                  quantite: 0
-                };
-                if (isCustomDim && cu) variante.format = cu;
-                _currentVariantes.push(variante);
-                existingKeys.add(key);
-                ajouts++;
-              }
+      combos.forEach(combo => {
+        const key = makeKey(combo);
+        if (existingKeys.has(key)) return;
+
+        /* Prix avec incrément attrPrix
+           Si _attrPrix est un type de format (format_dtf…), résoudre vers
+           le nom de l'attribut custom correspondant dans le combo */
+        let prixVariante = prixDefaut;
+        if (_attrPrix && Object.keys(_attrIncrements).length) {
+          let resolvedKey = _attrPrix;
+          if (_FORMAT_TYPES[_attrPrix]) {
+            const keywords = _FORMAT_KEYWORDS[_attrPrix] || [];
+            const matchAttr = _currentCustomAttrs.find(ca => {
+              const n = ca.nom.toLowerCase();
+              return keywords.some(k => n.includes(k));
             });
-          });
-        });
+            if (matchAttr) resolvedKey = matchAttr.nom;
+          }
+          const valAttr = combo[resolvedKey] || '';
+          if (valAttr && _attrIncrements[valAttr] !== undefined) {
+            prixVariante = prixDefaut + (_attrIncrements[valAttr] || 0);
+          }
+        }
+
+        /* Construire le variante — stocker chaque attr directement sur l'objet */
+        const variante = { taille: combo.taille || '', ref: '', prix: prixVariante, cout: coutDefaut, quantite: 0 };
+        dims.forEach(dim => { variante[dim.nom] = combo[dim.nom] || ''; });
+
+        _currentVariantes.push(variante);
+        existingKeys.add(key);
+        ajouts++;
       });
 
       _refreshVariantesTable();
@@ -1983,9 +2099,19 @@ const Inventory = (() => {
       }
     });
 
-    /* Ajouter manuellement une ligne vide */
+    /* Régénérer */
+    document.getElementById('btn-var-regenerate')?.addEventListener('click', () => {
+      if (_currentVariantes.length > 0 &&
+          !confirm('Effacer les variantes existantes et régénérer ?')) return;
+      _currentVariantes = [];
+      document.getElementById('btn-var-generate')?.click();
+    });
+
+    /* Ajouter manuellement */
     document.getElementById('btn-var-add-manual')?.addEventListener('click', () => {
-      _currentVariantes.push({ taille: '', couleur: '', coupe: '', ref: '', prix: 0, cout: 0, quantite: 0 });
+      const v = { taille: '', ref: '', prix: 0, cout: 0, quantite: 0 };
+      _currentCustomAttrs.filter(ca => ca.nom).forEach(ca => { v[ca.nom] = ''; });
+      _currentVariantes.push(v);
       _refreshVariantesTable();
     });
 
@@ -2073,8 +2199,9 @@ const Inventory = (() => {
       tr.querySelectorAll('[data-var-field]').forEach(inp => {
         const f = inp.dataset.varField;
         const numFields = ['prix', 'cout', 'quantite'];
+        /* Stockage direct sur le variante (tous les attrs sont des propriétés top-level) */
         _currentVariantes[i][f] = numFields.includes(f)
-          ? parseInt(inp.value) || 0
+          ? (parseFloat(inp.value) || 0)
           : inp.value;
       });
     });
@@ -2125,85 +2252,518 @@ const Inventory = (() => {
       return;
     }
 
-    const fmt = n => Number(n || 0).toLocaleString('fr-FR') + ' XPF';
+    const SKIP = new Set(['ref', 'prix', 'cout', 'quantite', 'customDims']);
+    const fmt  = n => Number(n || 0).toLocaleString('fr-FR') + ' XPF';
 
-    const rows = variantes.map((v, i) => {
-      const attrs = [
-        v.taille  ? `📏 ${_esc(v.taille)}`  : '',
-        v.couleur ? `🎨 ${_esc(v.couleur)}` : '',
-        v.coupe   ? `✂ ${_esc(v.coupe)}`    : ''
-      ].filter(Boolean).join(' · ');
+    /* Attributs disponibles + valeurs uniques */
+    const dynKeys = [...new Set(variantes.flatMap(v => Object.keys(v).filter(k => !SKIP.has(k))))];
+    const attrVals = {};
+    dynKeys.forEach(k => {
+      attrVals[k] = [...new Set(variantes.map(v => v[k]).filter(Boolean))];
+    });
 
-      return `
-        <tr data-var-pick="${i}" style="cursor:pointer;" class="var-pick-row">
-          <td style="padding:8px 12px;">${attrs || '<span style="color:var(--text-muted);">—</span>'}</td>
-          <td style="padding:8px 12px;font-size:11px;color:var(--text-muted);">${_esc(v.ref || '')}</td>
-          <td style="padding:8px 12px;font-family:var(--font-mono);font-weight:600;text-align:right;">
-            ${v.prix ? fmt(v.prix) : '<span style="color:var(--text-muted);">—</span>'}
-          </td>
-          <td style="padding:8px 12px;text-align:center;">
-            <span style="font-size:11px;color:${(v.quantite||0) > 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">
-              ${v.quantite || 0} u
-            </span>
-          </td>
-        </tr>`;
-    }).join('');
+    /* Icône par attribut */
+    const attrIcon = k => {
+      const kl = k.toLowerCase();
+      if (kl === 'taille') return '📏';
+      if (kl === 'couleur' || kl === 'color') return '🎨';
+      if (kl === 'coupe') return '✂';
+      if (kl.includes('format')) return '📐';
+      if (kl.includes('aspect') || kl.includes('finition')) return '✨';
+      return '▸';
+    };
+
+    /* Sélects par attribut */
+    const selectsHtml = dynKeys.map(k => `
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;
+          letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">
+          ${attrIcon(k)} ${_escI(k)}
+        </label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="vp-btns-${_escI(k)}">
+          ${attrVals[k].map(val => `
+            <button type="button" class="vp-attr-btn"
+              data-attr="${_escI(k)}" data-val="${_escI(val)}"
+              style="padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+                background:var(--bg-elevated);font-size:13px;cursor:pointer;
+                transition:all .15s;color:var(--text-primary);">
+              ${_escI(val)}
+            </button>`).join('')}
+        </div>
+      </div>`).join('');
 
     const html = `
-      <div style="min-width:520px;">
+      <div style="min-width:420px;max-width:560px;">
         <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">
-          ${_esc(produit.nom)} — Choisir une variante
+          ${_escI(produit.nom)}
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
-          Cliquez sur une ligne pour l'ajouter à la commande
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">
+          Sélectionnez les attributs pour choisir la variante
         </div>
-        <div class="table-wrapper">
-          <table class="data-table" style="font-size:13px;">
-            <thead>
-              <tr>
-                <th>Attributs</th>
-                <th>Réf / SKU</th>
-                <th style="text-align:right;">Prix HT</th>
-                <th style="text-align:center;">Stock</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
+        ${selectsHtml}
+        <!-- Description live -->
+        <div id="vp-desc" style="margin-top:14px;padding:10px 14px;border-radius:8px;
+          background:var(--bg-elevated);border:1px solid var(--border);
+          font-size:13px;color:var(--text-muted);min-height:36px;
+          display:flex;align-items:center;gap:8px;">
+          <span style="opacity:.5;">Sélectionnez les attributs…</span>
+        </div>
+        <div id="vp-no-match" style="margin-top:8px;font-size:12px;
+          color:var(--accent-red);display:none;">
+          Aucune variante ne correspond à cette sélection.
         </div>
       </div>`;
 
     openModal(html);
 
-    /* Délai pour que le DOM du modal soit rendu */
     setTimeout(() => {
-      document.querySelectorAll('.var-pick-row').forEach(tr => {
-        tr.style.transition = 'background 0.1s';
-        tr.addEventListener('mouseenter', () => tr.style.background = 'var(--bg-elevated)');
-        tr.addEventListener('mouseleave', () => tr.style.background = '');
-        tr.addEventListener('click', () => {
-          const idx = parseInt(tr.dataset.varPick);
-          const v   = variantes[idx];
-          /* Construire la description auto */
-          const parts = [
-            v.taille  ? `Taille: ${v.taille}`   : '',
-            v.couleur ? `Couleur: ${v.couleur}`  : '',
-            v.coupe   ? `Coupe: ${v.coupe}`      : '',
-            v.ref     ? `Réf: ${v.ref}`          : ''
-          ].filter(Boolean);
-          /* Ajouter attributs custom */
-          if (produit.customAttrs) {
-            produit.customAttrs.forEach(ca => {
-              if (v.customAttrs && v.customAttrs[ca.nom]) {
-                parts.push(`${ca.nom}: ${v.customAttrs[ca.nom]}`);
-              }
-            });
+      const selection = {};
+      let matchedVariante = null;
+
+      function findMatch() {
+        /* Cherche la variante qui correspond exactement à la sélection courante */
+        return variantes.find(v =>
+          dynKeys.every(k => !selection[k] || v[k] === selection[k])
+        ) || null;
+      }
+
+      function updateResult() {
+        matchedVariante = findMatch();
+        const descEl  = document.getElementById('vp-desc');
+        const noMatch = document.getElementById('vp-no-match');
+        const allSet  = dynKeys.every(k => selection[k]);
+        const chosen  = dynKeys.filter(k => selection[k]);
+
+        /* Mettre à jour la description live */
+        if (descEl) {
+          if (chosen.length === 0) {
+            descEl.innerHTML = '<span style="opacity:.5;">Sélectionnez les attributs…</span>';
+          } else if (matchedVariante) {
+            const stock = matchedVariante.quantite || 0;
+            const prix  = matchedVariante.prix || 0;
+            descEl.innerHTML = `
+              <span style="font-weight:600;color:var(--text-primary);">
+                ${chosen.map(k => `${k}: <strong>${selection[k]}</strong>`).join(' &nbsp;·&nbsp; ')}
+              </span>
+              ${prix ? `<span style="margin-left:auto;font-family:var(--font-mono);
+                font-weight:700;color:var(--accent-blue);white-space:nowrap;">
+                ${fmt(prix)}</span>` : ''}
+              <span style="font-size:11px;white-space:nowrap;
+                color:${stock > 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">
+                ${stock} u</span>`;
+          } else {
+            descEl.innerHTML = `<span style="opacity:.6;">${
+              chosen.map(k => `${k}: ${selection[k]}`).join(' · ')
+            }</span>`;
           }
-          const descriptionAuto = parts.join(' — ');
+        }
+
+        if (allSet && matchedVariante) {
+          /* Tous les attributs choisis + variante trouvée → validation automatique */
+          const parts = chosen.map(k => `${k}: ${selection[k]}`);
+          if (matchedVariante.ref) parts.push(`Réf: ${matchedVariante.ref}`);
           closeModal();
-          if (typeof onSelect === 'function') onSelect(v, descriptionAuto);
+          if (typeof onSelect === 'function') onSelect(matchedVariante, parts.join(' — '));
+        } else if (allSet) {
+          if (noMatch) noMatch.style.display = 'block';
+        } else {
+          if (noMatch) noMatch.style.display = 'none';
+        }
+      }
+
+      /* Clic sur un bouton attribut */
+      document.querySelectorAll('.vp-attr-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const attr = btn.dataset.attr;
+          const val  = btn.dataset.val;
+          selection[attr] = selection[attr] === val ? '' : val;
+
+          /* Mettre à jour l'apparence des boutons du groupe */
+          document.querySelectorAll(`.vp-attr-btn[data-attr="${attr}"]`).forEach(b => {
+            const active = b.dataset.val === selection[attr];
+            b.style.background   = active ? 'var(--accent-blue)' : 'var(--bg-elevated)';
+            b.style.color        = active ? '#fff' : 'var(--text-primary)';
+            b.style.borderColor  = active ? 'var(--accent-blue)' : 'var(--border)';
+            b.style.fontWeight   = active ? '700' : '400';
+          });
+          updateResult();
         });
       });
+
     }, 50);
+  }
+
+  /* ================================================================
+     IMPORT / EXPORT PRODUITS
+     ================================================================ */
+
+  const _IMPORT_FIELDS = [
+    { key: 'nom',         label: 'Nom produit',   required: true },
+    { key: 'categorie',   label: 'Catégorie' },
+    { key: 'prix',        label: 'Prix vente (XPF)' },
+    { key: 'cout',        label: 'Coût achat (XPF)' },
+    { key: 'stock',       label: 'Stock initial' },
+    { key: 'unite',       label: 'Unité' },
+    { key: 'description', label: 'Description' },
+    { key: 'ref',         label: 'Référence / SKU' },
+    { key: 'emoji',       label: 'Emoji' },
+  ];
+
+  const _IMPORT_ALIASES = {
+    nom:         ['nom', 'name', 'produit', 'article', 'libelle', 'designation', 'désignation'],
+    categorie:   ['categorie', 'catégorie', 'category', 'cat', 'famille', 'type'],
+    prix:        ['prix', 'price', 'prix vente', 'pv', 'tarif', 'prix_vente'],
+    cout:        ['cout', 'coût', 'cost', 'prix achat', 'pa', 'prix_achat', 'achat'],
+    stock:       ['stock', 'quantite', 'quantité', 'qty', 'qte', 'inventaire'],
+    unite:       ['unite', 'unité', 'unit', 'uom', 'mesure'],
+    description: ['description', 'desc', 'details', 'détails', 'notes', 'commentaire'],
+    ref:         ['ref', 'référence', 'reference', 'sku', 'code', 'code_article'],
+    emoji:       ['emoji', 'icone', 'icône', 'icon'],
+  };
+
+  function _autoMapColumns(headers) {
+    const map = {};
+    headers.forEach(h => {
+      const hn = h.toLowerCase().trim();
+      for (const [field, aliases] of Object.entries(_IMPORT_ALIASES)) {
+        if (!map[field] && aliases.some(a => hn === a || hn.includes(a))) {
+          map[field] = h;
+        }
+      }
+    });
+    return map;
+  }
+
+  function _openImportModal(toolbar, area) {
+    let _importData    = [];
+    let _importHeaders = [];
+    let _mapping       = {};
+
+    const overlay = document.getElementById('modal-container');
+    const box     = document.getElementById('modal-box');
+    if (!overlay || !box) return;
+    box.className        = 'modal-box modal-lg';
+    overlay.style.display = 'flex';
+
+    /* ---- Étape 1 : Upload ---- */
+    function renderStep1() {
+      const content = document.getElementById('modal-content');
+      if (!content) return;
+      content.innerHTML = `
+        <div class="modal-title">📥 Importer des produits</div>
+        <div class="modal-body-content">
+          <div style="text-align:center;padding:24px 0 16px;">
+            <div id="import-drop-zone" style="border:2px dashed var(--border);border-radius:12px;
+              padding:36px 24px;cursor:pointer;transition:border-color .15s;background:var(--bg-muted);">
+              <div style="font-size:2.5rem;margin-bottom:10px;">📂</div>
+              <div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:6px;">
+                Glissez un fichier ici
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+                ou cliquez pour sélectionner — <strong>CSV</strong> ou <strong>Excel (.xlsx, .xls)</strong>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="btn-import-browse">Parcourir…</button>
+              <input type="file" id="import-file-input" accept=".csv,.xlsx,.xls" style="display:none;" />
+            </div>
+            <div style="margin-top:14px;font-size:12px;color:var(--text-muted);">
+              Colonnes reconnues automatiquement : nom, catégorie, prix, coût, stock, unité, description, référence
+            </div>
+            <a href="#" id="btn-dl-template"
+              style="font-size:12px;color:var(--accent-blue);text-decoration:none;
+                margin-top:8px;display:inline-block;">
+              ⬇ Télécharger le modèle CSV
+            </a>
+          </div>
+        </div>`;
+
+      const drop  = document.getElementById('import-drop-zone');
+      const input = document.getElementById('import-file-input');
+
+      document.getElementById('btn-import-browse')?.addEventListener('click', () => input?.click());
+      drop?.addEventListener('click', e => { if (e.target.id !== 'btn-import-browse') input?.click(); });
+      drop?.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = 'var(--accent-blue)'; });
+      drop?.addEventListener('dragleave', () => { drop.style.borderColor = 'var(--border)'; });
+      drop?.addEventListener('drop', e => {
+        e.preventDefault(); drop.style.borderColor = 'var(--border)';
+        const f = e.dataTransfer?.files?.[0]; if (f) parseFile(f);
+      });
+      input?.addEventListener('change', () => { if (input.files?.[0]) parseFile(input.files[0]); });
+      document.getElementById('btn-dl-template')?.addEventListener('click', e => {
+        e.preventDefault(); _downloadImportTemplate();
+      });
+    }
+
+    /* ---- Parse ---- */
+    function parseFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const reader = new FileReader();
+      if (ext === 'csv') {
+        reader.onload = e => parseCSV(e.target.result);
+        reader.readAsText(file, 'UTF-8');
+      } else if (['xlsx', 'xls'].includes(ext)) {
+        reader.onload = e => parseXLSX(e.target.result);
+        reader.readAsArrayBuffer(file);
+      } else {
+        if (typeof toast === 'function') toast('Format non supporté (.csv, .xlsx, .xls uniquement).', 'error');
+      }
+    }
+
+    function parseCSV(text) {
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // BOM
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { if (typeof toast === 'function') toast('Fichier vide ou sans données.', 'error'); return; }
+      const parseRow = line => {
+        const out = []; let cur = '', inQ = false;
+        for (const ch of line) {
+          if (ch === '"') { inQ = !inQ; }
+          else if ((ch === ',' || ch === ';') && !inQ) { out.push(cur.trim()); cur = ''; }
+          else { cur += ch; }
+        }
+        out.push(cur.trim()); return out;
+      };
+      const headers = parseRow(lines[0]).map(h => h.replace(/^"|"$/g, ''));
+      const rows = lines.slice(1).map(l => {
+        const vals = parseRow(l);
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, ''); });
+        return obj;
+      }).filter(r => Object.values(r).some(v => v));
+      _importHeaders = headers; _importData = rows;
+      _mapping = _autoMapColumns(headers);
+      renderStep2();
+    }
+
+    function parseXLSX(buffer) {
+      if (typeof XLSX === 'undefined') {
+        if (typeof toast === 'function') toast('Librairie XLSX non chargée. Rechargez la page.', 'error');
+        return;
+      }
+      const wb   = XLSX.read(buffer, { type: 'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { if (typeof toast === 'function') toast('Feuille Excel vide.', 'error'); return; }
+      _importHeaders = Object.keys(rows[0]);
+      _importData    = rows;
+      _mapping       = _autoMapColumns(_importHeaders);
+      renderStep2();
+    }
+
+    /* ---- Étape 2 : Mapping + Aperçu ---- */
+    function renderStep2() {
+      const content = document.getElementById('modal-content');
+      if (!content) return;
+
+      const mappingRows = _IMPORT_FIELDS.map(f => `
+        <tr>
+          <td style="padding:6px 10px;font-size:13px;color:var(--text-primary);
+            font-weight:${f.required ? '600' : '400'};">
+            ${_escI(f.label)}${f.required ? ' <span style="color:var(--accent-red)">*</span>' : ''}
+          </td>
+          <td style="padding:6px 10px;">
+            <select class="form-control" data-map="${_escI(f.key)}"
+              style="width:100%;font-size:12px;padding:4px 6px;">
+              <option value="">— Ignorer —</option>
+              ${_importHeaders.map(h =>
+                `<option value="${_escI(h)}" ${_mapping[f.key] === h ? 'selected' : ''}>${_escI(h)}</option>`
+              ).join('')}
+            </select>
+          </td>
+        </tr>`).join('');
+
+      const previewCols = _importHeaders.slice(0, 8);
+      const previewRows = _importData.slice(0, 6).map(row => `
+        <tr>${previewCols.map(h =>
+          `<td style="padding:3px 8px;font-size:11px;max-width:110px;overflow:hidden;
+            text-overflow:ellipsis;white-space:nowrap;border-bottom:1px solid var(--border);">
+            ${_escI(String(row[h] || ''))}</td>`
+        ).join('')}</tr>`).join('');
+
+      content.innerHTML = `
+        <div class="modal-title">📥 Importer des produits — Correspondance des colonnes</div>
+        <div class="modal-body-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                color:var(--text-muted);margin-bottom:10px;">Champs ERP → Colonne fichier</div>
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="padding:5px 10px;font-size:11px;text-align:left;color:var(--text-muted);
+                      border-bottom:1px solid var(--border);">Champ ERP</th>
+                    <th style="padding:5px 10px;font-size:11px;text-align:left;color:var(--text-muted);
+                      border-bottom:1px solid var(--border);">Colonne du fichier</th>
+                  </tr>
+                </thead>
+                <tbody>${mappingRows}</tbody>
+              </table>
+            </div>
+
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+                color:var(--text-muted);margin-bottom:10px;">
+                Aperçu — <strong>${_importData.length}</strong> ligne${_importData.length > 1 ? 's' : ''} détectée${_importData.length > 1 ? 's' : ''}
+              </div>
+              <div style="overflow-x:auto;max-height:240px;overflow-y:auto;
+                border:1px solid var(--border);border-radius:8px;">
+                <table style="width:100%;border-collapse:collapse;">
+                  <thead>
+                    <tr style="background:var(--bg-muted);">
+                      ${previewCols.map(h =>
+                        `<th style="padding:4px 8px;font-size:10px;white-space:nowrap;
+                          text-align:left;color:var(--text-muted);">${_escI(h)}</th>`
+                      ).join('')}
+                    </tr>
+                  </thead>
+                  <tbody>${previewRows}</tbody>
+                </table>
+              </div>
+              ${_importData.length > 6
+                ? `<div style="font-size:11px;color:var(--text-muted);margin-top:5px;">… et ${_importData.length - 6} autre${_importData.length - 6 > 1 ? 's' : ''} ligne${_importData.length - 6 > 1 ? 's' : ''}</div>`
+                : ''}
+              ${_importHeaders.length > 8
+                ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Aperçu limité à 8 colonnes sur ${_importHeaders.length}</div>`
+                : ''}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="btn-imp-back">← Retour</button>
+          <button class="btn btn-primary" id="btn-imp-confirm">
+            ✅ Importer ${_importData.length} produit${_importData.length > 1 ? 's' : ''}
+          </button>
+        </div>`;
+
+      content.querySelectorAll('[data-map]').forEach(sel => {
+        sel.addEventListener('change', () => { _mapping[sel.dataset.map] = sel.value; });
+      });
+      document.getElementById('btn-imp-back')?.addEventListener('click', renderStep1);
+      document.getElementById('btn-imp-confirm')?.addEventListener('click', doImport);
+    }
+
+    /* ---- Import ---- */
+    function doImport() {
+      if (!_mapping.nom) {
+        if (typeof toast === 'function') toast('La colonne "Nom produit" est obligatoire.', 'error');
+        return;
+      }
+      let created = 0, skipped = 0;
+      const errors = [];
+
+      _importData.forEach((row, i) => {
+        const nom = String(row[_mapping.nom] || '').trim();
+        if (!nom) { skipped++; return; }
+        const num = (key) => {
+          const raw = _mapping[key] ? String(row[_mapping[key]] || '0').replace(',', '.') : '0';
+          return parseFloat(raw) || 0;
+        };
+        const str = (key) => _mapping[key] ? String(row[_mapping[key]] || '').trim() : '';
+        try {
+          Store.create('produits', {
+            nom,
+            categorie:   str('categorie'),
+            prix:        num('prix'),
+            cout:        num('cout'),
+            stock:       Math.round(num('stock')),
+            unite:       str('unite') || 'unité',
+            description: str('description'),
+            ref:         str('ref'),
+            emoji:       str('emoji') || '📦',
+            status:      'active',
+            variantes:   [],
+            paliers:     [],
+            customAttrs: [],
+          });
+          created++;
+        } catch (e) { errors.push(`Ligne ${i + 2} : ${e.message}`); }
+      });
+
+      renderStep3(created, skipped, errors);
+    }
+
+    /* ---- Étape 3 : Résultat ---- */
+    function renderStep3(created, skipped, errors) {
+      const content = document.getElementById('modal-content');
+      if (!content) return;
+      content.innerHTML = `
+        <div class="modal-title">📥 Import terminé</div>
+        <div class="modal-body-content" style="text-align:center;padding:24px 0;">
+          <div style="font-size:3rem;margin-bottom:12px;">${errors.length ? '⚠️' : '✅'}</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">
+            ${created} produit${created > 1 ? 's' : ''} importé${created > 1 ? 's' : ''}
+          </div>
+          ${skipped > 0
+            ? `<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">
+                ${skipped} ligne${skipped > 1 ? 's' : ''} ignorée${skipped > 1 ? 's' : ''} (nom vide)</div>`
+            : ''}
+          ${errors.length
+            ? `<div style="margin-top:16px;text-align:left;background:var(--bg-muted);
+                border-radius:8px;padding:12px;max-height:140px;overflow-y:auto;">
+                ${errors.map(e => `<div style="font-size:12px;color:var(--accent-red);margin-bottom:4px;">• ${_escI(e)}</div>`).join('')}
+              </div>`
+            : ''}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btn-imp-done">Fermer</button>
+        </div>`;
+
+      document.getElementById('btn-imp-done')?.addEventListener('click', () => {
+        closeModal();
+        _renderProductList(toolbar, area);
+      });
+      if (created > 0 && typeof toast === 'function')
+        toast(`${created} produit${created > 1 ? 's' : ''} importé${created > 1 ? 's' : ''} avec succès.`, 'success');
+    }
+
+    renderStep1();
+  }
+
+  /* ---- Télécharger le modèle CSV (colonnes + 1 exemple) ---- */
+  function _downloadImportTemplate() {
+    const cols  = _IMPORT_FIELDS.map(f => f.key);
+    const label = _IMPORT_FIELDS.map(f => f.label);
+    const example = {
+      nom: 'T-Shirt Blanc Classic', categorie: 'Vêtements',
+      prix: '2500', cout: '800', stock: '50', unite: 'unité',
+      description: 'T-shirt 100% coton peigné — disponible toutes tailles',
+      ref: 'TSH-001', emoji: '👕'
+    };
+    const lines = [
+      cols.join(','),
+      label.map(l => `"${l}"`).join(','),
+      cols.map(k => `"${example[k] || ''}"`).join(',')
+    ];
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'modele-import-produits.csv';
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  /* ---- Exporter tous les produits en CSV (avec config complète) ---- */
+  function _exportProductsCSV() {
+    const produits = Store.getAll('produits');
+    if (!produits.length) {
+      if (typeof toast === 'function') toast('Aucun produit à exporter.', 'info');
+      return;
+    }
+    const cols = ['nom', 'categorie', 'prix', 'cout', 'stock', 'unite', 'description', 'ref', 'emoji', 'status'];
+    const header = cols.join(',');
+    const rows = produits.map(p =>
+      cols.map(k => {
+        const v = p[k] !== undefined ? String(p[k]) : '';
+        return v.includes(',') || v.includes('"') || v.includes('\n')
+          ? `"${v.replace(/"/g, '""')}"` : v;
+      }).join(',')
+    );
+    const csv  = '\uFEFF' + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url; a.download = `produits-hcs-${date}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    if (typeof toast === 'function') toast(`${produits.length} produit${produits.length > 1 ? 's' : ''} exporté${produits.length > 1 ? 's' : ''}.`, 'success');
   }
 
   /* ================================================================

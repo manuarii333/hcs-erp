@@ -136,6 +136,28 @@ const SEED = {
       categorie: 'Services',
       prix: 7500, cout: 3000, stock: 999, stockMin: 0,
       unite: 'h', description: 'Studio graphique HCS, BAT inclus jusqu\'à 3 révisions'
+    },
+    /* --- TEXTILE HCS --- */
+    {
+      id: 'prod-017', sku: 'TUC-001', emoji: '👕',
+      nom: 'T-shirt Unis Coton',
+      categorie: 'Textile',
+      prix: 1800, cout: 600, stock: 0, stockMin: 10,
+      unite: 'pce', description: 'T-shirt uni 100% coton, disponible en plusieurs coloris'
+    },
+    {
+      id: 'prod-018', sku: 'CAP-001', emoji: '🧢',
+      nom: 'Casquette Polyester',
+      categorie: 'Textile',
+      prix: 2200, cout: 750, stock: 0, stockMin: 8,
+      unite: 'pce', description: 'Casquette polyester, fermeture ajustable, personnalisable'
+    },
+    {
+      id: 'prod-019', sku: 'HTV-001', emoji: '🔥',
+      nom: 'Heat Transfer Vinyl',
+      categorie: 'DTF',
+      prix: 950, cout: 300, stock: 0, stockMin: 20,
+      unite: 'pce', description: 'Transfert thermocollant heat transfer vinyl (HTV), pressage à chaud'
     }
   ],
 
@@ -194,9 +216,102 @@ const SEED = {
   ],
 
   /* ==============================================================
+     CLIENTS (8) — entreprises et organisations clientes HCS
+     ============================================================== */
+  clients: [
+    {
+      id: 'cli-001', nom: 'Mairie de Faa\'a', type: 'Collectivité',
+      email: 'contact@mairie-faaa.pf', telephone: '40 80 45 00',
+      adresse: 'BP 3030, Faa\'a, Tahiti', ile: 'Tahiti',
+      interlocuteur: 'M. Oscar Temaru', ca: 285000, statut: 'actif'
+    },
+    {
+      id: 'cli-002', nom: 'Hotel Intercontinental Tahiti', type: 'Hôtellerie',
+      email: 'achat@ihg-tahiti.pf', telephone: '40 47 88 88',
+      adresse: 'BP 6014, Faa\'a, Tahiti', ile: 'Tahiti',
+      interlocuteur: 'Mme Sophie Blanc', ca: 520000, statut: 'actif'
+    },
+    {
+      id: 'cli-003', nom: 'Air Tahiti Nui', type: 'Transport',
+      email: 'uniform@airtahitinui.pf', telephone: '40 46 03 03',
+      adresse: 'Immeuble Dexter, Faa\'a', ile: 'Tahiti',
+      interlocuteur: 'M. Teiva Martin', ca: 340000, statut: 'actif'
+    },
+    {
+      id: 'cli-004', nom: 'Lycée Paul Gauguin', type: 'Éducation',
+      email: 'intendance@lpg.pf', telephone: '40 41 71 60',
+      adresse: '8 rue Morenhout, Papeete', ile: 'Tahiti',
+      interlocuteur: 'Mme Hina Tefaafana', ca: 95000, statut: 'actif'
+    },
+    {
+      id: 'cli-005', nom: 'Clinique Cardella', type: 'Santé',
+      email: 'admin@cardella.pf', telephone: '40 46 01 01',
+      adresse: 'Rue Anne-Marie Javouhey, Papeete', ile: 'Tahiti',
+      interlocuteur: 'M. Rui Cardella', ca: 180000, statut: 'actif'
+    },
+    {
+      id: 'cli-006', nom: 'Te Fare Tauhiti Nui', type: 'Culture',
+      email: 'contact@maisondelaculture.pf', telephone: '40 54 45 44',
+      adresse: 'Blvd Pomare, Papeete', ile: 'Tahiti',
+      interlocuteur: 'Mme Mere Tetuanui', ca: 72000, statut: 'actif'
+    },
+    {
+      id: 'cli-007', nom: 'Surf School Tahiti', type: 'Sport',
+      email: 'hello@surftahiti.pf', telephone: '87 23 14 55',
+      adresse: 'Plage de Mahina, Tahiti', ile: 'Tahiti',
+      interlocuteur: 'M. Keoni Toa', ca: 48000, statut: 'actif'
+    },
+    {
+      id: 'cli-008', nom: 'Fenua Events', type: 'Événementiel',
+      email: 'booking@fenuaevents.pf', telephone: '87 72 88 10',
+      adresse: 'Punaauia, Tahiti', ile: 'Tahiti',
+      interlocuteur: 'Mme Vahine Arii', ca: 135000, statut: 'actif'
+    }
+  ],
+
+  /* ==============================================================
      FOURNISSEURS (4)
      ============================================================== */
   fournisseurs: [
+    /* ── Fournisseurs HCS — Polynésie française (locaux) ── */
+    {
+      id: 'four-hcs-001', nom: 'Anémone Tahiti',
+      pays: 'Polynésie française', devise: 'XPF',
+      email: 'contact@anemone.pf', telephone: '+689 40 50 00 01',
+      contact: '',
+      delaiLivraison: 2,
+      conditions: 'Crédit 30j. Livraison 24-48h.',
+      notes: 'Fournisseur principal textile. T-shirts, polos, casquettes blank.'
+    },
+    {
+      id: 'four-hcs-002', nom: 'HT4You',
+      pays: 'Polynésie française', devise: 'XPF',
+      email: 'info@ht4you.pf', telephone: '+689 40 50 00 02',
+      contact: '',
+      delaiLivraison: 1,
+      conditions: 'Paiement à la commande. MOQ 10 transferts.',
+      notes: 'Transferts DTF, films, encres. Livraison J+1.'
+    },
+    /* ── Fournisseurs HCS — International ── */
+    {
+      id: 'four-hcs-003', nom: 'AliExpress Pro',
+      pays: 'Chine', devise: 'USD',
+      email: 'supplier@alibaba.com', telephone: '',
+      contact: '',
+      delaiLivraison: 22,
+      conditions: 'Acompte 100%. MOQ 100 pcs.',
+      notes: 'Textile en gros, casquettes, bags. Délai 15-30 jours.'
+    },
+    {
+      id: 'four-hcs-004', nom: 'Stanley/Stella Europe',
+      pays: 'Belgique', devise: 'EUR',
+      email: 'orders@stanleystella.com', telephone: '+32 2 000 0000',
+      contact: '',
+      delaiLivraison: 8,
+      conditions: 'Facture EUR. Livraison DHL.',
+      notes: 'T-shirts bio premium, polos éco. Délai 7-10 jours.'
+    },
+    /* ── Fournisseurs complémentaires ── */
     {
       id: 'four-001', nom: 'DTF Supplies USA',
       pays: 'États-Unis', devise: 'USD',
@@ -1076,8 +1191,8 @@ const SEED = {
 
   /* Méta-données de la base */
   _meta: {
-    version: '1.2.0',
-    seedVersion: '1.2.0',
+    version: '1.3.0',
+    seedVersion: '1.3.0',
     createdAt: new Date().toISOString(),
     counters: {
       devis:              3,

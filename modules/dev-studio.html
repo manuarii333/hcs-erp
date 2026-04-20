@@ -1,0 +1,1003 @@
+
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dev Studio — HCS ERP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0F1923;
+      --bg-card:      #1A2535;
+      --bg-card2:     #1E2D40;
+      --bg-hover:     #22334A;
+      --border:       rgba(255,255,255,0.08);
+      --border-accent:rgba(31,122,99,0.4);
+      --text:         #E8EDF2;
+      --text-muted:   #7A8CA0;
+      --text-dim:     #4A5D70;
+      --green:        #1F7A63;
+      --green-light:  #27A882;
+      --green-soft:   rgba(31,122,99,0.15);
+      --gold:         #D4AF37;
+      --gold-soft:    rgba(212,175,55,0.12);
+      --red:          #C0392B;
+      --red-soft:     rgba(192,57,43,0.12);
+      --orange:       #D9822B;
+      --orange-soft:  rgba(217,130,43,0.12);
+      --blue:         #2D7FF9;
+      --blue-soft:    rgba(45,127,249,0.12);
+      --font-mono:    'JetBrains Mono', monospace;
+      --radius:       10px;
+      --radius-sm:    6px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .studio-header {
+      background: linear-gradient(135deg, #0F1923 0%, #162030 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 28px 0;
+    }
+    .studio-header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .studio-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .studio-logo-icon {
+      width: 40px; height: 40px;
+      background: var(--green-soft);
+      border: 1px solid var(--border-accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .studio-logo-text h1 {
+      font-size: 17px; font-weight: 700; color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .studio-logo-text p {
+      font-size: 11px; color: var(--text-muted); margin-top: 1px;
+    }
+    .studio-session-badge {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 11px; color: var(--text-muted);
+    }
+    .studio-session-badge .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green-light);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 2px;
+    }
+    .tab-btn {
+      background: none; border: none; outline: none;
+      padding: 10px 16px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active {
+      color: var(--green-light);
+      border-bottom-color: var(--green-light);
+    }
+
+    /* ── Tab content ── */
+    .tab-content { display: none; padding: 24px 28px; }
+    .tab-content.active { display: block; }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .section-header .count-badge {
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 1px 8px;
+      font-size: 11px; color: var(--text-muted);
+    }
+
+    /* ── Cards grille ── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    /* ── Skill card ── */
+    .skill-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .skill-card:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-card2);
+    }
+    .skill-card-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .skill-icon {
+      font-size: 22px; width: 36px; text-align: center;
+    }
+    .skill-name {
+      font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .skill-trigger {
+      margin-left: auto;
+      background: var(--green-soft); border: 1px solid var(--border-accent);
+      border-radius: var(--radius-sm);
+      padding: 2px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 600; color: var(--green-light);
+    }
+    .skill-desc {
+      font-size: 12px; color: var(--text-muted); margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .skill-when {
+      font-size: 11px; color: var(--text-dim);
+      background: var(--bg-card2); border-radius: var(--radius-sm);
+      padding: 6px 8px; margin-bottom: 10px;
+      border-left: 2px solid var(--gold);
+    }
+    .skill-when strong { color: var(--gold); }
+    .skill-cmd {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .skill-cmd code {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--text-muted);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 5px 8px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .copy-btn {
+      flex-shrink: 0;
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 5px 8px;
+      font-size: 11px; color: var(--text-muted);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .copy-btn:hover { background: var(--green-soft); color: var(--green-light); border-color: var(--border-accent); }
+    .copy-btn.copied { background: var(--green-soft); color: var(--green-light); border-color: var(--border-accent); }
+
+    /* Skill à créer (future) */
+    .skill-card.future {
+      border-style: dashed;
+      opacity: 0.7;
+    }
+    .skill-card.future .skill-trigger {
+      background: var(--gold-soft); border-color: var(--gold);
+      color: var(--gold);
+    }
+    .badge-future {
+      font-size: 10px; font-weight: 600;
+      background: var(--gold-soft); color: var(--gold);
+      border: 1px solid var(--gold); border-radius: 20px;
+      padding: 1px 6px; margin-left: 6px;
+    }
+
+    /* ── Pages table ── */
+    .pages-table {
+      width: 100%; border-collapse: collapse;
+      margin-bottom: 32px;
+    }
+    .pages-table th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .pages-table td {
+      padding: 9px 12px; border-bottom: 1px solid var(--border);
+      font-size: 12px; vertical-align: middle;
+    }
+    .pages-table tr:hover td { background: var(--bg-card2); }
+    .page-icon { font-size: 16px; }
+    .page-name { font-weight: 600; color: var(--text); }
+    .page-section { color: var(--text-muted); font-size: 11px; }
+    .page-file {
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+    }
+    .page-actions { display: flex; gap: 6px; }
+    .action-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: var(--radius-sm);
+      font-size: 11px; font-weight: 500; cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+      border: 1px solid var(--border);
+      color: var(--text-muted); background: var(--bg-card2);
+    }
+    .action-link:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .action-link.vscode { color: #60A5FA; border-color: rgba(96,165,250,0.25); }
+    .action-link.vscode:hover { background: rgba(96,165,250,0.1); }
+    .action-link.preview { color: var(--green-light); border-color: var(--border-accent); }
+    .action-link.preview:hover { background: var(--green-soft); }
+
+    /* ── Bugs table ── */
+    .bugs-grid {
+      display: flex; flex-direction: column; gap: 10px;
+      margin-bottom: 32px;
+    }
+    .bug-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 12px; align-items: start;
+      transition: border-color 0.15s;
+    }
+    .bug-card:hover { border-color: rgba(255,255,255,0.15); }
+    .bug-card.severity-high { border-left: 3px solid var(--red); }
+    .bug-card.severity-med  { border-left: 3px solid var(--orange); }
+    .bug-card.severity-low  { border-left: 3px solid var(--blue); }
+    .bug-num {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+      color: var(--text-dim); margin-top: 2px;
+    }
+    .bug-body h3 { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .bug-body p { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+    .bug-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .bug-tag {
+      font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 20px;
+      border: 1px solid;
+    }
+    .bug-tag.cache   { color: var(--orange); border-color: var(--orange); background: var(--orange-soft); }
+    .bug-tag.deploy  { color: var(--green-light); border-color: var(--green); background: var(--green-soft); }
+    .bug-tag.router  { color: var(--blue); border-color: var(--blue); background: var(--blue-soft); }
+    .bug-tag.python  { color: var(--gold); border-color: var(--gold); background: var(--gold-soft); }
+    .bug-tag.workflow{ color: var(--text-muted); border-color: var(--border); background: var(--bg-card2); }
+    .bug-fix {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+    }
+    .fix-skill {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: var(--radius-sm);
+      background: var(--green-soft); color: var(--green-light);
+      border: 1px solid var(--border-accent);
+      white-space: nowrap;
+    }
+    .fix-skill.future-skill {
+      background: var(--gold-soft); color: var(--gold); border-color: var(--gold);
+    }
+    .bug-workaround {
+      font-size: 11px; color: var(--text-dim); text-align: right;
+    }
+
+    /* ── Session notes ── */
+    .session-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .session-box h3 {
+      font-size: 13px; font-weight: 700; color: var(--gold);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .session-box ul {
+      list-style: none; display: flex; flex-direction: column; gap: 5px;
+    }
+    .session-box li {
+      font-size: 12px; color: var(--text-muted);
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .session-box li::before { content: '→'; color: var(--green-light); flex-shrink: 0; }
+
+    /* ── Deploy panel ── */
+    .deploy-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-bottom: 24px;
+    }
+    .deploy-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px;
+    }
+    .deploy-card h3 {
+      font-size: 12px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .deploy-cmd-block {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 12px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+      margin-bottom: 8px; position: relative;
+    }
+    .deploy-cmd-block .cmd-copy {
+      position: absolute; top: 6px; right: 8px;
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 2px 6px;
+      font-size: 10px; color: var(--text-dim); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .deploy-cmd-block .cmd-copy:hover { color: var(--green-light); border-color: var(--border-accent); }
+    .deploy-step {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--text-muted); margin-bottom: 4px;
+    }
+    .deploy-step-num {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--bg-card2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: var(--text-dim); flex-shrink: 0;
+    }
+    .workflow-path {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .wf-step {
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 4px 10px;
+      font-size: 11px; color: var(--text-muted);
+    }
+    .wf-arrow { color: var(--text-dim); font-size: 12px; }
+
+    /* ── Server info ── */
+    .server-info {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      margin-bottom: 20px;
+    }
+    .server-tile {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px;
+    }
+    .server-tile label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-dim); display: block;
+      margin-bottom: 4px;
+    }
+    .server-tile .val {
+      font-family: var(--font-mono); font-size: 12px; color: var(--text);
+    }
+    .server-tile .val.green { color: var(--green-light); }
+
+    /* ── Utilities ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .tag-new {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+      background: var(--green-soft); color: var(--green-light);
+      border: 1px solid var(--border-accent); border-radius: 20px;
+      padding: 1px 5px; vertical-align: middle;
+    }
+    .empty-state {
+      text-align: center; padding: 40px 20px;
+      color: var(--text-dim); font-size: 13px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg-hover); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <!-- ================================================================
+       HEADER
+       ================================================================ -->
+  <div class="studio-header">
+    <div class="studio-header-top">
+      <div class="studio-logo">
+        <div class="studio-logo-icon">🛠</div>
+        <div class="studio-logo-text">
+          <h1>Dev Studio — HCS ERP</h1>
+          <p>Interface d'aide au développement &amp; déploiement</p>
+        </div>
+      </div>
+      <div class="studio-session-badge">
+        <span class="dot"></span>
+        <span id="session-date">Session chargée</span>
+      </div>
+    </div>
+
+    <!-- Tabs nav -->
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="skills">⚡ Skills Claude</button>
+      <button class="tab-btn" data-tab="pages">📄 Pages ERP</button>
+      <button class="tab-btn" data-tab="bugs">🐛 Bugs &amp; Solutions</button>
+      <button class="tab-btn" data-tab="deploy">🚀 Déploiement</button>
+    </nav>
+  </div>
+
+  <!-- ================================================================
+       TAB 1 — SKILLS CLAUDE
+       ================================================================ -->
+  <div id="tab-skills" class="tab-content active">
+
+    <!-- Skills existants -->
+    <div class="section-header">
+      <h2>Skills actifs</h2>
+      <span class="count-badge" id="active-count">4</span>
+    </div>
+    <div class="cards-grid" id="skills-active-grid">
+      <!-- Généré par JS -->
+    </div>
+
+    <hr class="divider" />
+
+    <!-- Skills à créer -->
+    <div class="section-header">
+      <h2>Skills à créer <span class="badge-future">ROADMAP</span></h2>
+      <span class="count-badge" id="future-count">4</span>
+    </div>
+    <div class="cards-grid" id="skills-future-grid">
+      <!-- Généré par JS -->
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB 2 — PAGES ERP
+       ================================================================ -->
+  <div id="tab-pages" class="tab-content">
+    <div class="section-header">
+      <h2>Modules HTML standalone</h2>
+      <span class="count-badge" id="pages-count">0</span>
+    </div>
+    <table class="pages-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Nom du module</th>
+          <th>Section ERP</th>
+          <th>Fichier</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="pages-table-body">
+        <!-- Généré par JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ================================================================
+       TAB 3 — BUGS & SOLUTIONS
+       ================================================================ -->
+  <div id="tab-bugs" class="tab-content">
+
+    <!-- Session en cours -->
+    <div class="session-box">
+      <h3>⚡ Session du <span id="session-date-bugs"></span></h3>
+      <ul id="session-notes-list">
+        <!-- Généré par JS -->
+      </ul>
+    </div>
+
+    <div class="section-header">
+      <h2>Bugs récurrents identifiés</h2>
+      <span class="count-badge" id="bugs-count">6</span>
+    </div>
+    <div class="bugs-grid" id="bugs-grid">
+      <!-- Généré par JS -->
+    </div>
+  </div>
+
+  <!-- ================================================================
+       TAB 4 — DÉPLOIEMENT
+       ================================================================ -->
+  <div id="tab-deploy" class="tab-content">
+
+    <!-- Info serveur -->
+    <div class="section-header"><h2>Serveur de production</h2></div>
+    <div class="server-info">
+      <div class="server-tile">
+        <label>URL</label>
+        <div class="val">highcoffeeshirts.com/erp/</div>
+      </div>
+      <div class="server-tile">
+        <label>Hébergeur</label>
+        <div class="val">PlanetHoster</div>
+      </div>
+      <div class="server-tile">
+        <label>FTP</label>
+        <div class="val green">● ftp.highcoffeeshirts.com</div>
+      </div>
+    </div>
+
+    <!-- Commandes de déploiement -->
+    <div class="deploy-grid">
+
+      <div class="deploy-card">
+        <h3>🔄 Watcher auto</h3>
+        <div class="deploy-step"><span class="deploy-step-num">1</span> Lance depuis n'importe quel terminal :</div>
+        <div class="deploy-cmd-block">
+          python "C:\Users\highc\HCS\hcs-erp\watch-deploy.py"
+          <span class="cmd-copy" data-copy='python "C:\Users\highc\HCS\hcs-erp\watch-deploy.py"'>copier</span>
+        </div>
+        <div class="deploy-step"><span class="deploy-step-num">2</span> Sauvegarde n'importe quel fichier → upload auto</div>
+        <div class="deploy-step"><span class="deploy-step-num">3</span> Arrêter : Ctrl+C</div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-dim);">
+          Surveille : *.html *.js *.css *.php · Dossier : hcs-erp/
+        </div>
+      </div>
+
+      <div class="deploy-card">
+        <h3>📁 Dropbox Server (local)</h3>
+        <div class="deploy-step"><span class="deploy-step-num">1</span> Démarre automatiquement au login Windows via Startup.</div>
+        <div class="deploy-step"><span class="deploy-step-num">2</span> Si besoin de le relancer manuellement :</div>
+        <div class="deploy-cmd-block">
+          pythonw "C:\Users\highc\HCS\hcs-erp ok\dropbox-folder-server.py"
+          <span class="cmd-copy" data-copy='pythonw "C:\Users\highc\HCS\hcs-erp ok\dropbox-folder-server.py"'>copier</span>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-dim);">
+          Port 7879 · Crée les dossiers Dropbox client + sauvegarde mockups, logos, devis, factures.
+        </div>
+      </div>
+
+      <div class="deploy-card">
+        <h3>🚀 Déploiement complet</h3>
+        <div class="deploy-step"><span class="deploy-step-num">1</span> Dans Claude Code, taper :</div>
+        <div class="deploy-cmd-block">
+          /deploy
+          <span class="cmd-copy" data-copy="/deploy">copier</span>
+        </div>
+        <div class="deploy-step"><span class="deploy-step-num">2</span> Ou en terminal :</div>
+        <div class="deploy-cmd-block">
+          cd c:/Users/highc/HCS/hcs-erp && python deploy-erp.py
+          <span class="cmd-copy" data-copy="cd c:/Users/highc/HCS/hcs-erp && python deploy-erp.py">copier</span>
+        </div>
+        <div class="deploy-step"><span class="deploy-step-num">3</span> Tester en onglet incognito</div>
+      </div>
+
+      <div class="deploy-card">
+        <h3>🧹 Cache-bust navigateur</h3>
+        <div class="deploy-cmd-block">
+          /cache-bust
+          <span class="cmd-copy" data-copy="/cache-bust">copier</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">
+          Met à jour ?v= dans index.html et redéploie.
+          À utiliser quand les utilisateurs voient encore l'ancienne version malgré Ctrl+Shift+R.
+        </div>
+      </div>
+
+      <div class="deploy-card">
+        <h3>✅ Vérification serveur</h3>
+        <div class="deploy-cmd-block">
+          /check-project
+          <span class="cmd-copy" data-copy="/check-project">copier</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">
+          Vérifie : dossier de travail, git status, tailles des fichiers clés sur le serveur.
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflow git → deploy -->
+    <div class="section-header"><h2>Workflow recommandé</h2></div>
+    <div class="deploy-card" style="margin-bottom:20px;">
+      <div class="workflow-path">
+        <div class="wf-step">Modifier fichier local</div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-step">git add + git commit</div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-step">Hook auto → deploy-erp.py</div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-step">Serveur mis à jour</div>
+        <span class="wf-arrow">→</span>
+        <div class="wf-step">Tester en incognito</div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim);">
+        Le hook PostToolUse dans .claude/settings.json déclenche deploy-erp.py automatiquement après chaque git commit.
+      </div>
+    </div>
+
+    <!-- Dossier de travail -->
+    <div class="section-header"><h2>Dossier de travail</h2></div>
+    <div class="deploy-card">
+      <div style="display:flex;gap:20px;align-items:flex-start;">
+        <div>
+          <div style="font-size:11px;color:var(--green-light);font-weight:700;margin-bottom:4px;">✓ CORRECT</div>
+          <div class="deploy-cmd-block" style="margin-bottom:0;">
+            c:/Users/highc/HCS/hcs-erp/
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--red);font-weight:700;margin-bottom:4px;">✗ À ÉVITER</div>
+          <div class="deploy-cmd-block" style="margin-bottom:0;border-color:rgba(192,57,43,0.3);">
+            c:/Users/highc/HCS/hcs-erp ok/
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       JAVASCRIPT — Données + Logique
+       ================================================================ -->
+  <script>
+  'use strict';
+
+  /* ================================================================
+     DONNÉES — éditer ici pour ajouter skills, pages, bugs
+     ================================================================ */
+
+  /* ---- Skills actifs ---- */
+  const SKILLS_ACTIVE = [
+    {
+      id: 'watch',
+      icon: '👁',
+      name: 'Watch & Deploy',
+      trigger: '/watch',
+      desc: 'Lance un watcher FTP qui synchronise automatiquement les fichiers locaux vers le serveur dès qu\'une modification est détectée.',
+      when: 'Utiliser pendant le développement actif — laisse tourner en arrière-plan.',
+      cmd: 'python watch-deploy.py'
+    },
+    {
+      id: 'deploy',
+      icon: '🚀',
+      name: 'Déploiement complet',
+      trigger: '/deploy',
+      desc: 'Déploie tous les fichiers du projet vers https://highcoffeeshirts.com/erp/ et vérifie que les fichiers clés sont bien uploadés.',
+      when: 'Après une session de travail ou avant de partager les changements.',
+      cmd: 'cd c:/Users/highc/HCS/hcs-erp && python deploy-erp.py'
+    },
+    {
+      id: 'check-project',
+      icon: '🔍',
+      name: 'Check Project',
+      trigger: '/check-project',
+      desc: 'Vérifie que Claude travaille dans le bon dossier, l\'état git local, et les tailles des fichiers clés sur le serveur.',
+      when: 'En début de session ou quand on doute de l\'état local vs serveur.',
+      cmd: 'git -C c:/Users/highc/HCS/hcs-erp status --short'
+    },
+    {
+      id: 'cache-bust',
+      icon: '🧹',
+      name: 'Cache-Bust',
+      trigger: '/cache-bust',
+      desc: 'Met à jour le numéro de version ?v= dans index.html pour forcer tous les navigateurs à recharger les scripts JS/CSS.',
+      when: 'Quand les utilisateurs voient encore l\'ancienne version malgré Ctrl+Shift+R.',
+      cmd: 'python -c "import re,datetime; ..."'
+    }
+  ];
+
+  /* ---- Skills à créer (roadmap) ---- */
+  const SKILLS_FUTURE = [
+    {
+      id: 'sync-check',
+      icon: '⚖',
+      name: 'Sync Check',
+      trigger: '/sync-check',
+      desc: 'Compare les tailles et dates des fichiers locaux vs serveur pour détecter toute désynchronisation avant de partager.',
+      when: 'Après un déploiement partiel ou quand on suspecte une désynchronisation.',
+      cmd: '# À créer — compare mtime/size local vs FTP LIST'
+    },
+    {
+      id: 'git-commit-deploy',
+      icon: '📦',
+      name: 'Commit + Deploy',
+      trigger: '/commit-deploy',
+      desc: 'Commit les changements git et déclenche immédiatement le déploiement FTP en une seule commande.',
+      when: 'Pour les petits correctifs rapides où on veut atomicité.',
+      cmd: '# À créer — git add + commit + deploy-erp.py'
+    },
+    {
+      id: 'new-module',
+      icon: '🆕',
+      name: 'Nouveau Module',
+      trigger: '/new-module',
+      desc: 'Crée un template HTML vierge pour un nouveau module ERP et l\'enregistre automatiquement dans APPS[] de app.js.',
+      when: 'Pour ajouter une nouvelle page dashboard ou outil HCS.',
+      cmd: '# À créer — scaffold modules/nom.html + patch app.js'
+    },
+    {
+      id: 'fix-router',
+      icon: '🔧',
+      name: 'Fix Router',
+      trigger: '/fix-router',
+      desc: 'Vérifie que toutes les vues déclarées dans APPS[] de app.js ont bien un fichier HTML correspondant, et signale les manquants.',
+      when: 'Quand une vue clique dans le menu mais n\'affiche rien.',
+      cmd: '# À créer — cross-check APPS[] vs modules/*.html'
+    }
+  ];
+
+  /* ---- Pages ERP ---- */
+  const PAGES_ERP = [
+    { icon: '📅', name: 'Planning Production',     file: 'planning-dashboard.html',         section: 'Production'        },
+    { icon: '⚙️', name: 'Atelier Production',       file: 'atelier-production.html',         section: 'Production'        },
+    { icon: '🖨', name: 'DTF Atelier BN20',         file: 'dtf-atelier-bn20-yannick.html',   section: 'Production'        },
+    { icon: '🖨', name: 'DTF Atelier USA',           file: 'dtf-atelier-usa.html',            section: 'Production'        },
+    { icon: '🖨', name: 'DTF Plaques Transfert',     file: 'dtf-plaques-transfert.html',      section: 'Production'        },
+    { icon: '✂️', name: 'SignMaster Guide',          file: 'signmaster-guide.html',           section: 'Production'        },
+    { icon: '🤝', name: 'Commercial & Devis',        file: 'commercial-dashboard.html',       section: 'Opérations'        },
+    { icon: '📋', name: 'Triage & Réception',        file: 'triage-dashboard.html',           section: 'Opérations'        },
+    { icon: '🏪', name: 'Boutique Assistant',        file: 'boutique-assistant.html',         section: 'Opérations'        },
+    { icon: '📸', name: 'Photos Produits',           file: 'admin-photos-produits.html',      section: 'Visuel & Contenu'  },
+    { icon: '🖼', name: 'PicWish Pipeline',          file: 'picwish-pipeline.html',           section: 'Visuel & Contenu'  },
+    { icon: '✍️', name: 'Content Generator',         file: 'content-generator.html',         section: 'Visuel & Contenu'  },
+    { icon: '📦', name: 'Stock Dashboard',           file: 'stock-dashboard.html',            section: 'Gestion'           },
+    { icon: '💰', name: 'Finance Dashboard',         file: 'finance-dashboard.html',          section: 'Gestion'           },
+    { icon: '📈', name: 'Rapport P&L',               file: 'rapport-pl.html',                 section: 'Gestion'           },
+    { icon: '🔍', name: 'Scanner OCR',               file: 'ocr-scanner.html',                section: 'Gestion'           },
+    { icon: '👁', name: 'Supervision',               file: 'supervision-dashboard.html',      section: 'Supervision'       },
+    { icon: '🔄', name: 'Routines',                  file: 'routine-dashboard.html',          section: 'Supervision'       },
+    { icon: '🎙', name: 'Agent Vocal',               file: 'vocal-dashboard.html',            section: 'Supervision'       },
+    { icon: '🛒', name: 'Caisse POS',                file: 'caisse-pos.html',                 section: 'Caisse'            },
+    { icon: '🛠', name: 'Dev Studio',                file: 'dev-studio.html',                 section: 'Développement'     }
+  ];
+
+  /* ---- Notes de la session courante ---- */
+  const SESSION_NOTES = [
+    'Création du Dev Studio — interface évolutive d\'aide au développement',
+    'Intégration Planning Dashboard dans le module Production (iframe anti-cache)',
+    'Migration hcs-erp ok → hcs-erp (dossier de travail correct)',
+    'Initialisation git propre dans hcs-erp/',
+    'Création des skills : /watch, /deploy, /check-project, /cache-bust',
+    'Bugs identifiés et documentés dans l\'onglet Bugs & Solutions'
+  ];
+
+  /* ---- Bugs récurrents ---- */
+  const BUGS = [
+    {
+      num: '#01',
+      severity: 'high',
+      title: 'Cache navigateur — ancienne version visible',
+      desc: 'Après un déploiement, les utilisateurs voient encore l\'ancienne interface malgré Ctrl+Shift+R. Les scripts JS/CSS sont mis en cache par le navigateur.',
+      tags: ['cache'],
+      fix: '/cache-bust',
+      workaround: 'Ouvrir en onglet incognito'
+    },
+    {
+      num: '#02',
+      severity: 'high',
+      title: 'Mauvais dossier de travail',
+      desc: 'Claude travaille dans "hcs-erp ok" au lieu de "hcs-erp". Les modifications ne sont pas déployées car dans le mauvais répertoire.',
+      tags: ['workflow'],
+      fix: '/check-project',
+      workaround: 'Vérifier pwd en début de session'
+    },
+    {
+      num: '#03',
+      severity: 'high',
+      title: 'FTP désynchronisé — fichiers locaux non uploadés',
+      desc: 'Le serveur a une version plus ancienne que le local (différence de taille détectable). Modifications non déployées.',
+      tags: ['deploy'],
+      fix: '/deploy',
+      workaround: 'python deploy-erp.py en urgence'
+    },
+    {
+      num: '#04',
+      severity: 'med',
+      title: 'iframe non rafraîchie — affiche l\'ancienne page',
+      desc: 'L\'iframe du planning ou d\'un module affiche une version en cache même après déploiement. Le serveur et le navigateur mettent en cache l\'URL sans paramètre.',
+      tags: ['cache', 'router'],
+      fix: '?v=Date.now()',
+      workaround: 'Anti-cache dans renderIframe() — déjà codé'
+    },
+    {
+      num: '#05',
+      severity: 'med',
+      title: 'Vue manquante dans app.js — menu clique mais rien ne s\'affiche',
+      desc: 'Nouvelle page HTML créée dans modules/ mais non déclarée dans APPS[] ou sans case dans renderView(). Le clic dans la sidebar ne produit rien.',
+      tags: ['router'],
+      fix: '/fix-router',
+      workaround: 'Ajouter entrée dans APPS[] + case production/outils'
+    },
+    {
+      num: '#06',
+      severity: 'low',
+      title: 'UnicodeEncodeError Python sur Windows',
+      desc: 'La console Windows utilise cp1252 par défaut. Les scripts Python avec des caractères Unicode (═══, accents) plantent avec UnicodeEncodeError.',
+      tags: ['python'],
+      fix: 'sys.stdout.reconfigure',
+      workaround: 'Ajouter sys.stdout.reconfigure(encoding="utf-8", errors="replace") en tête de script'
+    }
+  ];
+
+  /* ================================================================
+     RENDU
+     ================================================================ */
+
+  /* ---- Date de session ---- */
+  function formatDate() {
+    return new Date().toLocaleDateString('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+  }
+
+  /* ---- Copier dans le presse-papier ---- */
+  function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ copié';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'copier';
+        btn.classList.remove('copied');
+      }, 1500);
+    }).catch(() => {
+      /* Fallback si clipboard API pas dispo */
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = 'copier'; }, 1000);
+    });
+  }
+
+  /* ---- Render skill card ---- */
+  function renderSkillCard(skill, future) {
+    return `
+      <div class="skill-card${future ? ' future' : ''}">
+        <div class="skill-card-header">
+          <div class="skill-icon">${skill.icon}</div>
+          <div class="skill-name">${skill.name}${future ? '<span class="badge-future">À CRÉER</span>' : ''}</div>
+          <div class="skill-trigger">${skill.trigger}</div>
+        </div>
+        <div class="skill-desc">${skill.desc}</div>
+        <div class="skill-when"><strong>Quand :</strong> ${skill.when}</div>
+        <div class="skill-cmd">
+          <code title="${skill.cmd}">${skill.cmd}</code>
+          <button class="copy-btn" data-copy="${skill.cmd.replace(/"/g,'&quot;')}">copier</button>
+        </div>
+      </div>`;
+  }
+
+  /* ---- Render pages table ---- */
+  function renderPagesTable() {
+    const base = 'c:/Users/highc/HCS/hcs-erp/modules/';
+    return PAGES_ERP.map(p => {
+      const vscodePath = `vscode://file/${base}${p.file}`;
+      const previewPath = `modules/${p.file}`;
+      return `
+        <tr>
+          <td class="page-icon">${p.icon}</td>
+          <td><div class="page-name">${p.name}</div></td>
+          <td><span class="page-section">${p.section}</span></td>
+          <td><span class="page-file">${p.file}</span></td>
+          <td>
+            <div class="page-actions">
+              <a class="action-link vscode" href="${vscodePath}">VS Code</a>
+              <button class="action-link preview" data-preview="${previewPath}">Aperçu ↗</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  /* ---- Render bug card ---- */
+  function renderBugCard(bug) {
+    const hasFutureSkill = bug.fix.startsWith('/') && SKILLS_ACTIVE.find(s => s.trigger === bug.fix) === undefined;
+    const fixClass = hasFutureSkill ? 'future-skill' : '';
+    const tagsHtml = bug.tags.map(t => `<span class="bug-tag ${t}">${t}</span>`).join('');
+    return `
+      <div class="bug-card severity-${bug.severity}">
+        <div class="bug-num">${bug.num}</div>
+        <div class="bug-body">
+          <h3>${bug.title}</h3>
+          <p>${bug.desc}</p>
+          <div class="bug-tags">${tagsHtml}</div>
+        </div>
+        <div class="bug-fix">
+          <div class="fix-skill ${fixClass}">${bug.fix}</div>
+          <div class="bug-workaround">${bug.workaround}</div>
+        </div>
+      </div>`;
+  }
+
+  /* ---- Init ---- */
+  function init() {
+    /* Date */
+    const dateStr = formatDate();
+    document.getElementById('session-date').textContent = dateStr;
+    document.getElementById('session-date-bugs').textContent = dateStr;
+
+    /* Skills actifs */
+    const activeGrid = document.getElementById('skills-active-grid');
+    activeGrid.innerHTML = SKILLS_ACTIVE.map(s => renderSkillCard(s, false)).join('');
+    document.getElementById('active-count').textContent = SKILLS_ACTIVE.length;
+
+    /* Skills futurs */
+    const futureGrid = document.getElementById('skills-future-grid');
+    futureGrid.innerHTML = SKILLS_FUTURE.map(s => renderSkillCard(s, true)).join('');
+    document.getElementById('future-count').textContent = SKILLS_FUTURE.length;
+
+    /* Pages */
+    document.getElementById('pages-table-body').innerHTML = renderPagesTable();
+    document.getElementById('pages-count').textContent = PAGES_ERP.length;
+
+    /* Notes session */
+    const notesList = document.getElementById('session-notes-list');
+    notesList.innerHTML = SESSION_NOTES.map(n => `<li>${n}</li>`).join('');
+
+    /* Bugs */
+    document.getElementById('bugs-grid').innerHTML = BUGS.map(b => renderBugCard(b)).join('');
+    document.getElementById('bugs-count').textContent = BUGS.length;
+
+    /* ── Events ── */
+
+    /* Tabs */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* Copier commandes dans les skill cards */
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => copyToClipboard(btn.dataset.copy, btn));
+    });
+
+    /* Copier commandes dans le panneau Deploy */
+    document.querySelectorAll('.cmd-copy').forEach(btn => {
+      btn.addEventListener('click', () => copyToClipboard(btn.dataset.copy, btn));
+    });
+
+    /* Aperçu page dans nouvel onglet (parent ERP) */
+    document.querySelectorAll('.action-link.preview').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const path = btn.dataset.preview;
+        /* Essayer d'ouvrir via parent ERP si disponible */
+        if (window.parent && window.parent.openView) {
+          const viewId = path.replace('modules/', '').replace('.html', '');
+          window.parent.openView(viewId);
+        } else {
+          window.open(path, '_blank');
+        }
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+</html>

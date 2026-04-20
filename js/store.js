@@ -90,11 +90,15 @@ const Store = (() => {
           if (db._meta.counters[k] === undefined) { db._meta.counters[k] = 0; patched = true; }
         });
 
-        /* 3. Ajouter les écritures du seed qui n'existent pas encore (par id) */
+        /* 3. Fusionner les collections du seed qui n'existent pas encore (par id) */
         if (seedVersion && seedVersion !== dbVersion && typeof SEED !== 'undefined') {
-          const existingIds = new Set((db.ecritures || []).map(e => e.id));
-          (SEED.ecritures || []).forEach(e => {
-            if (!existingIds.has(e.id)) { db.ecritures.push(e); patched = true; }
+          const MERGE_COLS = ['ecritures', 'fournisseurs', 'postes'];
+          MERGE_COLS.forEach(col => {
+            if (!db[col]) db[col] = [];
+            const existingIds = new Set(db[col].map(e => e.id));
+            (SEED[col] || []).forEach(e => {
+              if (!existingIds.has(e.id)) { db[col].push(e); patched = true; }
+            });
           });
           console.info(`[Store] Migration seed ${dbVersion || 'null'} → ${seedVersion} (données préservées)`);
         }

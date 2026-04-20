@@ -356,12 +356,17 @@ function _bindTableEvents(containerId, rows, globalActions) {
   container.querySelectorAll(`[data-table-action="${containerId}"]`).forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const ai  = parseInt(btn.dataset.actionIndex, 10);
-      const ri  = parseInt(btn.dataset.rowIndex, 10);
-      const act = (config.actions || [])[ai];
-      if (act && typeof act.onClick === 'function') {
-        act.onClick(rows[ri]);
+      const ai = parseInt(btn.dataset.actionIndex, 10);
+      const ri = parseInt(btn.dataset.rowIndex, 10);
+      /* Chercher l'action dans col.actions en priorité, puis config.actions */
+      let act = null;
+      for (const col of (config.columns || [])) {
+        if (col.type === 'actions' && (col.actions || [])[ai]) {
+          act = col.actions[ai]; break;
+        }
       }
+      if (!act) act = (config.actions || [])[ai];
+      if (act && typeof act.onClick === 'function') act.onClick(rows[ri]);
     });
   });
 }

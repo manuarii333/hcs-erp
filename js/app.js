@@ -188,7 +188,10 @@ const APPS = [
       { id: 'ext-andromeda',   label: 'Andromeda Builder', icon: '📡', section: 'Applications HCS', external: true, url: '../campaign/andromeda-campaign.html' },
       { id: 'mockup-forge-v12', label: 'MockupForge v12',   icon: '🖼️', section: 'Applications HCS' },
       { id: 'ext-dtf-composer',label: 'DTF Composer v4',   icon: '🎨', section: 'Applications HCS', external: true, url: '../agents/agent3_visuel/dtf-composer-v4.html' },
-      { id: 'ext-dtf-calc',    label: 'Calculateur DTF',   icon: '🧮', section: 'Applications HCS', external: true, url: '../dtf-calculator-hcs-v2.html' },
+      { id: 'dtf-calculator-hcs-v2',               label: 'Calculateur DTF',        icon: '🧮', section: 'Applications HCS' },
+      { id: 'calculateur-vinyl-hcs',               label: 'Calculateur Vinyle',      icon: '✂️', section: 'Applications HCS' },
+      { id: 'calculateur-transfert-thermocollant', label: 'Calculateur Transfert',   icon: '♨️', section: 'Applications HCS' },
+      { id: 'product-creator',                     label: 'Product Creator CSV',     icon: '📦', section: 'Applications HCS' },
       { id: 'ext-hcs-builder', label: 'HCS Builder v2',    icon: '🏗️', section: 'Applications HCS', external: true, url: '../hcs-builder-v2-fixed.html' },
       { id: 'ext-pass-hcs',    label: 'Pass HCS',          icon: '🎫', section: 'Applications HCS', external: true, url: '../hcs-hub-ecosystem/hcs-hub-ecosystem/hcs-pass-test.html' },
       { id: 'ext-hub',         label: 'HCS Hub',           icon: '🗄️', section: 'Applications HCS', external: true, url: '../hcs-hub.html' },
@@ -222,6 +225,25 @@ function initApp() {
   if (typeof Advisor !== 'undefined') {
     setTimeout(() => Advisor.runAtLogin(), 1500);
   }
+
+  /* Listener : reçoit les produits depuis Product Creator (iframe) */
+  window.addEventListener('message', async (e) => {
+    if (!e.data || e.data.type !== 'HCS_SAVE_PRODUCTS') return;
+    const list = e.data.products || [];
+    if (list.length === 0) return;
+    let ok = 0, err = 0;
+    for (const p of list) {
+      try {
+        await Store.create('products', p);
+        ok++;
+      } catch (_) { err++; }
+    }
+    const msg = err === 0
+      ? `${ok} produit(s) enregistré(s) dans l'ERP ✓`
+      : `${ok} OK · ${err} erreur(s)`;
+    if (typeof showToast === 'function') showToast(msg, err ? 'warning' : 'success');
+    else alert(msg);
+  });
 }
 
 /* ----------------------------------------------------------------

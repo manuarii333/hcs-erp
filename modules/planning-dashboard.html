@@ -259,6 +259,38 @@
     .achat-row, .achat-header { grid-template-columns:65px 1fr 90px; }
     .achat-row > *:nth-child(n+4), .achat-header > *:nth-child(n+4) { display:none; }
   }
+
+  /* ─── EMAILS FOURNISSEURS ─── */
+  .email-fourn-section { border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:14px; }
+  .email-fourn-section:last-child { border-bottom:none; margin-bottom:0; }
+  .email-fourn-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+  .email-fourn-items { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; }
+  .email-item-row { display:flex; gap:8px; align-items:flex-start; padding:7px 0; border-bottom:1px solid var(--border); font-size:11px; }
+  .email-item-row:last-child { border-bottom:none; padding-bottom:0; }
+  .email-sent-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; background:rgba(34,197,94,.15); color:var(--green); white-space:nowrap; }
+  .email-pending-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:999px; background:rgba(59,130,246,.15); color:var(--blue); white-space:nowrap; }
+  .email-no-addr { font-size:11px; color:var(--red); display:flex; align-items:center; gap:8px; }
+
+  /* ─── ORDRE DE FABRICATION ─── */
+  .of-row { display:flex; gap:10px; align-items:center; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; transition:all 0.2s; }
+  .of-row:hover { border-color:var(--orange); }
+  .of-num { width:28px; height:28px; border-radius:50%; background:var(--orange); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+  .of-num.urgent { background:var(--red); }
+  .of-num.express { background:var(--purple); }
+  .of-info { flex:1; min-width:0; }
+  .of-ref { font-size:12px; font-weight:700; color:var(--orange); }
+  .of-client { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .of-meta { font-size:10px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .of-actions { display:flex; gap:4px; flex-shrink:0; }
+  .of-btn { width:28px; height:28px; border:1px solid var(--border); border-radius:6px; background:none; cursor:pointer; color:var(--text-muted); font-size:14px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+  .of-btn:hover:not([disabled]) { border-color:var(--orange); color:var(--orange); }
+  .of-btn[disabled] { opacity:.3; cursor:not-allowed; }
+
+  /* HEADER BADGE COMPTEUR */
+  .btn-wrap { position:relative; display:inline-block; }
+  .btn-wrap .n-badge { position:absolute; top:-6px; right:-6px; background:var(--red); color:#fff; font-size:9px; font-weight:700; min-width:16px; height:16px; border-radius:999px; display:flex; align-items:center; justify-content:center; padding:0 3px; pointer-events:none; }
+  .of-sidebar-row { display:flex; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:11px; }
+  .of-sidebar-row:last-child { border-bottom:none; }
 </style>
 </head>
 <body>
@@ -274,6 +306,14 @@
     <button class="btn btn-ghost" onclick="exportPlanning()">Export CSV</button>
     <button class="btn btn-ghost" onclick="openFournisseursModal()" title="Gérer les fournisseurs">👥 Fournisseurs</button>
     <button class="btn btn-ghost" onclick="openAchatsModal()" title="Liste des achats / comptabilité">🛒 Achats</button>
+    <div class="btn-wrap">
+      <button class="btn btn-ghost" onclick="openEmailsFournisseursModal()" title="Emails fournisseurs — marchandises en attente">📧 Emails fourn.</button>
+      <span class="n-badge" id="badge-emails" style="display:none;">0</span>
+    </div>
+    <div class="btn-wrap">
+      <button class="btn btn-ghost" onclick="openOFModal()" title="Ordre de fabrication">🔢 Ordre fab.</button>
+      <span class="n-badge" id="badge-of" style="background:var(--orange);display:none;">0</span>
+    </div>
     <button class="btn btn-orange" onclick="openAddModal()">+ Nouvelle commande</button>
   </div>
 </div>
@@ -384,6 +424,15 @@
         <button class="btn btn-ghost" style="font-size:10px;padding:3px 8px;" onclick="openAchatsModal()">Voir achats →</button>
       </div>
       <div id="reservations-sidebar"></div>
+    </div>
+
+    <!-- ORDRE DE FABRICATION -->
+    <div class="side-card">
+      <div class="side-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>🔢 Ordre de fabrication</span>
+        <button class="btn btn-ghost" style="font-size:10px;padding:3px 8px;" onclick="openOFModal()">Gérer →</button>
+      </div>
+      <div id="of-sidebar"></div>
     </div>
 
     <!-- STATS JOUR -->
@@ -690,6 +739,48 @@
   </div>
 </div>
 
+<!-- ══════════════════════════════════════
+     MODAL EMAILS FOURNISSEURS
+════════════════════════════════════════ -->
+<div class="modal-bg" id="emailsFournisseursModal">
+  <div class="modal modal-wide">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="modal-title" style="margin-bottom:0;">📧 Emails Fournisseurs — Marchandises en attente</div>
+      <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="closeEmailsFournisseursModal()">✕ Fermer</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+      Toutes les marchandises réservées auprès de fournisseurs, regroupées par fournisseur. Générez un email prêt-à-envoyer en un clic.
+    </p>
+    <div id="emails-fourn-list" style="max-height:500px;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeEmailsFournisseursModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MODAL ORDRE DE FABRICATION
+════════════════════════════════════════ -->
+<div class="modal-bg" id="ofModal">
+  <div class="modal modal-wide" style="max-width:660px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="modal-title" style="margin-bottom:0;">🔢 Ordre de fabrication</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="printOF()">🖨️ Imprimer</button>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;" onclick="closeOFModal()">✕ Fermer</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+      File de production ordonnée. Utilisez ↑ ↓ pour réorganiser manuellement. Par défaut : express → urgent → normal, puis par deadline.
+    </p>
+    <div id="of-list" style="max-height:480px;overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeOFModal()">Fermer</button>
+      <button class="btn btn-orange" onclick="printOF()">🖨️ Imprimer OF</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DÉTAIL -->
 <div class="modal-bg" id="detailModal">
   <div class="modal">
@@ -842,7 +933,9 @@ function render() {
   renderMachines();
   renderAlerts();
   renderReservationsSidebar();
+  renderOFSidebar();
   renderStatsToday();
+  updateHeaderBadges();
 }
 
 function urgencyClass(cmd) {
@@ -1496,9 +1589,358 @@ document.getElementById('fournisseursModal').addEventListener('click', function(
 document.getElementById('achatsModal').addEventListener('click', function(e) {
   if (e.target === this) closeAchatsModal();
 });
+document.getElementById('emailsFournisseursModal').addEventListener('click', function(e) {
+  if (e.target === this) closeEmailsFournisseursModal();
+});
+document.getElementById('ofModal').addEventListener('click', function(e) {
+  if (e.target === this) closeOFModal();
+});
 
 // ─── AUTO REFRESH ALERTES ───
-setInterval(() => { renderAlerts(); renderStats(); }, 60000);
+setInterval(() => { renderAlerts(); renderStats(); updateHeaderBadges(); }, 60000);
+
+// ════════════════════════════════════════
+//  BADGES HEADER (compteurs visuels)
+// ════════════════════════════════════════
+function updateHeaderBadges() {
+  // Emails en attente = réservations fournisseur sans emailEnvoye
+  const emailsPending = commandes.filter(c =>
+    c.reservation &&
+    c.reservation.type !== 'magasin' &&
+    c.reservation.fournisseurId &&
+    !c.reservation.emailEnvoye &&
+    (c.col === 'reservation' || c.col === 'matiere')
+  ).length;
+  const bEmail = document.getElementById('badge-emails');
+  bEmail.textContent = emailsPending;
+  bEmail.style.display = emailsPending > 0 ? 'flex' : 'none';
+
+  // Commandes en production
+  const ofCount = commandes.filter(c => c.col === 'prod').length;
+  const bOF = document.getElementById('badge-of');
+  bOF.textContent = ofCount;
+  bOF.style.display = ofCount > 0 ? 'flex' : 'none';
+}
+
+// ════════════════════════════════════════
+//  ORDRE DE FABRICATION
+// ════════════════════════════════════════
+function getOFList() {
+  const prioMap = { express: 0, urgent: 1, normal: 2 };
+  return commandes
+    .filter(c => c.col === 'prod')
+    .sort((a, b) => {
+      // Si les deux ont un ofOrder, on respecte l'ordre manuel
+      if (a.ofOrder !== undefined && b.ofOrder !== undefined) return a.ofOrder - b.ofOrder;
+      if (a.ofOrder !== undefined) return -1;
+      if (b.ofOrder !== undefined) return 1;
+      // Sinon : tri par priorité puis deadline
+      const dp = (prioMap[a.priority] || 1) - (prioMap[b.priority] || 1);
+      if (dp !== 0) return dp;
+      return new Date(a.deadline) - new Date(b.deadline);
+    });
+}
+
+function renderOFSidebar() {
+  const el = document.getElementById('of-sidebar');
+  const ofList = getOFList();
+  if (ofList.length === 0) {
+    el.innerHTML = '<div class="empty" style="padding:12px;">Aucune commande en production</div>';
+    return;
+  }
+  el.innerHTML = ofList.map((c, i) => {
+    const urg = urgencyClass(c);
+    const numClass = c.priority === 'express' ? 'express' : (urg === 'urgent' ? 'urgent' : '');
+    return `<div class="of-sidebar-row">
+      <div class="of-num ${numClass}" style="width:22px;height:22px;font-size:11px;">${i + 1}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.client}</div>
+        <div style="color:var(--text-muted);font-size:10px;">${c.ref} · ${c.qty} pcs · ${c.machine}</div>
+      </div>
+      ${formatDeadline(c.deadline)}
+    </div>`;
+  }).join('');
+}
+
+function openOFModal() {
+  renderOFModal();
+  document.getElementById('ofModal').classList.add('open');
+}
+function closeOFModal() {
+  document.getElementById('ofModal').classList.remove('open');
+}
+
+function renderOFModal() {
+  const el = document.getElementById('of-list');
+  const ofList = getOFList();
+  if (ofList.length === 0) {
+    el.innerHTML = '<div class="empty" style="padding:24px;">Aucune commande en production actuellement</div>';
+    return;
+  }
+  // Initialise ofOrder si pas encore défini
+  ofList.forEach((c, i) => { if (c.ofOrder === undefined) c.ofOrder = i; });
+
+  const pLabels = { express: '⚡ Express', urgent: '🔴 Urgent', normal: '⚪ Normal' };
+
+  el.innerHTML = ofList.map((c, i) => {
+    const urg = urgencyClass(c);
+    const numClass = c.priority === 'express' ? 'express' : (urg === 'urgent' ? 'urgent' : '');
+    const isFirst = i === 0;
+    const isLast = i === ofList.length - 1;
+    return `<div class="of-row" id="of-row-${c.id}">
+      <div class="of-num ${numClass}">${i + 1}</div>
+      <div class="of-info">
+        <div class="of-ref">${c.ref} &nbsp;<span style="font-size:10px;font-weight:500;color:var(--text-muted);">${pLabels[c.priority] || c.priority}</span></div>
+        <div class="of-client">${c.client}</div>
+        <div class="of-meta">${c.desc.substring(0, 65)}${c.desc.length > 65 ? '…' : ''} · ${c.qty} pcs · ${c.machine}</div>
+      </div>
+      <div style="flex-shrink:0;">${formatDeadline(c.deadline)}</div>
+      <div class="of-actions">
+        <button class="of-btn" onclick="moveOF('${c.id}', -1)" title="Monter" ${isFirst ? 'disabled' : ''}>↑</button>
+        <button class="of-btn" onclick="moveOF('${c.id}', 1)" title="Descendre" ${isLast ? 'disabled' : ''}>↓</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function moveOF(cmdId, direction) {
+  const ofList = getOFList();
+  // Garantit que tous ont un ofOrder numérique
+  ofList.forEach((c, i) => { if (c.ofOrder === undefined) c.ofOrder = i; });
+
+  const idx = ofList.findIndex(c => c.id === cmdId);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= ofList.length) return;
+
+  // Échange les positions
+  const tmp = ofList[idx].ofOrder;
+  ofList[idx].ofOrder = ofList[newIdx].ofOrder;
+  ofList[newIdx].ofOrder = tmp;
+
+  save();
+  renderOFModal();
+  renderOFSidebar();
+}
+
+function printOF() {
+  const ofList = getOFList();
+  const date = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const rows = ofList.map((c, i) => `
+    <tr>
+      <td style="text-align:center;font-weight:700;font-size:16px;">${i + 1}</td>
+      <td style="font-weight:700;color:#FF6B00;">${c.ref}</td>
+      <td>${c.client}</td>
+      <td>${c.desc.substring(0, 70)}${c.desc.length > 70 ? '…' : ''}</td>
+      <td style="text-align:center;">${c.qty}</td>
+      <td>${c.machine}</td>
+      <td>${new Date(c.deadline).toLocaleDateString('fr-FR')} ${new Date(c.deadline).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</td>
+      <td style="text-align:center;font-weight:600;">${c.priority === 'express' ? '⚡ Express' : c.priority === 'urgent' ? '🔴 Urgent' : 'Normal'}</td>
+    </tr>`
+  ).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+    <meta charset="UTF-8">
+    <title>Ordre de Fabrication — HCS</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #000; }
+      h1 { font-size: 22px; margin-bottom: 4px; }
+      .meta { color: #666; font-size: 13px; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { background: #f0f0f0; padding: 9px 10px; text-align: left; border-bottom: 2px solid #000; font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+      td { padding: 8px 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
+      tr:nth-child(even) td { background: #fafafa; }
+      @media print { button { display: none; } }
+    </style>
+  </head><body>
+    <h1>🔢 Ordre de Fabrication — High Coffee Shirt</h1>
+    <div class="meta">Imprimé le ${date} &nbsp;|&nbsp; ${ofList.length} commande${ofList.length > 1 ? 's' : ''} en production</div>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Réf.</th><th>Client</th><th>Description</th>
+        <th>Qté</th><th>Machine</th><th>Deadline</th><th>Priorité</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <script>window.onload = () => window.print();<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+// ════════════════════════════════════════
+//  EMAILS FOURNISSEURS
+// ════════════════════════════════════════
+function openEmailsFournisseursModal() {
+  renderEmailsFournisseurs();
+  document.getElementById('emailsFournisseursModal').classList.add('open');
+}
+function closeEmailsFournisseursModal() {
+  document.getElementById('emailsFournisseursModal').classList.remove('open');
+}
+
+// Regroupe les commandes avec réservation fournisseur par fournisseur
+function getPendingByFournisseur() {
+  const withReserv = commandes.filter(c =>
+    c.reservation &&
+    c.reservation.type !== 'magasin' &&
+    c.reservation.fournisseurId &&
+    (c.col === 'reservation' || c.col === 'matiere')
+  );
+
+  const grouped = {};
+  withReserv.forEach(c => {
+    const fId = c.reservation.fournisseurId;
+    if (!grouped[fId]) {
+      const f = fournisseurs.find(x => x.id === fId) || {
+        id: fId,
+        nom: c.reservation.fournisseurNom || 'Fournisseur inconnu',
+        email: '',
+        telephone: '',
+        type: 'local'
+      };
+      grouped[fId] = { fournisseur: f, items: [] };
+    }
+    grouped[fId].items.push(c);
+  });
+  return Object.values(grouped);
+}
+
+function renderEmailsFournisseurs() {
+  const el = document.getElementById('emails-fourn-list');
+  const groups = getPendingByFournisseur();
+
+  if (groups.length === 0) {
+    el.innerHTML = '<div class="empty" style="padding:32px;text-align:center;">Aucune marchandise en attente auprès de fournisseurs.<br><span style="font-size:11px;color:var(--text-muted);">Les réservations avec fournisseur local ou étranger apparaîtront ici.</span></div>';
+    return;
+  }
+
+  el.innerHTML = groups.map(g => {
+    const f = g.fournisseur;
+    const pendingCount = g.items.filter(c => c.reservation.status !== 'confirme').length;
+    const confirmedCount = g.items.filter(c => c.reservation.status === 'confirme').length;
+    const sentCount = g.items.filter(c => c.reservation.emailEnvoye).length;
+
+    const itemsHtml = g.items.map(c => {
+      const res = c.reservation;
+      const sent = res.emailEnvoye;
+      const dateEnvoi = res.dateEmailEnvoye
+        ? new Date(res.dateEmailEnvoye).toLocaleDateString('fr-FR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})
+        : null;
+      return `<div class="email-item-row">
+        <div style="flex:1;">
+          <span style="font-weight:700;color:var(--orange);">${c.ref}</span> — <strong>${c.client}</strong><br>
+          <span style="color:var(--text-muted);">${(res.produit || c.desc).substring(0, 80)} · Qté: ${res.qte || c.qty}</span>
+          ${res.notes ? `<br><em style="color:var(--text-muted);font-style:italic;">${res.notes.substring(0, 60)}</em>` : ''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+          ${getReservationStatusBadge(res.status)}
+          <span class="${sent ? 'email-sent-badge' : 'email-pending-badge'}">
+            ${sent ? '✉️ Envoyé' + (dateEnvoi ? ' ' + dateEnvoi : '') : '📤 À envoyer'}
+          </span>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Bloc actions selon email disponible ou non
+    let actionsHtml;
+    if (f.email) {
+      actionsHtml = `
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;flex-wrap:wrap;">
+          ${sentCount > 0 ? `<button class="btn btn-ghost" style="font-size:11px;padding:5px 12px;" onclick="resetEmailsSent('${f.id}')">↩️ Réinitialiser envoi</button>` : ''}
+          <button class="btn btn-ghost" style="font-size:11px;padding:5px 12px;" onclick="markAllEmailSent('${f.id}')">✅ Marquer envoyé</button>
+          <button class="btn btn-orange" style="font-size:11px;padding:5px 14px;" onclick="generateEmail('${f.id}')">📧 Générer & envoyer email</button>
+        </div>`;
+    } else {
+      actionsHtml = `
+        <div class="email-no-addr">
+          <span>⚠️ Aucune adresse email pour ce fournisseur.</span>
+          <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;"
+            onclick="closeEmailsFournisseursModal();openFournisseursModal()">Ajouter l'email →</button>
+        </div>`;
+    }
+
+    return `<div class="email-fourn-section">
+      <div class="email-fourn-header">
+        <div>
+          <span style="font-size:14px;font-weight:700;">${f.nom}</span>
+          <span class="fourn-type-badge ${f.type}" style="margin-left:8px;">${f.type === 'local' ? '🚚 Local' : '✈️ Étranger'}</span>
+          ${f.email ? `<span style="color:var(--teal);font-size:11px;margin-left:10px;">${f.email}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${pendingCount > 0 ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(234,179,8,.15);color:var(--yellow);">${pendingCount} en attente</span>` : ''}
+          ${confirmedCount > 0 ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,.15);color:var(--green);">${confirmedCount} confirmé${confirmedCount > 1 ? 's' : ''}</span>` : ''}
+          ${sentCount === g.items.length ? `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,.15);color:var(--green);">✉️ Emails envoyés</span>` : ''}
+        </div>
+      </div>
+      <div class="email-fourn-items">${itemsHtml}</div>
+      ${actionsHtml}
+    </div>`;
+  }).join('');
+}
+
+function generateEmail(fournisseurId) {
+  const group = getPendingByFournisseur().find(g => g.fournisseur.id === fournisseurId);
+  if (!group) return;
+  const f = group.fournisseur;
+
+  const subject = `HCS — Réservation marchandise — ${new Date().toLocaleDateString('fr-FR')}`;
+
+  const lignes = group.items.map(c => {
+    const res = c.reservation;
+    let ligne = `  - ${res.produit || c.desc} (Qté : ${res.qte || c.qty}) — Réf. : ${c.ref} / Client : ${c.client}`;
+    if (res.notes) ligne += `\n    Précisions : ${res.notes}`;
+    return ligne;
+  }).join('\n');
+
+  const body = `Bonjour,
+
+Suite à nos commandes en cours, nous souhaitons vous contacter pour les marchandises suivantes :
+
+${lignes}
+
+Pourriez-vous nous confirmer la disponibilité et les délais de livraison au plus tôt ?
+
+En cas de question, n'hésitez pas à nous contacter.
+
+Cordialement,
+High Coffee Shirt — Papeete, Polynésie française`;
+
+  const mailtoUrl = `mailto:${encodeURIComponent(f.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
+
+  // Marquer comme envoyé après 1,5s (temps d'ouverture du client mail)
+  setTimeout(() => {
+    markAllEmailSent(fournisseurId);
+  }, 1500);
+}
+
+function markAllEmailSent(fournisseurId) {
+  const now = new Date().toISOString();
+  commandes.forEach(c => {
+    if (c.reservation && c.reservation.fournisseurId === fournisseurId) {
+      c.reservation.emailEnvoye = true;
+      c.reservation.dateEmailEnvoye = c.reservation.dateEmailEnvoye || now;
+    }
+  });
+  save();
+  renderEmailsFournisseurs();
+  updateHeaderBadges();
+  // Actualise la sidebar réservations
+  renderReservationsSidebar();
+}
+
+function resetEmailsSent(fournisseurId) {
+  commandes.forEach(c => {
+    if (c.reservation && c.reservation.fournisseurId === fournisseurId) {
+      delete c.reservation.emailEnvoye;
+      delete c.reservation.dateEmailEnvoye;
+    }
+  });
+  save();
+  renderEmailsFournisseurs();
+  updateHeaderBadges();
+}
 </script>
 </body>
 </html>

@@ -134,6 +134,50 @@ const Sales = (() => {
     return (paiements || []).reduce((s, p) => s + (p.montant || 0), 0);
   }
 
+  /** Sauvegarde un document HTML dans le dossier Dropbox du client + log ERP */
+  async function _sauverDocDropbox(client, filename, htmlContent, type) {
+    if (!client) return;
+    try {
+      const res = await fetch('http://localhost:7879/save-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client, filename, content_html: htmlContent })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`📁 Dropbox : ${filename}`, 'info');
+        fetch('https://highcoffeeshirts.com/erp/api/assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': 'hcs-erp-2026' },
+          body: JSON.stringify({
+            nom: filename, client, type,
+            url: data.path,
+            date: new Date().toISOString().slice(0, 10)
+          })
+        }).catch(() => {});
+      }
+    } catch (_) { /* serveur non démarré — silencieux */ }
+  }
+
+  /** Nettoie un nom pour un nom de fichier valide */
+  function _safeFilename(s) {
+    return (s || '').replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_');
+  }
+
+  /** Crée le dossier Dropbox client du mois en cours (silencieux si serveur absent) */
+  async function _createDropboxFolder(clientName) {
+    if (!clientName) return;
+    try {
+      const res = await fetch('http://localhost:7879/create-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client: clientName })
+      });
+      const data = await res.json();
+      if (data.created) toast(`📁 Dossier Dropbox créé : ${clientName}`, 'info');
+    } catch (_) { /* serveur non démarré — silencieux */ }
+  }
+
   /** Nom d'un contact depuis son id */
   function _contactNom(contactId) {
     const c = Store.getById('contacts', contactId);
@@ -366,18 +410,32 @@ const Sales = (() => {
           _state.lignes[idx].produitId    = el.value;
           _state.lignes[idx].prixUnitaire = produit.prix || 0;
           _state.lignes[idx].tauxTVA      = (produit.categorie === 'Service') ? 13 : 16;
-          /* Description : nom + attributs principaux si définis */
+          /* Description : nom du produit + description courte si dispo */
           const descParts = [produit.nom];
-          if (produit.attrPrix && produit.variantes && produit.variantes.length > 0) {
-            descParts.push(`(${produit.variantes.length} variante${produit.variantes.length > 1 ? 's' : ''})`);
-          }
-          _state.lignes[idx].description = descParts.join(' ');
+          if (produit.description) descParts.push(produit.description);
+          _state.lignes[idx].description = descParts.join(' — ');
           _applyPalierPrix(idx);
+          _refreshLineTable();
+          /* Auto-ouvrir le picker si le produit a des variantes */
+          if ((produit.variantes || []).length > 0 &&
+              typeof Inventory !== 'undefined' && Inventory.showVariantePicker) {
+            Inventory.showVariantePicker(produit, (variante, descriptionAuto) => {
+              if (!variante) return;
+              const SKIP_VAR = new Set(['ref', 'prix', 'cout', 'quantite', 'customDims']);
+              Object.keys(variante).forEach(k => {
+                if (!SKIP_VAR.has(k) && variante[k]) _state.lignes[idx][k] = variante[k];
+              });
+              _state.lignes[idx].prixUnitaire = variante.prix || _state.lignes[idx].prixUnitaire;
+              _state.lignes[idx].description  = descriptionAuto || produit.nom;
+              _applyPalierPrix(idx);
+              _refreshLineTable();
+            });
+          }
         } else {
           _state.lignes[idx].produitId   = '';
           _state.lignes[idx].description = '';
+          _refreshLineTable();
         }
-        _refreshLineTable();
         return;
       }
 
@@ -432,9 +490,13 @@ const Sales = (() => {
         if (typeof Inventory !== 'undefined' && Inventory.showVariantePicker) {
           Inventory.showVariantePicker(produit, (variante, descriptionAuto) => {
             if (!variante) return;
-            _state.lignes[idx].taille       = variante.taille  || ligne.taille  || '';
-            _state.lignes[idx].couleur      = variante.couleur || ligne.couleur || '';
-            _state.lignes[idx].coupe        = variante.coupe   || '';
+            /* Copier tous les attributs de la variante sur la ligne */
+            const SKIP_VAR = new Set(['ref', 'prix', 'cout', 'quantite', 'customDims']);
+            Object.keys(variante).forEach(k => {
+              if (!SKIP_VAR.has(k) && variante[k]) {
+                _state.lignes[idx][k] = variante[k];
+              }
+            });
             _state.lignes[idx].prixUnitaire = variante.prix    || ligne.prixUnitaire || 0;
             _state.lignes[idx].description  = descriptionAuto  || ligne.description  || produit.nom;
             _applyPalierPrix(idx);
@@ -1290,6 +1352,7 @@ const Sales = (() => {
       if (isNew) {
         savedDevis = Store.create('devis', record);
         toast('Devis créé.', 'success');
+        _createDropboxFolder(record.client);
       } else {
         Store.update('devis', doc.id, record);
         savedDevis = { ...record, id: doc.id };
@@ -1619,8 +1682,11 @@ const Sales = (() => {
       });
     }
 
-    /* Bouton "Imprimer / PDF" */
-    win.document.getElementById('btn-doc-print')?.addEventListener('click', () => {
+    /* Bouton "Imprimer / PDF" — sauvegarde automatiquement dans Dropbox + ERP */
+    win.document.getElementById('btn-doc-print')?.addEventListener('click', async () => {
+      const filename = `${_safeFilename(devis.client)}_devis_${_safeFilename(devis.ref)}.html`;
+      const htmlContent = '<!DOCTYPE html>' + win.document.documentElement.outerHTML;
+      await _sauverDocDropbox(devis.client, filename, htmlContent, 'Devis');
       win.print();
     });
 
@@ -2330,6 +2396,7 @@ const Sales = (() => {
   function _invoiceActionBtns(statut, isNew) {
     if (isNew) return '';
     const btns = [];
+    btns.push(`<button class="btn btn-ghost btn-sm" data-i-action="apercu" title="Aperçu + Dropbox">📄 Aperçu</button>`);
     if (statut === 'Brouillon') {
       btns.push(`<button class="btn btn-ghost btn-sm" data-i-action="envoyer">📤 Envoyer</button>`);
     }
@@ -2337,6 +2404,127 @@ const Sales = (() => {
       btns.push(`<span class="badge badge-red" style="align-self:center;">⏰ En retard</span>`);
     }
     return btns.join('');
+  }
+
+  function _previewFacture(facture) {
+    const contact  = Store.getById('contacts', facture.contactId) || {};
+    const paiements = (facture.paiements || []).filter(p => (p.montant || 0) > 0);
+    const totalPaye = _totalPaiements(paiements);
+    const reste     = Math.max(0, (facture.totalTTC || 0) - totalPaye);
+    const estReglee = reste <= 0;
+    const typeDoc   = estReglee ? 'Facture réglée' : 'Facture partielle';
+
+    const lignesHtml = (facture.lignes || []).map(l => {
+      const brut   = (l.qte || 0) * (l.prixUnitaire || 0);
+      const remise = brut * ((l.remise || 0) / 100);
+      const ht     = brut - remise;
+      const taux   = (l.tauxTVA !== undefined ? l.tauxTVA : 16);
+      const tva    = Math.round(ht * taux / 100);
+      const ttc    = Math.round(ht + tva);
+      return `<tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;">${_esc(l.produit || l.description || '—')}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;">${l.qte || 0}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:13px;font-family:monospace;">${_fmt(l.prixUnitaire || 0)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;">${l.remise ? l.remise + ' %' : '—'}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:13px;font-weight:600;font-family:monospace;">${_fmt(ttc)}</td>
+      </tr>`;
+    }).join('');
+
+    const paiHtml = paiements.length
+      ? paiements.map(p => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;">
+          <span>${REG_ICONS[p.mode] || '💰'} ${_esc(p.mode)}</span>
+          <span style="font-family:monospace;font-weight:600;">${_fmt(p.montant)}</span>
+        </div>`).join('')
+      : '<div style="color:#9ca3af;font-size:12px;">Aucun paiement enregistré</div>';
+
+    const docHtml = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+      <title>Facture ${_esc(facture.ref)}</title>
+      <style>
+        body{font-family:system-ui,sans-serif;margin:0;padding:24px;background:#f9fafb;color:#111827;}
+        .page{max-width:760px;margin:0 auto;background:#fff;padding:40px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+        .ui-actions{display:flex;gap:10px;justify-content:flex-end;padding:0 0 16px;}
+        .btn-print{padding:9px 20px;background:#4a5fff;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+        .btn-close{padding:9px 20px;background:#f3f4f6;color:#374151;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+        .brand-name{font-size:22px;font-weight:800;color:#111827;}
+        .brand-sub{font-size:11px;color:#6b7280;margin-top:2px;}
+        .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #e5e7eb;}
+        .doc-title{font-size:28px;font-weight:800;color:#4a5fff;}
+        .doc-ref{font-size:15px;font-weight:600;color:#374151;margin:4px 0;}
+        .doc-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;
+          background:${estReglee?'#dcfce7':'#fef9c3'};color:${estReglee?'#15803d':'#854d0e'};}
+        .doc-meta{display:flex;justify-content:space-between;margin-bottom:24px;}
+        .section-title{font-size:11px;font-weight:700;text-transform:uppercase;color:#9ca3af;letter-spacing:1px;margin:20px 0 8px;}
+        .client-name{font-size:16px;font-weight:700;color:#111827;}
+        .client-box{background:#f9fafb;border-radius:8px;padding:12px 16px;margin-bottom:24px;}
+        table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+        th{background:#f3f4f6;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#6b7280;}
+        .totals-box{background:#f9fafb;border-radius:8px;padding:16px;margin-top:16px;}
+        .total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:#374151;}
+        .total-final{font-size:16px;font-weight:800;border-top:2px solid #e5e7eb;padding-top:8px;margin-top:8px;}
+        .reste-box{margin-top:12px;padding:10px 16px;border-radius:8px;font-weight:700;font-size:14px;
+          background:${estReglee?'#dcfce7':'#fff7ed'};color:${estReglee?'#15803d':'#c2410c'};}
+        .paiements-box{background:#f0fdf4;border-radius:8px;padding:12px 16px;margin-top:12px;}
+        @media print{.ui-actions{display:none!important;}body{padding:0;}}.page{box-shadow:none;}
+      </style></head><body><div class="page">
+      <div class="ui-actions">
+        <button class="btn-close" onclick="window.close()">✕ Fermer</button>
+        <button class="btn-print" id="btn-fac-print">🖨 Imprimer / PDF</button>
+      </div>
+      <div class="header">
+        <div><div class="brand-name">HCS — High Coffee Shirts</div>
+          <div class="brand-sub">Tenue · Sublimation · DTF · Broderie · Impression textile</div></div>
+        <div style="text-align:right;font-size:12px;color:#6b7280;">Tahiti, Polynésie française<br>contact@highcoffeeshirts.com</div>
+      </div>
+      <div class="doc-meta">
+        <div><div class="doc-title">FACTURE</div>
+          <div class="doc-ref">${_esc(facture.ref)}</div>
+          <div class="doc-badge">${typeDoc}</div></div>
+        <div style="text-align:right;font-size:13px;color:#374151;">
+          <div>Date : <strong>${_fmtDate(facture.date)}</strong></div>
+          ${facture.dateEcheance ? `<div>Échéance : <strong>${_fmtDate(facture.dateEcheance)}</strong></div>` : ''}
+        </div>
+      </div>
+      <div class="section-title">Client</div>
+      <div class="client-box">
+        <div class="client-name">${_esc(facture.client || contact.nom || '—')}</div>
+        ${contact.email ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;">📧 ${_esc(contact.email)}</div>` : ''}
+        ${contact.telephone ? `<div style="font-size:12px;color:#6b7280;">📞 ${_esc(contact.telephone)}</div>` : ''}
+      </div>
+      <div class="section-title">Articles</div>
+      <table><thead><tr>
+        <th>Article</th><th style="text-align:center;">Qté</th>
+        <th style="text-align:right;">P.U.</th><th style="text-align:center;">Remise</th>
+        <th style="text-align:right;">TTC</th>
+      </tr></thead><tbody>${lignesHtml}</tbody></table>
+      <div class="totals-box">
+        <div class="total-row"><span>Total HT</span><span style="font-family:monospace;">${_fmt(facture.totalHT || 0)}</span></div>
+        <div class="total-row"><span>TVA</span><span style="font-family:monospace;">${_fmt(facture.totalTVA || 0)}</span></div>
+        <div class="total-row total-final"><span>Total TTC</span><span style="font-family:monospace;">${_fmt(facture.totalTTC || 0)}</span></div>
+      </div>
+      <div class="section-title">Paiements</div>
+      <div class="paiements-box">${paiHtml}
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#374151;padding:6px 0 0;border-top:1px solid #d1fae5;margin-top:8px;">
+          <span>Total encaissé</span><span style="font-family:monospace;font-weight:700;">${_fmt(totalPaye)}</span>
+        </div>
+      </div>
+      <div class="reste-box">${estReglee ? '✅ Facture entièrement réglée' : `⚠️ Reste à payer : ${_fmt(reste)}`}</div>
+      <div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:24px;">
+        Document généré le ${new Date().toLocaleDateString('fr-FR')} — HCS ERP
+      </div>
+    </div></body></html>`;
+
+    const win = window.open('', '_blank', 'width=860,height=750,scrollbars=yes,toolbar=no,menubar=no');
+    if (!win) { toast('Popup bloquée — autorise les popups pour ce site.', 'warning'); return; }
+    win.document.write(docHtml);
+    win.document.close();
+
+    win.document.getElementById('btn-fac-print')?.addEventListener('click', async () => {
+      const typeSlug  = estReglee ? 'reglee' : 'partielle';
+      const filename  = `${_safeFilename(facture.client)}_facture_${typeSlug}_${_safeFilename(facture.ref)}.html`;
+      const htmlContent = '<!DOCTYPE html>' + win.document.documentElement.outerHTML;
+      await _sauverDocDropbox(facture.client, filename, htmlContent, typeDoc);
+      win.print();
+    });
   }
 
   /* ---- Section paiements ---- */
@@ -2588,6 +2776,10 @@ const Sales = (() => {
 
     toolbar.querySelectorAll('[data-i-action]').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (btn.dataset.iAction === 'apercu') {
+          _previewFacture(doc);
+          return;
+        }
         if (btn.dataset.iAction === 'envoyer') {
           showConfirm('Marquer cette facture comme envoyée ?', () => {
             Store.update('factures', doc.id, { statut: 'Envoyé' });
