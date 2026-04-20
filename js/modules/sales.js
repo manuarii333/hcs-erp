@@ -898,9 +898,9 @@ const Sales = (() => {
         { key: 'totalTTC', label: 'Total TTC',  render: (v) => `<span class="mono">${_fmt(v)}</span>` },
         { key: 'statut',   label: 'Statut',     type: 'badge', badgeMap: BADGE_DEVIS },
         { key: 'id', label: '', render: (_, row) =>
-            `<button class="btn btn-ghost btn-sm" data-del-devis="${row.id}"
+            `<button class="btn btn-ghost btn-sm" data-del-devis="${row.id}" data-table-action="del"
               style="color:var(--accent-red);padding:2px 8px;"
-              title="Supprimer ce devis" onclick="event.stopPropagation()">🗑</button>`
+              title="Supprimer ce devis">🗑</button>`
         }
       ],
       onRowClick: (item) => _goForm('quotes', item.id, toolbar, area),
