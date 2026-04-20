@@ -602,9 +602,6 @@ const Inventory = (() => {
 
         <!-- Section paliers de prix (tarification dégressive) -->
         <div id="paliers-section" style="margin-top:8px;"></div>
-
-        <!-- Section positions atelier -->
-        <div id="positions-atelier-section" style="margin-top:8px;"></div>
       </div>`;
 
     /* Gestion upload image */
@@ -655,9 +652,6 @@ const Inventory = (() => {
 
     /* Rendre la section paliers de prix */
     _renderPaliersSection(produit);
-
-    /* Rendre la section positions atelier */
-    _renderPositionsAtelierSection(produit);
 
     /* ---- Toggle Produit simple / Avec variations ---- */
     (function _bindProductTypeToggle() {
@@ -910,96 +904,6 @@ const Inventory = (() => {
     }
   }
 
-  /* ── Positions atelier disponibles ── */
-  const _POSITIONS_STD = [
-    '📍 Poitrine gauche', '📍 Poitrine centre', '📍 Poitrine droite',
-    '📍 Dos haut', '📍 Dos complet',
-    '📍 Manche gauche', '📍 Manche droite',
-    '📍 Capuche', '📍 Col', '📍 Bas de vêtement'
-  ];
-
-  function _renderPositionsAtelierSection(produit) {
-    const el = document.getElementById('positions-atelier-section');
-    if (!el) return;
-    const saved = produit.positionsAtelier || [];
-    const customs = saved.filter(p => !_POSITIONS_STD.includes(p));
-
-    el.innerHTML = `
-      <div class="form-section">
-        <div class="form-section-title">📍 Positions atelier disponibles</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">
-          Cochez les positions proposées — elles seront sélectionnables dans le devis.
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;" id="positions-grid">
-          ${_POSITIONS_STD.map(pos => `
-            <label style="display:flex;align-items:center;gap:6px;background:var(--bg-surface);
-              border:1px solid ${saved.includes(pos) ? 'var(--accent-blue)' : 'var(--border)'};
-              border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;
-              color:${saved.includes(pos) ? 'var(--accent-blue)' : 'var(--text-secondary)'};
-              transition:border .15s,color .15s;">
-              <input type="checkbox" class="pos-check" data-pos="${pos}"
-                ${saved.includes(pos) ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--accent-blue);">
-              ${pos}
-            </label>`).join('')}
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-          <input type="text" id="pos-custom-input" placeholder="Position personnalisée… ex: 📍 Épaule gauche"
-            class="form-control" style="max-width:300px;height:34px;font-size:12px;" />
-          <button class="btn btn-ghost btn-sm" id="btn-pos-add">+ Ajouter</button>
-        </div>
-        <div id="pos-custom-list" style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${customs.map(p => `
-            <span class="chip" data-custom-pos="${p}"
-              style="display:flex;align-items:center;gap:4px;font-size:12px;">
-              ${p}
-              <span data-remove-pos="${p}" style="color:var(--accent-red);font-weight:700;cursor:pointer;margin-left:2px;">×</span>
-            </span>`).join('')}
-        </div>
-      </div>`;
-
-    /* Couleur dynamique des cases */
-    el.querySelectorAll('.pos-check').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const lbl = cb.closest('label');
-        if (!lbl) return;
-        lbl.style.borderColor = cb.checked ? 'var(--accent-blue)' : 'var(--border)';
-        lbl.style.color       = cb.checked ? 'var(--accent-blue)' : 'var(--text-secondary)';
-      });
-    });
-
-    /* Ajouter position custom */
-    document.getElementById('btn-pos-add')?.addEventListener('click', () => {
-      const input = document.getElementById('pos-custom-input');
-      const val = (input?.value || '').trim();
-      if (!val) return;
-      if (document.querySelector(`[data-custom-pos="${CSS.escape(val)}"]`)) return;
-      const list = document.getElementById('pos-custom-list');
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.dataset.customPos = val;
-      chip.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:12px;';
-      chip.innerHTML = `${val} <span data-remove-pos style="color:var(--accent-red);font-weight:700;cursor:pointer;margin-left:2px;">×</span>`;
-      list.appendChild(chip);
-      if (input) input.value = '';
-    });
-
-    /* Supprimer position custom */
-    document.getElementById('pos-custom-list')?.addEventListener('click', e => {
-      if (e.target.hasAttribute('data-remove-pos')) {
-        e.target.closest('[data-custom-pos]')?.remove();
-      }
-    });
-  }
-
-  function _collectPositionsFromDOM() {
-    const positions = [];
-    document.querySelectorAll('.pos-check:checked').forEach(cb => positions.push(cb.dataset.pos));
-    document.querySelectorAll('#pos-custom-list [data-custom-pos]').forEach(chip => {
-      positions.push(chip.dataset.customPos);
-    });
-    return positions;
-  }
-
   /* Sauvegarde produit */
   function _saveProduct(produitExist) {
     let data = getFormData('product-form-container');
@@ -1075,9 +979,6 @@ const Inventory = (() => {
       data.attrPrix       = '';
       data.attrIncrements = {};
     }
-
-    /* Positions atelier disponibles */
-    data.positionsAtelier = _collectPositionsFromDOM();
 
     if (!data.nom) { toastError('Le nom du produit est obligatoire.'); return; }
 
@@ -2354,12 +2255,13 @@ const Inventory = (() => {
     const SKIP = new Set(['ref', 'prix', 'cout', 'quantite', 'customDims']);
     const fmt  = n => Number(n || 0).toLocaleString('fr-FR') + ' XPF';
 
-    /* Attributs disponibles + valeurs uniques */
-    const dynKeys = [...new Set(variantes.flatMap(v => Object.keys(v).filter(k => !SKIP.has(k))))];
+    /* Attributs disponibles + valeurs uniques — on exclut les attrs sans valeur */
+    const allKeys = [...new Set(variantes.flatMap(v => Object.keys(v).filter(k => !SKIP.has(k))))];
     const attrVals = {};
-    dynKeys.forEach(k => {
+    allKeys.forEach(k => {
       attrVals[k] = [...new Set(variantes.map(v => v[k]).filter(Boolean))];
     });
+    const dynKeys = allKeys.filter(k => attrVals[k].length > 0);
 
     /* Icône par attribut */
     const attrIcon = k => {
