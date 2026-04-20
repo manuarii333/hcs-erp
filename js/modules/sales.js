@@ -752,13 +752,13 @@ const Sales = (() => {
 
         ${totalFac > 0 ? `
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="flex:1;height:6px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
-            <div style="height:100%;width:${pctFac}%;background:var(--accent-blue);border-radius:3px;transition:width .4s;"></div>
+          <div style="flex:1;height:6px;background:var(--bg-card);border-radius:3px;overflow:hidden;position:relative;">
+            <div style="position:absolute;left:0;top:0;height:100%;width:${pctFac}%;background:var(--accent-blue);border-radius:3px;"></div>
+            <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:var(--accent-green);border-radius:3px;transition:width .4s;"></div>
           </div>
-          <div style="height:100%;position:absolute;width:${pct}%;background:var(--accent-green);border-radius:3px;opacity:.7;"></div>
           <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">
             Payé : <strong style="color:var(--accent-green);">${_fmt(totalPaye)}</strong>
-            ${reste > 0 ? `· Reste : <strong style="color:var(--accent-red);">${_fmt(reste)}</strong>` : ''}
+            ${reste > 0 ? ` · Reste : <strong style="color:var(--accent-red);">${_fmt(reste)}</strong>` : ''}
           </span>
         </div>` : ''}
 
