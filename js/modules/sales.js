@@ -897,29 +897,20 @@ const Sales = (() => {
         },
         { key: 'totalTTC', label: 'Total TTC',  render: (v) => `<span class="mono">${_fmt(v)}</span>` },
         { key: 'statut',   label: 'Statut',     type: 'badge', badgeMap: BADGE_DEVIS },
-        { key: 'id', label: '', render: (_, row) =>
-            `<button class="btn btn-ghost btn-sm" data-del-devis="${row.id}" data-table-action="del"
-              style="color:var(--accent-red);padding:2px 8px;"
-              title="Supprimer ce devis">🗑</button>`
+        { type: 'actions', width: '60px', actions: [
+            { label: '🗑', className: 'btn btn-ghost btn-sm', onClick: (row) => {
+                showConfirm(`Supprimer le devis ${row.ref || row.id} ?`, () => {
+                  Store.remove('devis', row.id);
+                  toast('Devis supprimé.', 'success');
+                  _goList('quotes', toolbar, area);
+                });
+              }
+            }
+          ]
         }
       ],
       onRowClick: (item) => _goForm('quotes', item.id, toolbar, area),
       emptyMsg:   'Aucun devis. Cliquez sur "+ Nouveau Devis" pour commencer.'
-    });
-
-    /* Délégation suppression depuis la liste */
-    document.getElementById('sales-quotes-table')?.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-del-devis]');
-      if (!btn) return;
-      e.stopPropagation();
-      const id  = btn.dataset.delDevis;
-      const doc = Store.getById('devis', id);
-      if (!doc) return;
-      showConfirm(`Supprimer le devis ${doc.ref || id} ?`, () => {
-        Store.remove('devis', id);
-        toast(`Devis supprimé.`, 'success');
-        _goList('quotes', toolbar, area);
-      });
     });
   }
 
