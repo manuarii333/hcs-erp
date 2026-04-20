@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCS — Créateur de Produits CSV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design Tokens HCS — Mode sombre ── */
+    :root {
+      --primary:       #22c997;
+      --primary-hover: #1aad80;
+      --primary-soft:  rgba(34,201,151,.12);
+      --gold:          #D4AF37;
+      --gold-soft:     rgba(212,175,55,.15);
+      --bg:            #0d1117;
+      --surface:       #161b22;
+      --elevated:      #1c2128;
+      --border:        #30363d;
+      --border-light:  #21262d;
+      --text:          #e6edf3;
+      --text-2:        #8b949e;
+      --text-3:        #484f58;
+      --topbar:        #010409;
+      --success:       #3fb950;
+      --success-soft:  rgba(63,185,80,.12);
+      --warning:       #d29922;
+      --warning-soft:  rgba(210,153,34,.12);
+      --danger:        #f85149;
+      --danger-soft:   rgba(248,81,73,.12);
+      --info:          #58a6ff;
+      --info-soft:     rgba(88,166,255,.12);
+      --mono:          'JetBrains Mono', monospace;
+      --radius:        10px;
+      --radius-sm:     6px;
+      --shadow:        0 1px 6px rgba(0,0,0,.4), 0 4px 20px rgba(0,0,0,.3);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--topbar);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 20px;
+      height: 52px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    }
+    .topbar-logo { font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: -.5px; }
+    .topbar-title { font-size: 14px; color: rgba(255,255,255,.7); }
+    .topbar-sep { flex: 1; }
+    .topbar-stats { display: flex; gap: 16px; }
+    .stat-pill {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,.8);
+      cursor: default;
+    }
+    .stat-pill strong { color: var(--gold); }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 16px;
+      padding: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .panel-head {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.02);
+    }
+    .panel-head h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .panel-body { padding: 16px 18px; }
+
+    /* ── Templates ── */
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .tpl-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      padding: 7px 8px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+      color: var(--text-2);
+      transition: all .15s;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .tpl-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+    .tpl-btn.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+    .tpl-emoji { font-size: 16px; display: block; margin-bottom: 2px; }
+
+    /* ── Formulaire ── */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-row.full { grid-template-columns: 1fr; }
+    .form-row.trio { grid-template-columns: 1fr 1fr 1fr; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .field label .req { color: var(--danger); }
+    .field input, .field select, .field textarea {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(31,122,99,.1);
+    }
+    .field input[type="number"] { font-family: var(--mono); }
+    .field textarea { resize: vertical; min-height: 54px; }
+    .field-hint { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+    .emoji-input { font-size: 20px; text-align: center; padding: 4px !important; }
+
+    /* ── Margin live ── */
+    .margin-bar {
+      background: var(--bg);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin: 10px 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+    .margin-kpi { font-size: 11px; color: var(--text-3); }
+    .margin-kpi strong { display: block; font-size: 15px; font-family: var(--mono); }
+    .margin-kpi strong.good { color: var(--success); }
+    .margin-kpi strong.warn { color: var(--warning); }
+    .margin-kpi strong.bad  { color: var(--danger); }
+
+    /* ── Boutons ── */
+    .btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--bg); border: 1px solid var(--border); color: var(--text-2); }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-gold { background: var(--gold); color: #fff; font-weight: 600; }
+    .btn-gold:hover { background: #c09d20; }
+    .btn-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid transparent; }
+    .btn-danger:hover { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-icon { padding: 5px 8px; font-size: 13px; }
+    .btn-full { width: 100%; justify-content: center; }
+    .btn-row { display: flex; gap: 8px; }
+
+    /* ── Section separator ── */
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-3);
+      margin: 14px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-light);
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: rgba(255,255,255,.03); }
+    th {
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-3);
+      text-align: left;
+      white-space: nowrap;
+      border-bottom: 2px solid var(--border);
+    }
+    td {
+      padding: 8px 10px;
+      font-size: 12px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.025); }
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .td-actions { display: flex; gap: 4px; white-space: nowrap; }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .badge-green { background: var(--success-soft); color: var(--success); }
+    .badge-orange { background: var(--warning-soft); color: var(--warning); }
+    .badge-red { background: var(--danger-soft); color: var(--danger); }
+    .badge-blue { background: var(--info-soft); color: var(--info); }
+    .badge-gray { background: var(--bg); color: var(--text-3); border: 1px solid var(--border); }
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-3);
+    }
+    .empty-state-icon { font-size: 3rem; margin-bottom: 10px; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── Table footer ── */
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-top: 1px solid var(--border-light);
+      background: rgba(255,255,255,.02);
+      font-size: 12px;
+      color: var(--text-3);
+    }
+    .table-footer strong { color: var(--text); }
+
+    /* ── Toast ── */
+    #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: var(--topbar);
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+      animation: slideIn .2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+    .toast.info    { border-left: 3px solid var(--info); }
+    @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* ── Import drop zone ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+      color: var(--text-3);
+      font-size: 13px;
+      background: var(--bg);
+    }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+    .drop-zone-icon { font-size: 2rem; margin-bottom: 8px; }
+
+    /* ── Inline edit indicator ── */
+    .editing { outline: 2px solid var(--primary); border-radius: 3px; }
+
+    /* ── Pill tags (tailles/couleurs) ── */
+    .tag-list { display: flex; flex-wrap: wrap; gap: 3px; }
+    .tag {
+      font-size: 9px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1px 6px;
+      color: var(--text-2);
+    }
+
+    /* ── Row highlight when from template ── */
+    .row-new { animation: rowFlash .6s ease; }
+    @keyframes rowFlash { from { background: var(--primary-soft); } to { background: transparent; } }
+
+    /* ── Action toolbar above table ── */
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      flex-wrap: wrap;
+    }
+    .toolbar-row-right { margin-left: auto; display: flex; gap: 6px; }
+
+    /* ── Progress indicator ── */
+    .progress-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .progress-item { font-size: 12px; color: var(--text-2); }
+    .progress-item strong { color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="topbar">
+  <span class="topbar-logo">HCS</span>
+  <span class="topbar-title">Créateur de Produits CSV</span>
+  <div class="topbar-sep"></div>
+  <div class="topbar-stats">
+    <span class="stat-pill" id="stat-count"><strong id="count-val">0</strong> produit(s)</span>
+    <span class="stat-pill" id="stat-valeur">Stock : <strong id="valeur-val">0 XPF</strong></span>
+  </div>
+</header>
+
+<!-- ============================================================
+     LAYOUT
+     ============================================================ -->
+<div class="layout">
+
+  <!-- ============================================================
+       COLONNE GAUCHE : Formulaire
+       ============================================================ -->
+  <div>
+    <div class="panel">
+      <div class="panel-head">
+        <span>🎨</span>
+        <h2>Nouveau produit</h2>
+      </div>
+      <div class="panel-body">
+
+        <!-- Templates rapides -->
+        <div class="section-title">Templates HCS</div>
+        <div class="templates-grid" id="templates-grid">
+          <!-- générés par JS -->
+        </div>
+
+        <!-- Identification -->
+        <div class="section-title">Identification</div>
+        <div class="form-row">
+          <div class="field" style="max-width:72px;">
+            <label>Emoji</label>
+            <input type="text" id="f-emoji" class="emoji-input" maxlength="4" placeholder="👕">
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Nom <span class="req">*</span></label>
+            <input type="text" id="f-nom" placeholder="T-Shirt Blanc Classic">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Désignation courte</label>
+            <input type="text" id="f-designation" placeholder="T-shirt coton 180g">
+          </div>
+          <div class="field">
+            <label>Référence</label>
+            <input type="text" id="f-ref" placeholder="TSH-001">
+          </div>
+        </div>
+
+        <!-- Catégorie & Type -->
+        <div class="section-title">Classification</div>
+        <div class="form-row">
+          <div class="field">
+            <label>Catégorie</label>
+            <select id="f-categorie">
+              <option value="">— Sélectionner —</option>
+              <optgroup label="Vêtements">
+                <option value="Vêtements">Vêtements (général)</option>
+                <option value="T-Shirts">T-Shirts</option>
+                <option value="Hoodies & Sweatshirts">Hoodies & Sweatshirts</option>
+                <option value="Polos">Polos</option>
+                <option value="Vestes & Manteaux">Vestes & Manteaux</option>
+              </optgroup>
+              <optgroup label="Services">
+                <option value="Services DTF">Services DTF</option>
+                <option value="Services Broderie">Services Broderie</option>
+                <option value="Services Vinyle">Services Vinyle</option>
+                <option value="Services Personnalisation">Services Personnalisation</option>
+              </optgroup>
+              <optgroup label="Accessoires">
+                <option value="Accessoires">Accessoires</option>
+                <option value="Casquettes">Casquettes</option>
+                <option value="Tote Bags">Tote Bags</option>
+              </optgroup>
+              <optgroup label="Fournitures & Matières">
+                <option value="Fournitures DTF">Fournitures DTF</option>
+                <option value="Encres & Films">Encres & Films</option>
+                <option value="Consommables Broderie">Consommables Broderie</option>
+                <option value="Vinyle & Flex">Vinyle & Flex</option>
+              </optgroup>
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Type article</label>
+            <select id="f-type">
+              <option value="marchandise">🛍 Marchandise</option>
+              <option value="service">🔧 Service</option>
+              <option value="consommable">🧴 Consommable</option>
+              <option value="matiere">🪢 Matière première</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Tailles / Couleurs -->
+        <div class="form-row">
+          <div class="field">
+            <label>Tailles disponibles</label>
+            <input type="text" id="f-tailles" placeholder="XS, S, M, L, XL, XXL">
+            <span class="field-hint">Séparées par des virgules</span>
+          </div>
+          <div class="field">
+            <label>Couleurs disponibles</label>
+            <input type="text" id="f-couleurs" placeholder="Blanc, Noir, Marine">
+            <span class="field-hint">Séparées par des virgules</span>
+          </div>
+        </div>
+
+        <!-- Prix -->
+        <div class="section-title">Tarification</div>
+        <div class="form-row trio">
+          <div class="field">
+            <label>TVA</label>
+            <select id="f-tva">
+              <option value="16">16% — Standard</option>
+              <option value="5">5% — Alimentaire</option>
+              <option value="13">13% — Intermédiaire</option>
+              <option value="0">0% — Exonéré</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Prix vente HT (XPF)</label>
+            <input type="number" id="f-prix" placeholder="2500" min="0" step="1">
+          </div>
+          <div class="field">
+            <label>Prix vente TTC (XPF)</label>
+            <input type="number" id="f-prix-ttc" placeholder="2900" min="0" step="1">
+            <span class="field-hint">Calculé auto depuis HT + TVA</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Prix de revient HT (XPF)</label>
+            <input type="number" id="f-cout" placeholder="800" min="0" step="1">
+          </div>
+          <div class="field">
+            <label>Paliers de prix</label>
+            <input type="text" id="f-paliers" placeholder="10pcs→2200 · 50pcs→2000">
+            <span class="field-hint">Informatif — libre</span>
+          </div>
+        </div>
+
+        <!-- Indicateur marge live -->
+        <div class="margin-bar" id="margin-bar">
+          <div class="margin-kpi">TTC<strong id="mb-ttc">—</strong></div>
+          <div class="margin-kpi">Marge brute<strong id="mb-marge">—</strong></div>
+          <div class="margin-kpi">Marge %<strong id="mb-pct">—</strong></div>
+          <div class="margin-kpi">Coeff.<strong id="mb-coeff">—</strong></div>
+        </div>
+
+        <!-- Stock -->
+        <div class="section-title">Stock</div>
+        <div class="form-row trio">
+          <div class="field">
+            <label>Stock initial</label>
+            <input type="number" id="f-stock" placeholder="0" min="0" step="1">
+          </div>
+          <div class="field">
+            <label>Stock min. alerte</label>
+            <input type="number" id="f-stock-min" placeholder="5" min="0" step="1">
+          </div>
+          <div class="field">
+            <label>Unité</label>
+            <input type="text" id="f-unite" placeholder="unité">
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="section-title">Description</div>
+        <div class="form-row full">
+          <div class="field">
+            <label>Description / Notes</label>
+            <textarea id="f-description" placeholder="Matière, technique d'impression, délais, conditions..."></textarea>
+          </div>
+        </div>
+
+        <!-- Boutons -->
+        <div class="btn-row" style="margin-top:4px;">
+          <button class="btn btn-primary btn-full" id="btn-ajouter">+ Ajouter au tableau</button>
+          <button class="btn btn-secondary btn-icon" id="btn-reset" title="Réinitialiser le formulaire">↺</button>
+        </div>
+        <div id="edit-mode-notice" style="display:none;margin-top:8px;padding:7px 10px;background:var(--info-soft);border:1px solid var(--info);border-radius:var(--radius-sm);font-size:12px;color:var(--info);">
+          ✏️ Mode édition — modifiez puis cliquez <strong>Mettre à jour</strong>
+        </div>
+
+      </div><!-- /panel-body -->
+    </div><!-- /panel -->
+
+    <!-- Import CSV -->
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-head">
+        <span>📥</span>
+        <h2>Importer un CSV existant</h2>
+      </div>
+      <div class="panel-body">
+        <div class="drop-zone" id="import-drop-zone" title="Cliquer ou glisser un fichier CSV">
+          <div class="drop-zone-icon">📂</div>
+          <div>Glissez un fichier CSV ici ou cliquez pour choisir</div>
+          <div style="font-size:11px;margin-top:4px;opacity:.7;">Format UTF-8 · séparateur virgule ou point-virgule</div>
+        </div>
+        <input type="file" id="import-file-input" accept=".csv" style="display:none;">
+        <div style="margin-top:10px;">
+          <button class="btn btn-secondary btn-sm" id="btn-download-template">📋 Télécharger le modèle CSV</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /colonne gauche -->
+
+  <!-- ============================================================
+       COLONNE DROITE : Table + actions
+       ============================================================ -->
+  <div>
+    <div class="panel">
+      <div class="toolbar-row">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;font-weight:600;color:var(--text);">📦 Catalogue produits</span>
+          <span id="lbl-count" class="badge badge-gray">0 produit</span>
+        </div>
+        <div class="toolbar-row-right">
+          <button class="btn btn-secondary btn-sm" id="btn-clear-all">🗑 Vider</button>
+          <button class="btn btn-gold" id="btn-export">📤 Exporter CSV</button>
+          <button class="btn btn-primary" id="btn-save-erp" style="background:#22c997;color:#fff;font-weight:700;">💾 Enregistrer dans l'ERP</button>
+        </div>
+      </div>
+
+      <div class="table-wrap" id="table-wrap">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-state-icon">📦</div>
+          <p>Aucun produit pour l'instant.</p>
+          <p style="margin-top:6px;font-size:12px;">Remplissez le formulaire ou importez un CSV.</p>
+        </div>
+        <table id="products-table" style="display:none;">
+          <thead>
+            <tr>
+              <th style="width:36px;">#</th>
+              <th style="width:32px;"></th>
+              <th>Produit</th>
+              <th>Catégorie</th>
+              <th>Prix HT</th>
+              <th>Coût</th>
+              <th>Marge</th>
+              <th>Stock</th>
+              <th>Unité</th>
+              <th>Réf.</th>
+              <th style="width:90px;"></th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="table-footer" id="table-footer" style="display:none;">
+        <div class="progress-row" id="footer-stats"></div>
+        <div style="font-size:11px;color:var(--text-3);">
+          Double-clic sur une ligne pour éditer
+        </div>
+      </div>
+    </div><!-- /panel -->
+  </div><!-- /colonne droite -->
+
+</div><!-- /layout -->
+
+<!-- Toast -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+'use strict';
+
+/* ================================================================
+   CONFIG
+   ================================================================ */
+const CSV_FIELDS = ['nom','categorie','prix','cout','stock','unite','description','ref','emoji'];
+
+const CSV_EXTENDED_FIELDS = [
+  'emoji','nom','designation','ref','categorie','type',
+  'tailles','couleurs','prix','prixTTC','cout','tva',
+  'stock','stockMin','unite','paliers','description'
+];
+
+/* ================================================================
+   TEMPLATES HCS
+   ================================================================ */
+const TEMPLATES = [
+  {
+    id:'tshirt', label:'T-Shirt', emoji:'👕',
+    nom:'T-Shirt Classic', designation:'T-shirt coton 180g impression DTF',
+    categorie:'T-Shirts', type:'marchandise', tva:16,
+    prix:2500, cout:800, stock:20, stockMin:5, unite:'unité',
+    tailles:'XS, S, M, L, XL, XXL', couleurs:'Blanc, Noir, Gris, Marine',
+    description:'T-shirt personnalisé. Impression DTF recto/verso ou broderie disponible. Coton 180g. Livraison 3-5j.'
+  },
+  {
+    id:'hoodie', label:'Hoodie', emoji:'🧥',
+    nom:'Hoodie Zip Premium', designation:'Hoodie 320g impression DTF',
+    categorie:'Hoodies & Sweatshirts', type:'marchandise', tva:16,
+    prix:4500, cout:1800, stock:10, stockMin:3, unite:'unité',
+    tailles:'S, M, L, XL, XXL', couleurs:'Noir, Gris chiné, Marine',
+    description:'Hoodie zip premium 320g. Poche kangourou. Impression DTF grand format ou broderie.'
+  },
+  {
+    id:'polo', label:'Polo', emoji:'👔',
+    nom:'Polo Piqué Brodé', designation:'Polo coton piqué 220g',
+    categorie:'Polos', type:'marchandise', tva:16,
+    prix:3200, cout:1200, stock:15, stockMin:5, unite:'unité',
+    tailles:'XS, S, M, L, XL, XXL', couleurs:'Blanc, Noir, Marine, Rouge',
+    description:'Polo piqué 220g. Broderie logo poitrine. Idéal tenues entreprise et équipes.'
+  },
+  {
+    id:'dtf', label:'Service DTF', emoji:'🖨',
+    nom:'Impression DTF', designation:'Impression DTF pleine couleur',
+    categorie:'Services DTF', type:'service', tva:16,
+    prix:350, cout:80, stock:0, unite:'cm²',
+    description:'Impression DTF pleine couleur sur film transfert. Résolution 600dpi. Livraison film J+2. Application possible.'
+  },
+  {
+    id:'broderie', label:'Broderie', emoji:'🧵',
+    nom:'Broderie Logo', designation:'Broderie numérique jusqu\'à 8 couleurs',
+    categorie:'Services Broderie', type:'service', tva:16,
+    prix:1800, cout:500, stock:0, unite:'passe',
+    description:'Broderie numérique jusqu\'à 8 couleurs. Rendu premium. Digitalization incluse. Format max 15x10cm.'
+  },
+  {
+    id:'vinyle', label:'Vinyle', emoji:'✂️',
+    nom:'Découpe Vinyle', designation:'Vinyle thermocollant découpe ploter',
+    categorie:'Services Vinyle', type:'service', tva:16,
+    prix:1200, cout:300, stock:0, unite:'unité',
+    description:'Découpe vinyle thermocollant. 1 couleur. Taille jusqu\'à A3. Application incluse si fourni le support.'
+  },
+  {
+    id:'casquette', label:'Casquette', emoji:'🧢',
+    nom:'Casquette 5 panneaux', designation:'Casquette snapback brodée',
+    categorie:'Casquettes', type:'marchandise', tva:16,
+    prix:2800, cout:900, stock:10, stockMin:5, unite:'unité',
+    couleurs:'Blanc, Noir, Marine',
+    description:'Casquette 5 panneaux snapback. Broderie logo cousu sur face avant. Taille unique réglable.'
+  },
+  {
+    id:'tote', label:'Tote Bag', emoji:'👜',
+    nom:'Tote Bag Coton', designation:'Tote bag coton 140g impression DTF',
+    categorie:'Tote Bags', type:'marchandise', tva:16,
+    prix:1800, cout:600, stock:20, stockMin:8, unite:'unité',
+    description:'Tote bag coton 140g. Impression DTF pleine couleur. Dimensions 38x42cm. Anses renforcées.'
+  },
+  {
+    id:'film-dtf', label:'Film DTF', emoji:'🎞',
+    nom:'Film DTF PET', designation:'Film transfert DTF PET froid',
+    categorie:'Fournitures DTF', type:'consommable', tva:16,
+    prix:450, cout:180, stock:50, stockMin:10, unite:'mètre',
+    description:'Film DTF PET à poudre chaud/froid. 60cm de large. Adapté imprimantes DTF standard. Résolution 720dpi.'
+  },
+];
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let products   = [];
+let editingId  = null;
+let idCounter  = 1;
+
+/* ================================================================
+   INIT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  _renderTemplates();
+  _bindForm();
+  _bindImport();
+  _bindExport();
+  _renderTable();
+});
+
+/* ================================================================
+   TEMPLATES
+   ================================================================ */
+function _renderTemplates() {
+  const grid = document.getElementById('templates-grid');
+  grid.innerHTML = TEMPLATES.map(t => `
+    <button class="tpl-btn" data-id="${t.id}" title="${t.nom}">
+      <span class="tpl-emoji">${t.emoji}</span>
+      ${t.label}
+    </button>
+  `).join('');
+
+  grid.querySelectorAll('.tpl-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tpl = TEMPLATES.find(t => t.id === btn.dataset.id);
+      if (!tpl) return;
+      _fillForm(tpl);
+      grid.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+}
+
+function _fillForm(data) {
+  _setField('f-emoji',       data.emoji       || '');
+  _setField('f-nom',         data.nom         || '');
+  _setField('f-designation', data.designation || '');
+  _setField('f-ref',         data.ref         || '');
+  _setField('f-categorie',   data.categorie   || '');
+  _setField('f-type',        data.type        || 'marchandise');
+  _setField('f-tailles',     data.tailles     || '');
+  _setField('f-couleurs',    data.couleurs    || '');
+  _setField('f-tva',         String(data.tva || 16));
+  _setField('f-prix',        data.prix        != null ? String(data.prix) : '');
+  _setField('f-prix-ttc',    data.prixTTC     != null ? String(data.prixTTC) : '');
+  _setField('f-cout',        data.cout        != null ? String(data.cout) : '');
+  _setField('f-paliers',     data.paliers     || '');
+  _setField('f-stock',       data.stock       != null ? String(data.stock) : '0');
+  _setField('f-stock-min',   data.stockMin    != null ? String(data.stockMin) : '');
+  _setField('f-unite',       data.unite       || 'unité');
+  _setField('f-description', data.description || '');
+  _updateMarginBar();
+  document.getElementById('f-nom').focus();
+}
+
+function _setField(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = val;
+}
+
+/* ================================================================
+   FORMULAIRE
+   ================================================================ */
+function _bindForm() {
+  /* Calc TTC quand prix HT ou TVA change */
+  ['f-prix','f-tva'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      const ht  = parseFloat(document.getElementById('f-prix').value) || 0;
+      const tva = parseFloat(document.getElementById('f-tva').value)  || 16;
+      if (ht > 0) {
+        document.getElementById('f-prix-ttc').value = Math.round(ht * (1 + tva / 100));
+      }
+      _updateMarginBar();
+    });
+  });
+  /* Calc HT quand TTC change */
+  document.getElementById('f-prix-ttc')?.addEventListener('input', () => {
+    const ttc = parseFloat(document.getElementById('f-prix-ttc').value) || 0;
+    const tva = parseFloat(document.getElementById('f-tva').value)       || 16;
+    if (ttc > 0) {
+      document.getElementById('f-prix').value = Math.round(ttc / (1 + tva / 100));
+    }
+    _updateMarginBar();
+  });
+  document.getElementById('f-cout')?.addEventListener('input', _updateMarginBar);
+
+  document.getElementById('btn-ajouter')?.addEventListener('click', _handleAjouter);
+  document.getElementById('btn-reset')?.addEventListener('click', _resetForm);
+}
+
+function _updateMarginBar() {
+  const ht   = parseFloat(document.getElementById('f-prix').value)    || 0;
+  const cout = parseFloat(document.getElementById('f-cout').value)     || 0;
+  const tva  = parseFloat(document.getElementById('f-tva').value)      || 16;
+  const ttc  = parseFloat(document.getElementById('f-prix-ttc').value) || Math.round(ht * (1 + tva / 100));
+  const marge = ht - cout;
+  const pct   = ht > 0 ? Math.round((marge / ht) * 100) : 0;
+  const coeff = cout > 0 ? (ht / cout).toFixed(2) : '—';
+
+  const mbTTC   = document.getElementById('mb-ttc');
+  const mbMarge = document.getElementById('mb-marge');
+  const mbPct   = document.getElementById('mb-pct');
+  const mbCoeff = document.getElementById('mb-coeff');
+
+  if (mbTTC)   mbTTC.textContent   = ttc  > 0 ? _fmt(ttc) : '—';
+  if (mbMarge) mbMarge.textContent = ht   > 0 ? _fmt(marge) : '—';
+  if (mbPct) {
+    mbPct.textContent = ht > 0 ? pct + '%' : '—';
+    mbPct.className   = pct >= 30 ? 'good' : pct >= 15 ? 'warn' : pct > 0 ? 'bad' : '';
+  }
+  if (mbCoeff) mbCoeff.textContent = coeff;
+}
+
+function _collectForm() {
+  const ht  = parseFloat(document.getElementById('f-prix').value)    || 0;
+  const ttc = parseFloat(document.getElementById('f-prix-ttc').value) || 0;
+  const tva = parseFloat(document.getElementById('f-tva').value)      || 16;
+  return {
+    emoji:       document.getElementById('f-emoji').value.trim(),
+    nom:         document.getElementById('f-nom').value.trim(),
+    designation: document.getElementById('f-designation').value.trim(),
+    ref:         document.getElementById('f-ref').value.trim(),
+    categorie:   document.getElementById('f-categorie').value,
+    type:        document.getElementById('f-type').value,
+    tailles:     document.getElementById('f-tailles').value.trim(),
+    couleurs:    document.getElementById('f-couleurs').value.trim(),
+    tva,
+    prix:        ht,
+    prixTTC:     ttc || Math.round(ht * (1 + tva / 100)),
+    cout:        parseFloat(document.getElementById('f-cout').value)    || 0,
+    paliers:     document.getElementById('f-paliers').value.trim(),
+    stock:       parseInt(document.getElementById('f-stock').value)     || 0,
+    stockMin:    parseInt(document.getElementById('f-stock-min').value) || 0,
+    unite:       document.getElementById('f-unite').value.trim() || 'unité',
+    description: document.getElementById('f-description').value.trim(),
+  };
+}
+
+function _handleAjouter() {
+  const data = _collectForm();
+  if (!data.nom) { _toast('Le nom du produit est obligatoire.', 'error'); return; }
+
+  if (editingId !== null) {
+    const idx = products.findIndex(p => p._id === editingId);
+    if (idx >= 0) {
+      products[idx] = { ...products[idx], ...data };
+      _toast('Produit mis à jour.', 'success');
+    }
+    _exitEditMode();
+  } else {
+    products.push({ _id: idCounter++, ...data });
+    _toast('Produit ajouté.', 'success');
+    _resetForm();
+  }
+  _renderTable();
+}
+
+function _resetForm() {
+  const ids = ['f-emoji','f-nom','f-designation','f-ref','f-categorie','f-type',
+               'f-tailles','f-couleurs','f-prix','f-prix-ttc','f-cout','f-paliers',
+               'f-stock','f-stock-min','f-unite','f-description'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  document.getElementById('f-tva').value = '16';
+  document.getElementById('f-unite').value = 'unité';
+  document.getElementById('f-stock').value = '0';
+  _updateMarginBar();
+  document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
+  _exitEditMode();
+}
+
+function _exitEditMode() {
+  editingId = null;
+  const btn = document.getElementById('btn-ajouter');
+  if (btn) { btn.textContent = '+ Ajouter au tableau'; btn.className = 'btn btn-primary btn-full'; }
+  const notice = document.getElementById('edit-mode-notice');
+  if (notice) notice.style.display = 'none';
+}
+
+function _enterEditMode(prod) {
+  editingId = prod._id;
+  _fillForm(prod);
+  const btn = document.getElementById('btn-ajouter');
+  if (btn) { btn.textContent = '✔ Mettre à jour'; btn.className = 'btn btn-gold btn-full'; }
+  const notice = document.getElementById('edit-mode-notice');
+  if (notice) notice.style.display = 'block';
+  document.getElementById('f-nom')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ================================================================
+   TABLE
+   ================================================================ */
+function _renderTable() {
+  const tbody    = document.getElementById('products-tbody');
+  const table    = document.getElementById('products-table');
+  const empty    = document.getElementById('empty-state');
+  const footer   = document.getElementById('table-footer');
+  const lblCount = document.getElementById('lbl-count');
+  const statCount = document.getElementById('count-val');
+  const statValeur = document.getElementById('valeur-val');
+
+  const count = products.length;
+  lblCount.textContent = count + ' produit' + (count > 1 ? 's' : '');
+
+  if (count === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    footer.style.display = 'none';
+    statCount.textContent = '0';
+    statValeur.textContent = '0 XPF';
+    return;
+  }
+
+  table.style.display = 'table';
+  empty.style.display = 'none';
+  footer.style.display = 'flex';
+
+  /* Stats topbar */
+  statCount.textContent = count;
+  const totalStock = products.reduce((s, p) => s + (p.stock * (p.cout || 0)), 0);
+  statValeur.textContent = _fmt(totalStock) + ' XPF';
+
+  /* Rows */
+  tbody.innerHTML = products.map((p, i) => {
+    const marge = p.prix > 0 ? Math.round(((p.prix - p.cout) / p.prix) * 100) : null;
+    const margeBadge = marge === null ? '<span class="badge badge-gray">—</span>'
+      : marge >= 30 ? `<span class="badge badge-green">${marge}%</span>`
+      : marge >= 15 ? `<span class="badge badge-orange">${marge}%</span>`
+      : `<span class="badge badge-red">${marge}%</span>`;
+
+    const stockColor = p.stock === 0 ? '#C0392B'
+      : p.stockMin && p.stock <= p.stockMin ? '#D9822B'
+      : '#1F9D55';
+
+    const nomHtml = `
+      <div style="font-weight:600;color:var(--text);">${_esc(p.nom)}</div>
+      ${p.designation ? `<div style="font-size:11px;color:var(--text-3);">${_esc(p.designation)}</div>` : ''}
+      ${p.tailles || p.couleurs ? `<div class="tag-list" style="margin-top:3px;">
+        ${p.tailles  ? p.tailles.split(',').map(t => `<span class="tag">📏 ${_esc(t.trim())}</span>`).join('') : ''}
+        ${p.couleurs ? p.couleurs.split(',').map(c => `<span class="tag">${_esc(c.trim())}</span>`).join('') : ''}
+      </div>` : ''}
+    `;
+
+    return `
+      <tr class="${editingId === p._id ? 'editing' : ''}" data-id="${p._id}" title="Double-clic pour modifier">
+        <td style="color:var(--text-3);font-size:11px;">${i + 1}</td>
+        <td style="font-size:20px;text-align:center;">${p.emoji || '📦'}</td>
+        <td>${nomHtml}</td>
+        <td>
+          <span class="badge badge-gray">${_esc(p.categorie || '—')}</span>
+          ${p.type ? `<div style="font-size:10px;color:var(--text-3);margin-top:2px;">${_esc(p.type)}</div>` : ''}
+        </td>
+        <td class="mono">${p.prix ? _fmt(p.prix) + ' XPF' : '—'}</td>
+        <td class="mono" style="color:var(--text-2);">${p.cout ? _fmt(p.cout) + ' XPF' : '—'}</td>
+        <td>${margeBadge}</td>
+        <td>
+          <span class="mono" style="font-weight:700;color:${stockColor};">${p.stock ?? 0}</span>
+          ${p.stockMin ? `<div style="font-size:10px;color:var(--text-3);">min ${p.stockMin}</div>` : ''}
+        </td>
+        <td style="font-size:11px;color:var(--text-2);">${_esc(p.unite || '—')}</td>
+        <td style="font-size:11px;color:var(--text-3);">${_esc(p.ref || '—')}</td>
+        <td>
+          <div class="td-actions">
+            <button class="btn btn-secondary btn-icon" data-action="edit" data-id="${p._id}" title="Modifier">✏️</button>
+            <button class="btn btn-secondary btn-icon" data-action="clone" data-id="${p._id}" title="Dupliquer">📋</button>
+            <button class="btn btn-danger btn-icon" data-action="del" data-id="${p._id}" title="Supprimer">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  /* Events */
+  tbody.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = parseInt(btn.dataset.id);
+      if (btn.dataset.action === 'edit')  _editProduct(id);
+      if (btn.dataset.action === 'clone') _cloneProduct(id);
+      if (btn.dataset.action === 'del')   _deleteProduct(id);
+    });
+  });
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('dblclick', () => _editProduct(parseInt(tr.dataset.id)));
+  });
+
+  /* Footer stats */
+  const totalPrix = products.reduce((s, p) => s + (p.prix || 0), 0);
+  const totalStockVal = products.reduce((s, p) => s + (p.stock || 0), 0);
+  const avgMarge = products.filter(p => p.prix && p.cout).length > 0
+    ? Math.round(products.filter(p => p.prix && p.cout)
+        .reduce((s, p) => s + ((p.prix - p.cout) / p.prix * 100), 0)
+        / products.filter(p => p.prix && p.cout).length)
+    : null;
+
+  document.getElementById('footer-stats').innerHTML = `
+    <span class="progress-item">Total stock : <strong>${totalStockVal} unités</strong></span>
+    <span class="progress-item">Valeur stock : <strong>${_fmt(totalStock)} XPF</strong></span>
+    ${avgMarge !== null ? `<span class="progress-item">Marge moyenne : <strong>${avgMarge}%</strong></span>` : ''}
+  `;
+}
+
+function _editProduct(id) {
+  const p = products.find(x => x._id === id);
+  if (p) _enterEditMode(p);
+}
+
+function _cloneProduct(id) {
+  const p = products.find(x => x._id === id);
+  if (!p) return;
+  const clone = { ...p, _id: idCounter++, nom: p.nom + ' (copie)', ref: '' };
+  const idx = products.findIndex(x => x._id === id);
+  products.splice(idx + 1, 0, clone);
+  _renderTable();
+  _toast('Produit dupliqué.', 'info');
+}
+
+function _deleteProduct(id) {
+  products = products.filter(x => x._id !== id);
+  if (editingId === id) _exitEditMode();
+  _renderTable();
+  _toast('Produit supprimé.', 'info');
+}
+
+/* ================================================================
+   EXPORT CSV
+   ================================================================ */
+function _bindExport() {
+  document.getElementById('btn-export')?.addEventListener('click', _exportCSV);
+  document.getElementById('btn-save-erp')?.addEventListener('click', _saveToERP);
+  document.getElementById('btn-clear-all')?.addEventListener('click', () => {
+    if (products.length === 0) return;
+    if (!confirm(`Vider les ${products.length} produit(s) du tableau ?`)) return;
+    products = [];
+    editingId = null;
+    _renderTable();
+    _toast('Tableau vidé.', 'info');
+  });
+  document.getElementById('btn-download-template')?.addEventListener('click', _downloadTemplate);
+}
+
+function _saveToERP() {
+  if (products.length === 0) { _toast('Aucun produit à enregistrer.', 'error'); return; }
+  const payload = products.map(p => ({
+    emoji:       p.emoji || '📦',
+    nom:         p.nom,
+    designation: p.designation || p.nom,
+    ref:         p.ref || '',
+    categorie:   p.categorie || 'Produits',
+    type:        p.type || 'marchandise',
+    tailles:     p.tailles || '',
+    couleurs:    p.couleurs || '',
+    prix:        parseFloat(p.prix) || 0,
+    prixTTC:     parseFloat(p.prixTTC) || 0,
+    cout:        parseFloat(p.cout) || 0,
+    tva:         parseFloat(p.tva) || 16,
+    stock:       parseFloat(p.stock) || 0,
+    stockMin:    parseFloat(p.stockMin) || 0,
+    unite:       p.unite || 'unité',
+    paliers:     p.paliers || '',
+    description: p.description || '',
+  }));
+  window.parent.postMessage({ type: 'HCS_SAVE_PRODUCTS', products: payload }, '*');
+  _toast(`${payload.length} produit(s) envoyés à l'ERP…`, 'info');
+}
+
+function _exportCSV() {
+  if (products.length === 0) { _toast('Aucun produit à exporter.', 'error'); return; }
+
+  const cols = CSV_EXTENDED_FIELDS;
+  const header = cols.join(',');
+  const rows = products.map(p => cols.map(col => _csvCell(p[col] ?? '')).join(','));
+  const csv = '\uFEFF' + [header, ...rows].join('\r\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `HCS_Produits_${_dateTag()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  _toast(`${products.length} produit(s) exporté(s) en CSV.`, 'success');
+}
+
+function _downloadTemplate() {
+  const cols   = CSV_EXTENDED_FIELDS;
+  const header = cols.join(',');
+  const example = {
+    emoji:'👕', nom:'T-Shirt Blanc Classic', designation:'T-shirt coton 180g',
+    ref:'TSH-001', categorie:'T-Shirts', type:'marchandise',
+    tailles:'XS, S, M, L, XL, XXL', couleurs:'Blanc, Noir',
+    prix:'2500', prixTTC:'2900', cout:'800', tva:'16',
+    stock:'20', stockMin:'5', unite:'unité', paliers:'',
+    description:'T-shirt personnalisé DTF ou broderie'
+  };
+  const exampleRow = cols.map(c => _csvCell(example[c] ?? '')).join(',');
+  const csv = '\uFEFF' + [header, exampleRow].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'HCS_Produits_MODELE.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  _toast('Modèle CSV téléchargé.', 'info');
+}
+
+function _csvCell(val) {
+  const s = String(val ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+/* ================================================================
+   IMPORT CSV
+   ================================================================ */
+function _bindImport() {
+  const zone  = document.getElementById('import-drop-zone');
+  const input = document.getElementById('import-file-input');
+
+  zone?.addEventListener('click', () => input?.click());
+  zone?.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone?.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone?.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const f = e.dataTransfer?.files?.[0];
+    if (f) _parseCSVFile(f);
+  });
+  input?.addEventListener('change', () => {
+    if (input.files?.[0]) _parseCSVFile(input.files[0]);
+    input.value = '';
+  });
+}
+
+function _parseCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      _importCSVText(e.target.result);
+    } catch (err) {
+      _toast('Erreur lecture CSV : ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function _importCSVText(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { _toast('Fichier vide ou sans données.', 'error'); return; }
+
+  const parseRow = line => {
+    const out = []; let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if ((ch === ',' || ch === ';') && !inQ) { out.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    out.push(cur.trim());
+    return out;
+  };
+
+  const headers = parseRow(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+  const rows = lines.slice(1)
+    .map(l => {
+      const vals = parseRow(l);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, ''); });
+      return obj;
+    })
+    .filter(r => r.nom && r.nom.trim());
+
+  if (rows.length === 0) { _toast('Aucune ligne valide (colonne "nom" requise).', 'error'); return; }
+
+  const imported = rows.map(r => ({
+    _id:         idCounter++,
+    emoji:       r.emoji        || '',
+    nom:         r.nom          || '',
+    designation: r.designation  || '',
+    ref:         r.ref          || '',
+    categorie:   r.categorie    || '',
+    type:        r.type         || 'marchandise',
+    tailles:     r.tailles      || '',
+    couleurs:    r.couleurs     || '',
+    tva:         parseFloat(r.tva)      || 16,
+    prix:        parseFloat(r.prix)     || 0,
+    prixTTC:     parseFloat(r.prixTTC)  || 0,
+    cout:        parseFloat(r.cout)     || 0,
+    stock:       parseInt(r.stock)      || 0,
+    stockMin:    parseInt(r.stockMin)   || 0,
+    unite:       r.unite        || 'unité',
+    paliers:     r.paliers      || '',
+    description: r.description  || '',
+  }));
+
+  if (products.length > 0) {
+    if (!confirm(`Ajouter ${imported.length} produit(s) au tableau actuel (${products.length} existant(s)) ?`)) return;
+    products = [...products, ...imported];
+  } else {
+    products = imported;
+  }
+
+  _renderTable();
+  _toast(`${imported.length} produit(s) importé(s).`, 'success');
+}
+
+/* ================================================================
+   UTILS
+   ================================================================ */
+function _fmt(n) {
+  return Number(n || 0).toLocaleString('fr-FR');
+}
+
+function _esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _dateTag() {
+  const d = new Date();
+  return d.getFullYear().toString()
+    + String(d.getMonth()+1).padStart(2,'0')
+    + String(d.getDate()).padStart(2,'0');
+}
+
+function _toast(msg, type = 'info') {
+  const ct = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  ct.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+</script>
+
+</body>
+</html>

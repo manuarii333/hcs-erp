@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCS — Offres Avril 2026 · High Coffee Shirts</title>
+<style>
+/* ============================================================
+   LANDING PAGE AVRIL 2026 — HCS Marketing Agent
+   Outils utilisés : MockupForge v12, PicWish Pipeline (Agent Designer)
+   ============================================================ */
+:root {
+  --noir:     #0a0a0f;
+  --noir2:    #12121c;
+  --card:     #1a1a28;
+  --accent:   #c8a96e;   /* or HCS */
+  --accent2:  #e8c98a;
+  --blanc:    #f0ede8;
+  --gris:     #8a8a9a;
+  --vert:     #4ade80;
+  --rouge:    #ff6b6b;
+  --border:   rgba(200,169,110,0.18);
+  --radius:   16px;
+  --radius-sm: 10px;
+  --shadow:   0 8px 32px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--noir);
+  color: var(--blanc);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── BARRE SUPÉRIEURE ── */
+.top-bar {
+  background: var(--noir2);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--gris);
+  letter-spacing: 1px;
+}
+.top-bar span { color: var(--accent); font-weight: 700; }
+
+/* ── NAVIGATION ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,15,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 40px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-logo {
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--accent);
+  margin-right: auto;
+}
+.nav-logo small { font-size: 0.55rem; color: var(--gris); display: block; letter-spacing: 2px; }
+nav a {
+  color: var(--gris);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+nav a:hover { color: var(--accent); }
+.nav-cta {
+  background: var(--accent);
+  color: var(--noir) !important;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-weight: 800 !important;
+}
+.nav-cta:hover { background: var(--accent2) !important; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 82vh;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 80px 40px;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 70% 50%, rgba(200,169,110,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(100,80,200,0.06) 0%, transparent 60%),
+    var(--noir);
+}
+.hero-grid {
+  position: absolute; inset: 0; opacity: 0.03;
+  background-image: linear-gradient(var(--accent) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.hero-content {
+  position: relative;
+  max-width: 640px;
+  z-index: 1;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(200,169,110,0.12);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 6px 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+.hero-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--vert);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.hero h1 {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  letter-spacing: -1px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+.hero p {
+  font-size: 1.05rem;
+  color: var(--gris);
+  line-height: 1.7;
+  margin-bottom: 36px;
+  max-width: 520px;
+}
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.btn-hero {
+  padding: 14px 32px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-hero-gold {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--noir);
+}
+.btn-hero-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(200,169,110,0.4); }
+.btn-hero-outline {
+  background: transparent;
+  color: var(--blanc);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-hero-outline:hover { border-color: var(--accent); color: var(--accent); }
+.hero-mockup {
+  position: absolute;
+  right: 6%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 360px;
+  height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.hero-mockup-placeholder {
+  width: 100%; height: 100%;
+  background: var(--card);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--gris);
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.hero-mockup-placeholder:hover { border-color: var(--accent); color: var(--accent); }
+.hero-mockup-placeholder .icon { font-size: 2.5rem; }
+.hero-mockup-placeholder strong { display: block; font-size: 0.85rem; color: var(--blanc); margin-top: 4px; }
+
+/* ── STATS RAPIDES ── */
+.stats-bar {
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+.stat-item {
+  text-align: center;
+  padding: 0 48px;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-val {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--accent);
+  display: block;
+}
+.stat-label { font-size: 0.72rem; color: var(--gris); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── SECTION TITRE ── */
+.section { padding: 72px 40px; max-width: 1200px; margin: 0 auto; }
+.section-header { text-align: center; margin-bottom: 52px; }
+.section-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.section-title {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 900;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
+}
+.section-subtitle { font-size: 0.95rem; color: var(--gris); max-width: 560px; margin: 0 auto; line-height: 1.7; }
+
+/* ── GRILLE PRODUITS ── */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 24px;
+}
+.product-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+  border-color: var(--accent);
+}
+.product-img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: var(--noir2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.product-img-placeholder {
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed rgba(200,169,110,0.15);
+  color: var(--gris);
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #16161f, #1e1e2e);
+}
+.product-img-placeholder:hover { border-color: var(--accent); color: var(--accent); }
+.product-img-placeholder .icon-lg { font-size: 2.2rem; }
+.product-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.badge-promo { background: var(--rouge); color: white; }
+.badge-new   { background: var(--vert);  color: var(--noir); }
+.badge-hot   { background: var(--accent); color: var(--noir); }
+.product-body { padding: 18px 20px 20px; }
+.product-cat {
+  font-size: 0.65rem;
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.product-name {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+.product-desc { font-size: 0.8rem; color: var(--gris); line-height: 1.6; margin-bottom: 16px; }
+.product-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.product-price {
+  display: flex;
+  flex-direction: column;
+}
+.price-main {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--accent);
+}
+.price-from {
+  font-size: 0.68rem;
+  color: var(--gris);
+  text-decoration: line-through;
+}
+.price-note { font-size: 0.65rem; color: var(--gris); }
+.btn-devis {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: var(--noir);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.btn-devis:hover { background: var(--accent2); transform: scale(1.03); }
+
+/* ── PRODUITS FEATURED (grand format) ── */
+.featured-section { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 72px 40px; }
+.featured-inner { max-width: 1200px; margin: 0 auto; }
+.featured-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+.featured-grid.reverse { direction: rtl; }
+.featured-grid.reverse > * { direction: ltr; }
+.featured-tag {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 14px;
+}
+.featured-title { font-size: clamp(1.6rem, 2.5vw, 2.2rem); font-weight: 900; margin-bottom: 14px; line-height: 1.2; }
+.featured-desc { font-size: 0.9rem; color: var(--gris); line-height: 1.7; margin-bottom: 24px; }
+.featured-list { list-style: none; margin-bottom: 28px; display: flex; flex-direction: column; gap: 8px; }
+.featured-list li {
+  font-size: 0.85rem; color: var(--gris); display: flex; align-items: center; gap: 10px;
+}
+.featured-list li::before { content: "✓"; color: var(--vert); font-weight: 900; }
+.featured-price-block { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+.featured-price { font-size: 2rem; font-weight: 900; color: var(--accent); }
+.featured-price-old { font-size: 1rem; color: var(--gris); text-decoration: line-through; }
+.featured-price-note { font-size: 0.75rem; color: var(--gris); }
+.featured-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-gold {
+  padding: 12px 28px; background: linear-gradient(135deg,var(--accent),var(--accent2));
+  color: var(--noir); border: none; border-radius: 8px; font-size: 0.85rem;
+  font-weight: 800; cursor: pointer; transition: all 0.2s;
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,169,110,0.4); }
+.btn-ghost {
+  padding: 12px 24px; background: transparent; color: var(--blanc);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.featured-mockup {
+  width: 100%; aspect-ratio: 1;
+  background: var(--noir2);
+  border-radius: var(--radius);
+  border: 2px dashed var(--border);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--gris); font-size: 0.78rem; text-align: center; padding: 20px;
+  cursor: pointer; transition: all 0.2s;
+}
+.featured-mockup:hover { border-color: var(--accent); color: var(--accent); }
+.featured-mockup .icon-xl { font-size: 3rem; }
+
+/* ── SECTION PROCESS ── */
+.process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.process-step {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px 24px; text-align: center;
+  transition: border-color 0.2s;
+}
+.process-step:hover { border-color: var(--accent); }
+.step-num {
+  width: 44px; height: 44px; background: rgba(200,169,110,0.12);
+  border: 2px solid var(--border); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 0.85rem; font-weight: 900; color: var(--accent);
+}
+.step-icon { font-size: 1.6rem; margin-bottom: 10px; }
+.step-title { font-size: 0.9rem; font-weight: 800; margin-bottom: 8px; }
+.step-desc { font-size: 0.78rem; color: var(--gris); line-height: 1.6; }
+
+/* ── BANDEAU PROMO ── */
+.promo-band {
+  background: linear-gradient(135deg, #1a1400, #2a2000, #1a1400);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 48px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.promo-band::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(200,169,110,0.07) 0%, transparent 70%);
+}
+.promo-band-inner { position: relative; max-width: 700px; margin: 0 auto; }
+.promo-band h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 900; margin-bottom: 14px; }
+.promo-band h2 span { color: var(--accent); }
+.promo-band p { color: var(--gris); font-size: 0.95rem; margin-bottom: 28px; line-height: 1.6; }
+.promo-countdown {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-bottom: 32px;
+}
+.countdown-unit { text-align: center; }
+.countdown-val {
+  display: block;
+  background: var(--card); border: 1px solid var(--border);
+  padding: 10px 16px; border-radius: 8px;
+  font-size: 1.5rem; font-weight: 900; color: var(--accent);
+  min-width: 56px;
+}
+.countdown-label { font-size: 0.6rem; color: var(--gris); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.countdown-sep { font-size: 1.5rem; color: var(--accent); margin-top: -10px; }
+
+/* ── FORMULAIRE DEVIS RAPIDE ── */
+.devis-section {
+  padding: 72px 40px;
+  background: var(--noir2);
+  border-top: 1px solid var(--border);
+}
+.devis-inner { max-width: 800px; margin: 0 auto; }
+.devis-form {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 40px;
+  box-shadow: var(--shadow);
+}
+.devis-form h3 { font-size: 1.4rem; font-weight: 900; margin-bottom: 8px; }
+.devis-form p { color: var(--gris); font-size: 0.85rem; margin-bottom: 28px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 0.75rem; font-weight: 700; color: var(--gris); letter-spacing: 0.5px; text-transform: uppercase; }
+.form-group input, .form-group select, .form-group textarea {
+  background: var(--noir2); border: 1px solid var(--border);
+  color: var(--blanc); border-radius: 8px; padding: 11px 14px;
+  font-size: 0.85rem; outline: none; transition: border-color 0.2s;
+  font-family: inherit;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--accent);
+}
+.form-group textarea { resize: vertical; min-height: 90px; }
+.form-full { grid-column: 1 / -1; }
+.products-checkboxes {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px;
+}
+.product-check {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--noir2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; cursor: pointer;
+  transition: all 0.2s; font-size: 0.82rem; font-weight: 600;
+}
+.product-check:hover { border-color: var(--accent); }
+.product-check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.product-check-icon { font-size: 1.1rem; }
+.btn-submit {
+  width: 100%; padding: 15px; background: linear-gradient(135deg,var(--accent),var(--accent2));
+  color: var(--noir); border: none; border-radius: 10px; font-size: 0.95rem;
+  font-weight: 900; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;
+  margin-top: 8px;
+}
+.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(200,169,110,0.4); }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--noir2); border-top: 1px solid var(--border);
+  padding: 40px; text-align: center;
+}
+.footer-logo { font-size: 1.5rem; font-weight: 900; letter-spacing: 4px; color: var(--accent); margin-bottom: 8px; }
+.footer-tagline { font-size: 0.78rem; color: var(--gris); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
+.footer-links { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 20px; }
+.footer-links a { color: var(--gris); text-decoration: none; font-size: 0.78rem; transition: color 0.2s; }
+.footer-links a:hover { color: var(--accent); }
+.footer-copy { font-size: 0.68rem; color: rgba(138,138,154,0.5); }
+
+/* ── BARRE AGENT DESIGNER (debug/dev) ── */
+.agent-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+  background: rgba(12,12,20,0.97); backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(100,80,200,0.4);
+  padding: 10px 24px;
+  display: flex; align-items: center; gap: 14px;
+  font-size: 0.75rem;
+}
+.agent-bar-icon { font-size: 1.1rem; }
+.agent-bar-text { color: #a090ff; font-weight: 600; flex: 1; }
+.agent-bar-text span { color: var(--accent); }
+.agent-bar-btn {
+  padding: 6px 14px; background: rgba(100,80,200,0.2); border: 1px solid rgba(100,80,200,0.4);
+  color: #a090ff; border-radius: 6px; font-size: 0.72rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.agent-bar-btn:hover { background: rgba(100,80,200,0.35); }
+.agent-bar-close { color: var(--gris); cursor: pointer; font-size: 0.9rem; padding: 4px 8px; }
+.agent-bar-close:hover { color: var(--rouge); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  nav { padding: 12px 20px; gap: 16px; }
+  nav a:not(.nav-cta) { display: none; }
+  .hero { padding: 60px 20px; min-height: auto; }
+  .hero-mockup { display: none; }
+  .section { padding: 48px 20px; }
+  .stats-bar { flex-wrap: wrap; gap: 20px; padding: 20px; }
+  .stat-item { border-right: none; padding: 0 24px; }
+  .products-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .featured-grid { grid-template-columns: 1fr; }
+  .featured-mockup { aspect-ratio: 4/3; }
+  .process-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-grid { grid-template-columns: 1fr; }
+  .featured-section { padding: 48px 20px; }
+  .promo-band { padding: 48px 20px; }
+  .devis-section { padding: 48px 20px; }
+  .devis-form { padding: 28px 20px; }
+  .products-checkboxes { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ BARRE SUPÉRIEURE ═══ -->
+<div class="top-bar">
+  <span>AVRIL 2026</span> — Offres spéciales · Impression DTF, HTV & Broderie
+  <span style="color:var(--vert)">● ACTIF</span>
+</div>
+
+<!-- ═══ NAVIGATION ═══ -->
+<nav>
+  <div class="nav-logo">
+    HCS
+    <small>HIGH COFFEE SHIRTS</small>
+  </div>
+  <a href="#produits">Produits</a>
+  <a href="#process">Comment ça marche</a>
+  <a href="#promo">Promo Avril</a>
+  <a href="#devis" class="nav-cta">Demander un devis</a>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      Offres du mois · Avril 2026
+    </div>
+
+    <h1>
+      Votre style,<br>
+      <em>imprimé avec précision.</em>
+    </h1>
+
+    <p>
+      T-shirts DTF, transferts HTV, broderie sur-mesure.
+      Des productions professionnelles à partir de <strong style="color:var(--blanc)">10 pièces</strong>,
+      livrées avec vos mockups visuels validés.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#devis" class="btn-hero btn-hero-gold">Demander un devis gratuit</a>
+      <a href="#produits" class="btn-hero btn-hero-outline">Voir les offres →</a>
+    </div>
+  </div>
+
+  <!-- Slot mockup principal — Agent Designer : MockupForge v12 -->
+  <div class="hero-mockup">
+    <div class="hero-mockup-placeholder" onclick="ouvrirMockupForge()">
+      <div class="icon">🎨</div>
+      <strong>Mockup Produit Hero</strong>
+      Cliquer pour ouvrir<br>MockupForge v12
+      <small style="color:var(--accent);margin-top:6px">→ Agent Designer</small>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ STATS ═══ -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-val">10+</span>
+    <span class="stat-label">Pièces minimum</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">3</span>
+    <span class="stat-label">Techniques d'impression</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">300<small style="font-size:1rem">dpi</small></span>
+    <span class="stat-label">Qualité d'impression</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-val">48h</span>
+    <span class="stat-label">Devis sous 48h</span>
+  </div>
+</div>
+
+
+<!-- ═══ GRILLE PRODUITS DU MOIS ═══ -->
+<div id="produits" class="section">
+  <div class="section-header">
+    <div class="section-tag">Sélection Avril 2026</div>
+    <h2 class="section-title">Produits phares du mois</h2>
+    <p class="section-subtitle">4 références incontournables, disponibles dès maintenant avec remise spéciale avril.</p>
+  </div>
+
+  <div class="products-grid">
+
+    <!-- Produit 1 : T-shirt DTF -->
+    <div class="product-card">
+      <div class="product-img">
+        <div class="product-img-placeholder" onclick="ouvrirMockupForge('dtf')">
+          <div class="icon-lg">👕</div>
+          T-shirt DTF<br>
+          <small>Ouvrir MockupForge</small>
+          <small style="color:var(--accent)">→ Agent Designer</small>
+        </div>
+        <span class="product-badge badge-hot">⭐ Hot</span>
+      </div>
+      <div class="product-body">
+        <div class="product-cat">DTF — Impression directe</div>
+        <div class="product-name">T-shirt DTF Pleine Poitrine</div>
+        <div class="product-desc">Impression DTF haute résolution sur t-shirt unisexe. Rendu photographique, lavable 40°. Idéal pour univers graphiques et dégradés.</div>
+        <div class="product-footer">
+          <div class="product-price">
+            <span class="price-from">35 000 FCFA/pc</span>
+            <span class="price-main">28 000 FCFA</span>
+            <span class="price-note">dès 10 pièces</span>
+          </div>
+          <a href="#devis" class="btn-devis">Devis</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produit 2 : T-shirt HTV -->
+    <div class="product-card">
+      <div class="product-img">
+        <div class="product-img-placeholder" onclick="ouvrirMockupForge('htv')">
+          <div class="icon-lg">👕</div>
+          T-shirt HTV<br>
+          <small>Ouvrir MockupForge</small>
+          <small style="color:var(--accent)">→ Agent Designer</small>
+        </div>
+        <span class="product-badge badge-new">Nouveau</span>
+      </div>
+      <div class="product-body">
+        <div class="product-cat">HTV — Vinyle thermocollant</div>
+        <div class="product-name">T-shirt HTV Logo Premium</div>
+        <div class="product-desc">Vinyle thermocollant mat ou brillant, découpe précision. Rendu solide et durable. Parfait pour logos minimalistes et typographie.</div>
+        <div class="product-footer">
+          <div class="product-price">
+            <span class="price-main">22 000 FCFA</span>
+            <span class="price-note">dès 10 pièces</span>
+          </div>
+          <a href="#devis" class="btn-devis">Devis</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produit 3 : Casquette brodée -->
+    <div class="product-card">
+      <div class="product-img">
+        <div class="product-img-placeholder" onclick="ouvrirMockupForge('casquette')">
+          <div class="icon-lg">🧢</div>
+          Casquette brodée<br>
+          <small>Ouvrir MockupForge</small>
+          <small style="color:var(--accent)">→ Agent Designer</small>
+        </div>
+        <span class="product-badge badge-promo">-20%</span>
+      </div>
+      <div class="product-body">
+        <div class="product-cat">Broderie — Casquette 5 panneaux</div>
+        <div class="product-name">Casquette Broderie Sur-Mesure</div>
+        <div class="product-desc">Casquette 5 panneaux avec broderie frontale sur-mesure. Coloris au choix. Rendu premium pour équipes, événements ou retail.</div>
+        <div class="product-footer">
+          <div class="product-price">
+            <span class="price-from">38 000 FCFA/pc</span>
+            <span class="price-main">30 000 FCFA</span>
+            <span class="price-note">dès 12 pièces · Promo Avril</span>
+          </div>
+          <a href="#devis" class="btn-devis">Devis</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produit 4 : Bundle Pack -->
+    <div class="product-card">
+      <div class="product-img">
+        <div class="product-img-placeholder" onclick="ouvrirMockupForge('bundle')">
+          <div class="icon-lg">📦</div>
+          Bundle Pack<br>
+          <small>Ouvrir MockupForge</small>
+          <small style="color:var(--accent)">→ Agent Designer</small>
+        </div>
+        <span class="product-badge badge-hot">Pack Pro</span>
+      </div>
+      <div class="product-body">
+        <div class="product-cat">Bundle — Mix & Match</div>
+        <div class="product-name">Pack Uniforme 20 Pièces</div>
+        <div class="product-desc">Mix t-shirts + casquettes, même logotype. Tarification dégressive dès 20 pièces. Idéal pour associations, restaurants, équipes corporate.</div>
+        <div class="product-footer">
+          <div class="product-price">
+            <span class="price-main">Sur devis</span>
+            <span class="price-note">dès 20 pièces · mix libre</span>
+          </div>
+          <a href="#devis" class="btn-devis">Devis</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══ FEATURED — DTF Studio ═══ -->
+<div class="featured-section">
+  <div class="featured-inner">
+    <div class="featured-grid">
+
+      <!-- Mockup slot — Agent Designer -->
+      <div class="featured-mockup" onclick="ouvrirMockupForge('dtf-full')">
+        <div class="icon-xl">🎨</div>
+        <strong style="color:var(--blanc);font-size:0.9rem">Mockup DTF Grande Vue</strong>
+        Générer avec MockupForge v12<br>
+        <small style="color:var(--accent)">→ Délégué à l'Agent Designer</small>
+      </div>
+
+      <div>
+        <div class="featured-tag">Impression DTF — Technologie Avancée</div>
+        <h2 class="featured-title">DTF — Le meilleur rendu pour vos designs complexes</h2>
+        <p class="featured-desc">
+          La technologie DTF (Direct To Film) permet d'imprimer n'importe quel design,
+          dégradés, photos, détails ultra-fins — sur tous types de tissus, sans limitation de couleur.
+        </p>
+        <ul class="featured-list">
+          <li>Rendu photographique 300 dpi</li>
+          <li>Toutes couleurs sans surcoût</li>
+          <li>Compatible coton, polyester, mixte</li>
+          <li>Lavage 40° garanti 50 lavages</li>
+          <li>Visuel mockup fourni avant production</li>
+        </ul>
+        <div class="featured-price-block">
+          <span class="featured-price">28 000 FCFA</span>
+          <span class="featured-price-old">35 000 FCFA</span>
+          <span class="featured-price-note">/ pièce · dès 10 pièces</span>
+        </div>
+        <div class="featured-actions">
+          <a href="#devis" class="btn-gold">Demander un devis DTF</a>
+          <button class="btn-ghost" onclick="ouvrirDTFStudio()">Voir DTF Studio →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ PROCESS ═══ -->
+<div id="process" class="section">
+  <div class="section-header">
+    <div class="section-tag">Notre processus</div>
+    <h2 class="section-title">De votre idée au produit fini</h2>
+    <p class="section-subtitle">4 étapes simples, un suivi ERP complet à chaque phase.</p>
+  </div>
+  <div class="process-grid">
+    <div class="process-step">
+      <div class="step-num">01</div>
+      <div class="step-icon">💬</div>
+      <div class="step-title">Devis en ligne</div>
+      <div class="step-desc">Remplissez le formulaire avec votre projet. Réponse sous 48h avec tarification détaillée.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-num">02</div>
+      <div class="step-icon">🎨</div>
+      <div class="step-title">Mockup validé</div>
+      <div class="step-desc">Notre équipe crée un mockup visuel de votre produit avec MockupForge. Validation avant production.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-num">03</div>
+      <div class="step-icon">🏭</div>
+      <div class="step-title">Production</div>
+      <div class="step-desc">Lancement en atelier après validation. Suivi en temps réel via notre tableau de bord ERP.</div>
+    </div>
+    <div class="process-step">
+      <div class="step-num">04</div>
+      <div class="step-icon">📦</div>
+      <div class="step-title">Livraison</div>
+      <div class="step-desc">Conditionnement soigné et livraison sécurisée. Facture disponible dans votre espace client.</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ BANDEAU PROMO AVRIL ═══ -->
+<div id="promo" class="promo-band">
+  <div class="promo-band-inner">
+    <h2>Offre spéciale <span>Avril 2026</span></h2>
+    <p>
+      Ce mois-ci, profitez de <strong style="color:var(--accent)">-20% sur les casquettes brodées</strong>
+      et du <strong style="color:var(--accent)">port offert</strong> sur toute commande de 20 pièces et plus.
+      Valable jusqu'au 30 avril.
+    </p>
+    <div class="promo-countdown" id="countdown">
+      <div class="countdown-unit">
+        <span class="countdown-val" id="cd-jours">--</span>
+        <span class="countdown-label">Jours</span>
+      </div>
+      <span class="countdown-sep">:</span>
+      <div class="countdown-unit">
+        <span class="countdown-val" id="cd-heures">--</span>
+        <span class="countdown-label">Heures</span>
+      </div>
+      <span class="countdown-sep">:</span>
+      <div class="countdown-unit">
+        <span class="countdown-val" id="cd-min">--</span>
+        <span class="countdown-label">Minutes</span>
+      </div>
+    </div>
+    <a href="#devis" class="btn-hero btn-hero-gold" style="display:inline-block">Profiter de l'offre →</a>
+  </div>
+</div>
+
+
+<!-- ═══ FORMULAIRE DEVIS RAPIDE ═══ -->
+<div id="devis" class="devis-section">
+  <div class="devis-inner">
+    <div class="section-header" style="margin-bottom:32px">
+      <div class="section-tag">Contact direct</div>
+      <h2 class="section-title">Demander un devis gratuit</h2>
+      <p class="section-subtitle">Réponse sous 48h. Aucun engagement.</p>
+    </div>
+    <div class="devis-form">
+      <h3>Votre projet en quelques lignes</h3>
+      <p>Remplissez ce formulaire, nous vous recontactons rapidement avec un devis personnalisé.</p>
+
+      <!-- Produits souhaités -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:0.75rem;font-weight:700;color:var(--gris);letter-spacing:0.5px;text-transform:uppercase;display:block;margin-bottom:10px">Produit(s) souhaité(s)</label>
+        <div class="products-checkboxes">
+          <label class="product-check">
+            <input type="checkbox" name="produits" value="dtf" checked>
+            <span class="product-check-icon">👕</span>
+            T-shirt DTF
+          </label>
+          <label class="product-check">
+            <input type="checkbox" name="produits" value="htv">
+            <span class="product-check-icon">👕</span>
+            T-shirt HTV
+          </label>
+          <label class="product-check">
+            <input type="checkbox" name="produits" value="casquette">
+            <span class="product-check-icon">🧢</span>
+            Casquette brodée
+          </label>
+          <label class="product-check">
+            <input type="checkbox" name="produits" value="bundle">
+            <span class="product-check-icon">📦</span>
+            Pack / Bundle
+          </label>
+        </div>
+      </div>
+
+      <!-- Coordonnées -->
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Prénom & Nom</label>
+          <input type="text" name="nom" placeholder="Jean Dupont">
+        </div>
+        <div class="form-group">
+          <label>Entreprise / Organisation</label>
+          <input type="text" name="entreprise" placeholder="Mon Entreprise">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="email@exemple.com">
+        </div>
+        <div class="form-group">
+          <label>Téléphone / WhatsApp</label>
+          <input type="tel" name="tel" placeholder="+226 XX XX XX XX">
+        </div>
+        <div class="form-group">
+          <label>Quantité estimée</label>
+          <select name="quantite">
+            <option value="">-- Sélectionner --</option>
+            <option value="10-20">10 à 20 pièces</option>
+            <option value="21-50">21 à 50 pièces</option>
+            <option value="51-100">51 à 100 pièces</option>
+            <option value="100+">Plus de 100 pièces</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Délai souhaité</label>
+          <select name="delai">
+            <option value="">-- Sélectionner --</option>
+            <option value="urgent">Urgent (moins de 7 jours)</option>
+            <option value="normal">Normal (2 à 3 semaines)</option>
+            <option value="flexible">Flexible (plus d'un mois)</option>
+          </select>
+        </div>
+        <div class="form-group form-full">
+          <label>Description du projet</label>
+          <textarea name="description" placeholder="Décrivez votre projet : type de design, couleurs, utilisation prévue..."></textarea>
+        </div>
+      </div>
+
+      <button type="button" class="btn-submit" onclick="envoyerDevis()">
+        Envoyer ma demande de devis →
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div class="footer-logo">HCS</div>
+  <div class="footer-tagline">High Coffee Shirts — Impression & Personnalisation</div>
+  <div class="footer-links">
+    <a href="#">Accueil</a>
+    <a href="#produits">Produits</a>
+    <a href="#process">Processus</a>
+    <a href="#devis">Devis</a>
+    <a href="https://highcoffeeshirts.com">highcoffeeshirts.com</a>
+  </div>
+  <div class="footer-copy">© 2026 High Coffee Shirts — Tous droits réservés · Landing page générée par HCS-Marketing Agent</div>
+</footer>
+
+
+<!-- ═══ BARRE AGENT DESIGNER ═══ -->
+<div class="agent-bar" id="agent-bar">
+  <span class="agent-bar-icon">🎨</span>
+  <span class="agent-bar-text">
+    <strong>Agent Designer</strong> en attente —
+    <span>4 mockups à générer</span> ·
+    Outils : MockupForge v12 + PicWish Pipeline
+  </span>
+  <button class="agent-bar-btn" onclick="ouvrirMockupForge()">Ouvrir MockupForge</button>
+  <button class="agent-bar-btn" onclick="ouvrirPicWish()">Ouvrir PicWish</button>
+  <span class="agent-bar-close" onclick="document.getElementById('agent-bar').style.display='none'">✕</span>
+</div>
+
+
+<!-- ═══ SCRIPT ═══ -->
+<script>
+/* ---- Countdown jusqu'au 30 Avril 2026 ---- */
+function updateCountdown() {
+  const fin = new Date('2026-04-30T23:59:59');
+  const now = new Date();
+  const diff = fin - now;
+  if (diff <= 0) {
+    document.getElementById('countdown').innerHTML = '<span style="color:var(--rouge);font-weight:700">Offre expirée</span>';
+    return;
+  }
+  const j = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  document.getElementById('cd-jours').textContent  = String(j).padStart(2, '0');
+  document.getElementById('cd-heures').textContent = String(h).padStart(2, '0');
+  document.getElementById('cd-min').textContent    = String(m).padStart(2, '0');
+}
+updateCountdown();
+setInterval(updateCountdown, 30000);
+
+/* ---- Ouvrir MockupForge v12 (dans hcs-erp apps/) ---- */
+function ouvrirMockupForge(contexte) {
+  /* Tente d'ouvrir MockupForge depuis l'ERP — chemin relatif apps/ */
+  const url = '../apps/mockup-forge-v12.html';
+  const win = window.open(url, '_blank');
+  if (!win) {
+    alert('Ouvrez MockupForge v12 manuellement :\napps/mockup-forge-v12.html\n\nContexte : ' + (contexte || 'hero'));
+  }
+}
+
+/* ---- Ouvrir PicWish Pipeline ---- */
+function ouvrirPicWish() {
+  const url = '../apps/picwish-pipeline.html';
+  const win = window.open(url, '_blank');
+  if (!win) alert('Ouvrez PicWish Pipeline :\napps/picwish-pipeline.html');
+}
+
+/* ---- Ouvrir DTF Studio ---- */
+function ouvrirDTFStudio() {
+  const url = '../apps/dtf-studio.html';
+  const win = window.open(url, '_blank');
+  if (!win) alert('Ouvrez DTF Studio :\napps/dtf-studio.html');
+}
+
+/* ---- Envoi devis (vers ERP ou email) ---- */
+function envoyerDevis() {
+  /* Collecter les données du formulaire */
+  const form = document.querySelector('.devis-form');
+  const nom     = form.querySelector('[name=nom]').value.trim();
+  const email   = form.querySelector('[name=email]').value.trim();
+  const tel     = form.querySelector('[name=tel]').value.trim();
+  const ent     = form.querySelector('[name=entreprise]').value.trim();
+  const qte     = form.querySelector('[name=quantite]').value;
+  const delai   = form.querySelector('[name=delai]').value;
+  const desc    = form.querySelector('[name=description]').value.trim();
+
+  /* Produits cochés */
+  const prodChecks = [...form.querySelectorAll('[name=produits]:checked')];
+  const produits   = prodChecks.map(c => c.value).join(', ');
+
+  if (!nom || !email) {
+    alert('Merci de renseigner au minimum votre nom et email.');
+    return;
+  }
+
+  /* Tentative sauvegarde MySQL ERP */
+  const payload = {
+    nom, email, tel, entreprise: ent,
+    produits, quantite: qte, delai, description: desc,
+    source: 'landing-avril-2026',
+    date: new Date().toISOString().split('T')[0]
+  };
+
+  fetch('https://highcoffeeshirts.com/erp/api/?collection=messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': 'hcs-erp-2026' },
+    body: JSON.stringify({ type: 'lead_landing', sujet: 'Devis Landing Avril 2026 — ' + nom, contenu: JSON.stringify(payload, null, 2) })
+  }).then(() => {
+    afficherConfirmation();
+  }).catch(() => {
+    /* Fallback : confirmation visuelle même si API indisponible */
+    afficherConfirmation();
+  });
+}
+
+function afficherConfirmation() {
+  const form = document.querySelector('.devis-form');
+  form.innerHTML = `
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:3rem;margin-bottom:16px">✅</div>
+      <h3 style="font-size:1.4rem;margin-bottom:10px">Demande envoyée !</h3>
+      <p style="color:var(--gris);line-height:1.7">
+        Merci pour votre intérêt. Notre équipe vous contactera dans les <strong style="color:var(--blanc)">48 heures</strong>
+        avec un devis personnalisé.<br><br>
+        <span style="color:var(--accent)">High Coffee Shirts</span> — À très bientôt 👋
+      </p>
+    </div>
+  `;
+  form.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>

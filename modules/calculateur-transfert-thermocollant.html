@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔥 Calculateur Transfert Thermocollant — HCS Tahiti</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+    input:focus { outline: none; }
+    .results-section { animation: slideIn 0.4s ease-out; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+    .yard-container {
+      position: relative; width: 100%; max-width: 360px;
+      aspect-ratio: 50 / 91.44;
+      background: linear-gradient(135deg,#1a472a 0%,#2d5a3d 50%,#1a472a 100%);
+      border: 3px solid #4ade80; border-radius: 4px; overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5),0 4px 15px rgba(74,222,128,0.3);
+    }
+    .yard-canvas { position:relative; width:100%; height:100%; }
+    .logo-item {
+      position:absolute; background:linear-gradient(135deg,#3b82f6,#1e40af);
+      border:2px solid #60a5fa; border-radius:3px; display:flex; align-items:center;
+      justify-content:center; font-size:.6rem; color:white; font-weight:bold;
+      text-align:center; padding:2px; box-shadow:0 2px 5px rgba(0,0,0,.3); transition:all .15s;
+    }
+    .logo-item:hover { background:linear-gradient(135deg,#60a5fa,#3b82f6); box-shadow:0 0 10px rgba(96,165,250,.8); z-index:10; }
+    .logo-price {
+      position:absolute; background:rgba(0,0,0,.8); color:#fbbf24;
+      padding:1px 3px; border-radius:2px; font-size:.5rem; font-weight:bold;
+      white-space:nowrap; pointer-events:none; bottom:-13px; left:50%; transform:translateX(-50%);
+    }
+    /* Prix editor */
+    .prix-table input { background:#1f2937; border:1px solid #374151; border-radius:4px; padding:4px 8px; color:#fff; font-size:12px; width:80px; }
+    .prix-table input:focus { border-color:#3b82f6; }
+  </style>
+</head>
+<body class="bg-gray-900">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useRef, useEffect } = React;
+
+/* ── Types de vinyle par défaut ── */
+const DEFAULT_VINYLS = [
+  { name:'EasyWeed Stretch',   priceUSD:11.99 },
+  { name:'EasyWeed Standard',  priceUSD:9.99  },
+  { name:'EasyWeed Extra',     priceUSD:13.70 },
+  { name:'ThermoFlex Plus',    priceUSD:15.50 },
+  { name:'StripFlock Pro',     priceUSD:18.99 },
+  { name:'GlitterFlex Ultra',  priceUSD:21.99 },
+  { name:'Flex Métallisé',     priceUSD:16.50 },
+  { name:'Vinyle Contrecollé', priceUSD:12.50 },
+];
+
+function CalculateurVinyle() {
+  /* ── State ── */
+  const [selectedIdx,      setSelectedIdx]      = useState(0);
+  const [vinyls,           setVinyls]            = useState(DEFAULT_VINYLS);
+  const [yardsOrdered,     setYardsOrdered]      = useState(10);
+  const [marginPercent,    setMarginPercent]      = useState(300);
+  const [dimensionsText,   setDimensionsText]    = useState('10x15\n15x20\n5x10\n10x10\n24x24\n30x30');
+  const [marginLogos,      setMarginLogos]        = useState(1);
+  const [quickH,           setQuickH]             = useState(10);
+  const [quickL,           setQuickL]             = useState(15);
+  const [usdXpf,           setUsdXpf]             = useState(109.5);
+  const [shippingUSD,      setShippingUSD]        = useState(66);
+  const [dutyPct,          setDutyPct]            = useState(7);
+  const [tvaPct,           setTvaPct]             = useState(16);
+  const [brokerageUSD,     setBrokerageUSD]       = useState(50);
+  const [handlingUSD,      setHandlingUSD]        = useState(15);
+  const [showResults,      setShowResults]        = useState(false);
+  const [editingPrix,      setEditingPrix]        = useState(false);
+  const resultsRef = useRef(null);
+
+  /* ── Constantes rouleau ── */
+  const ROLL_W = 50, YARD_H = 91.44, YARD_AREA = ROLL_W * YARD_H;
+
+  /* ── Calculs principaux ── */
+  const calc = useMemo(() => {
+    const v = { ...vinyls[selectedIdx], priceXPF: Math.round(vinyls[selectedIdx].priceUSD * usdXpf) };
+    const prodUSD  = v.priceUSD * yardsOrdered;
+    const prodXPF  = Math.round(prodUSD * usdXpf);
+    const portXPF  = Math.round(shippingUSD * usdXpf);
+    const cif      = prodXPF + portXPF;
+    const douane   = Math.round(cif * dutyPct / 100);
+    const tva      = Math.round((cif + douane) * tvaPct / 100);
+    const frais    = Math.round((brokerageUSD + handlingUSD) * usdXpf);
+    const total    = cif + douane + tva + frais;
+    const cpy      = Math.round(total / yardsOrdered);          // coût/yard
+    const cpc100   = Math.round(cpy / YARD_AREA * 100);         // coût/100cm²
+    const cpcm2    = cpy / YARD_AREA;                           // coût/cm²
+
+    const dims = dimensionsText.split('\n').map(l => {
+      const [h, w] = l.trim().split('x').map(Number);
+      return h > 0 && w > 0 ? { h, l: w, surface: h * w } : null;
+    }).filter(Boolean);
+
+    const designCosts = dims.map(d => {
+      const lW = Math.floor(ROLL_W / (d.l + marginLogos));
+      const lH = Math.floor(YARD_H / (d.h + marginLogos));
+      const ty = lW * lH;
+      const cout  = Math.max(1, Math.round(d.surface * cpcm2));
+      const prix  = Math.round(cout * (1 + marginPercent / 100));
+      return { ...d, logosW: lW, logosH: lH, totalYard: ty, coutLogo: cout, prixVente: prix,
+               margePct: Math.round(marginPercent) };
+    });
+
+    return { v, prodUSD, prodXPF, portXPF, cif, douane, tva, frais, total, cpy, cpc100, cpcm2, designCosts };
+  }, [selectedIdx, vinyls, yardsOrdered, marginPercent, dimensionsText, marginLogos,
+      usdXpf, shippingUSD, dutyPct, tvaPct, brokerageUSD, handlingUSD]);
+
+  /* ── Calcul interactif H×L ── */
+  const qCalc = useMemo(() => {
+    if (!quickH || !quickL) return null;
+    const lW = Math.floor(ROLL_W / (quickL + marginLogos));
+    const lH = Math.floor(YARD_H / (quickH + marginLogos));
+    const cout = Math.max(1, Math.round(quickH * quickL * calc.cpcm2));
+    const prix = Math.round(cout * (1 + marginPercent / 100));
+    return { lW, lH, totalYard: lW * lH, cout, prix };
+  }, [quickH, quickL, marginLogos, calc.cpcm2, marginPercent]);
+
+  /* ── Visualisation yard ── */
+  const yardLogos = useMemo(() => {
+    if (!qCalc || !qCalc.lW || !qCalc.lH) return [];
+    const logos = [];
+    const sX = ROLL_W / qCalc.lW, sY = YARD_H / qCalc.lH;
+    for (let r = 0; r < qCalc.lH; r++) {
+      for (let c = 0; c < qCalc.lW; c++) {
+        logos.push({
+          id:`${r}-${c}`,
+          x: ((c * sX + (sX - quickL) / 2) / ROLL_W * 100),
+          y: ((r * sY + (sY - quickH) / 2) / YARD_H * 100),
+          w: quickL / ROLL_W * 100,
+          h: quickH / YARD_H * 100,
+          prix: qCalc.prix
+        });
+      }
+    }
+    return logos;
+  }, [qCalc, quickH, quickL]);
+
+  /* ── Helpers ── */
+  const fmt = n => Number(n).toLocaleString('fr-FR');
+  const updateVinylUSD = (i, v) => {
+    const nxt = [...vinyls]; nxt[i] = { ...nxt[i], priceUSD: Math.max(0, v) }; setVinyls(nxt);
+  };
+  const updateVinylXPF = (i, xpf) => updateVinylUSD(i, xpf / usdXpf);
+  const addVinyl = () => setVinyls([...vinyls, { name:'Nouveau vinyle', priceUSD:10.00 }]);
+  const removeVinyl = i => {
+    const nxt = vinyls.filter((_, j) => j !== i);
+    setVinyls(nxt);
+    if (selectedIdx >= nxt.length) setSelectedIdx(nxt.length - 1);
+  };
+  const updateVinylName = (i, n) => {
+    const nxt = [...vinyls]; nxt[i] = { ...nxt[i], name: n }; setVinyls(nxt);
+  };
+
+  /* ── Export HTML (avec JSON embarqué) ── */
+  const exportHTML = () => {
+    const v   = calc.v;
+    const now = new Date().toLocaleDateString('fr-FR');
+    const embedJSON = JSON.stringify({
+      _hcs_version: '2.0',
+      vinyl:         v.name,
+      costPerYardXPF: calc.cpy,
+      costPer100cm2:  calc.cpc100,
+      coeffMarge:     marginPercent,
+      surfaceYard:    Math.round(YARD_AREA),
+      largeurRouleau: ROLL_W,
+      hauteurYard:    YARD_H,
+      marginLogos,
+      formats: calc.designCosts.map(d => ({
+        h: d.h, l: d.l, surface: d.surface,
+        totalYard: d.totalYard, coutLogo: d.coutLogo, prixVente: d.prixVente
+      }))
+    });
+
+    const tableRows = calc.designCosts.map(d => `
+      <tr>
+        <td>${d.h} × ${d.l} cm</td>
+        <td style="text-align:right">${d.surface} cm²</td>
+        <td style="text-align:right;font-weight:bold;color:#2d7ff9">${d.logosW}</td>
+        <td style="text-align:right;font-weight:bold;color:#2d7ff9">${d.logosH}</td>
+        <td style="text-align:right;font-weight:bold;color:#34a853">${d.totalYard}</td>
+        <td style="text-align:right">${fmt(d.coutLogo)} F</td>
+        <td style="text-align:right;font-weight:bold;color:#34a853">${fmt(d.prixVente)} F</td>
+        <td style="text-align:right">${d.margePct}%</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="fr"><head>
+  <meta charset="UTF-8"><title>Rapport HCS — ${v.name}</title>
+  <script type="application/json" id="hcs-calc-data">${embedJSON}<\/script>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}
+    .container{max-width:1000px;margin:0 auto;background:#fff;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+    h1{color:#1a73e8;border-bottom:3px solid #1a73e8;padding-bottom:10px;margin-bottom:30px}
+    h2{color:#34a853;margin-top:30px;margin-bottom:15px;border-left:4px solid #34a853;padding-left:10px}
+    .param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;margin-bottom:20px}
+    .param-box{background:#f0f4ff;padding:15px;border-radius:6px;border-left:4px solid #1a73e8}
+    .param-label{font-size:.85em;color:#666;font-weight:bold}
+    .param-value{font-size:1.3em;color:#1a73e8;font-weight:bold;margin-top:5px}
+    table{width:100%;border-collapse:collapse;margin:15px 0}
+    th{background:#1a73e8;color:#fff;padding:10px 12px;text-align:right}
+    th:first-child{text-align:left}
+    td{padding:9px 12px;border-bottom:1px solid #ddd;text-align:right}
+    td:first-child{text-align:left}
+    tr:nth-child(even){background:#f9f9f9}
+    .total-row{background:#34a853;color:#fff;font-weight:bold}
+    .cif-row{background:#fff3cd}
+    .highlight{background:#fff3cd;padding:14px;border-radius:6px;border-left:4px solid #ffc107;margin:15px 0}
+    .footer{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #ddd;color:#666;font-size:.85em}
+  </style>
+</head><body>
+<div class="container">
+  <h1>🎯 Rapport Calculateur HCS Tahiti</h1>
+
+  <div><h2>📋 Informations Commande</h2>
+  <div class="param-grid">
+    <div class="param-box"><div class="param-label">Type de Vinyl</div><div class="param-value">${v.name}</div></div>
+    <div class="param-box"><div class="param-label">Prix/Yard (USD)</div><div class="param-value">$${v.priceUSD.toFixed(2)}</div></div>
+    <div class="param-box"><div class="param-label">Yards Commandés</div><div class="param-value">${yardsOrdered}</div></div>
+    <div class="param-box"><div class="param-label">Coefficient Marge</div><div class="param-value">${marginPercent}%</div></div>
+    <div class="param-box"><div class="param-label">Taux USD/XPF</div><div class="param-value">${usdXpf}</div></div>
+    <div class="param-box"><div class="param-label">Marge entre Logos</div><div class="param-value">${marginLogos} cm</div></div>
+  </div></div>
+
+  <div><h2>💰 Coût de Revient Détaillé</h2>
+  <table><tbody>
+    <tr><td>① Coût Produits</td><td>${fmt(calc.prodXPF)}</td></tr>
+    <tr><td>② Port USPS International</td><td>${fmt(calc.portXPF)}</td></tr>
+    <tr class="cif-row"><td><strong>= Valeur CIF</strong></td><td><strong>${fmt(calc.cif)}</strong></td></tr>
+    <tr><td>③ Douane (${dutyPct}%)</td><td style="color:#d32f2f">${fmt(calc.douane)}</td></tr>
+    <tr><td>④ TVA (${tvaPct}% sur CIF+Douane)</td><td style="color:#d32f2f">${fmt(calc.tva)}</td></tr>
+    <tr><td>⑤ Frais (Courtage + Manutention)</td><td>${fmt(calc.frais)}</td></tr>
+    <tr class="total-row"><td>= TOTAL RENDU TAHITI</td><td>${fmt(calc.total)}</td></tr>
+  </tbody></table></div>
+
+  <div><h2>📊 Coûts Unitaires</h2>
+  <div class="param-grid">
+    <div class="param-box" style="border-left-color:#34a853"><div class="param-label">Coût par Yard</div><div class="param-value" style="color:#34a853">${fmt(calc.cpy)} F</div></div>
+    <div class="param-box" style="border-left-color:#9c27b0"><div class="param-label">Coût par 100 cm²</div><div class="param-value" style="color:#9c27b0">${fmt(calc.cpc100)} F</div></div>
+    <div class="param-box" style="border-left-color:#ff9800"><div class="param-label">Surface 1 Yard</div><div class="param-value" style="color:#ff9800">${fmt(Math.round(YARD_AREA))} cm²</div></div>
+  </div></div>
+
+  <div><h2>🏷️ Tarifs par Dimension</h2>
+  <table>
+    <thead><tr>
+      <th style="text-align:left">Format (H×L)</th>
+      <th>Surface</th><th>Logos/Largeur</th><th>Logos/Hauteur</th>
+      <th>Total/Yard</th><th>Coût/Logo</th><th>Prix Vente</th><th>Marge</th>
+    </tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table></div>
+
+  <div class="highlight">
+    <strong>📐 Rouleau :</strong> ${ROLL_W}cm × ${YARD_H}cm = ${fmt(Math.round(YARD_AREA))} cm²<br>
+    <strong>📍 Positionnement :</strong> Logos/Largeur = ⌊${ROLL_W} ÷ (L + ${marginLogos})⌋ · Logos/Hauteur = ⌊${YARD_H} ÷ (H + ${marginLogos})⌋<br>
+    <strong>💡 Note :</strong> Coût = Surface × coût/cm² · Prix = Coût × (1 + ${marginPercent}%)
+  </div>
+
+  <div class="footer"><p>Rapport généré le ${now} | HCS Tahiti</p></div>
+</div>
+</body></html>`;
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([html], {type:'text/html;charset=utf-8;'}));
+    const datStr = new Date().toISOString().slice(0,10);
+    a.download = `HCS_Rapport_${v.name.replace(/\s+/g,'_')}_${datStr}.html`;
+    a.click();
+  };
+
+  /* ── Export Product Creator CSV ── */
+  const exportProductCreator = () => {
+    const tva = tvaPct;
+    const CSV_FIELDS = ['emoji','nom','designation','ref','categorie','type','tailles','couleurs','prix','prixTTC','cout','tva','stock','stockMin','unite','paliers','description'];
+    const rows = [CSV_FIELDS.join(';')];
+    calc.designCosts.forEach(d => {
+      const nom = `Thermocollant ${d.h}×${d.l}cm`;
+      const ref = `TCH-${d.h}x${d.l}`;
+      const prixTTC = Math.round(d.prixVente * (1 + tva / 100));
+      const desc = `Vinyle thermocollant ${d.h}×${d.l}cm — Surface ${d.surface}cm² — Coût: ${d.coutLogo} XPF — Marge: ${d.margePct}%`;
+      const row = ['♨️', nom, nom, ref, 'Services Thermocollant', 'service', '', '', d.prixVente, prixTTC, d.coutLogo, tva, 0, 0, 'unité', '', desc];
+      rows.push(row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';'));
+    });
+    const csv = rows.join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
+    a.download = `HCS_ProductCreator_Thermocollant_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
+  /* ── Export CSV ── */
+  const exportCSV = () => {
+    const v = calc.v;
+    const rows = [
+      ['HCS CALCULATEUR VINYLE'],[], ['COMMANDE'],
+      ['Type Vinyl', v.name], ['Prix/Yard USD', v.priceUSD.toFixed(2)],
+      ['Yards', yardsOrdered], ['Marge %', marginPercent],
+      ['Taux USD/XPF', usdXpf], [],
+      ['COÛT RENDU TAHITI'],
+      ['Produits XPF', calc.prodXPF], ['Port XPF', calc.portXPF],
+      ['CIF XPF', calc.cif], ['Douane XPF', calc.douane], ['TVA XPF', calc.tva],
+      ['Frais XPF', calc.frais], ['TOTAL XPF', calc.total],
+      ['Coût/yard XPF', calc.cpy], ['Coût/100cm² XPF', calc.cpc100], [],
+      ['TARIFS PAR DIMENSION'],
+      ['Format','Surface cm²','Logos/Larg','Logos/Haut','Total/Yard','Coût/Logo F','Prix Vente F','Marge %'],
+      ...calc.designCosts.map(d => [
+        `${d.h}×${d.l}cm`, d.surface, d.logosW, d.logosH,
+        d.totalYard, d.coutLogo, d.prixVente, d.margePct+'%'
+      ])
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download = `HCS_Vinyle_${v.name.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
+  /* ── Render ── */
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-4">
+    <div className="max-w-7xl mx-auto">
+
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-teal-400 mb-2">
+          ✂️ Calculateur Vinyle HCS
+        </h1>
+        <p className="text-gray-400">Coût de Revient + Tarification par Dimension · Tahiti</p>
+        <p className="text-xs text-gray-500 mt-1">Rouleau 50cm × 91.44cm (1 yard) · Calcul temps réel</p>
+      </div>
+
+      {/* ══ Sélection vinyl + édition prix ══ */}
+      <div className="bg-gray-800/60 rounded-xl p-5 mb-5 border border-gray-700">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-bold text-amber-400">📦 TYPES DE VINYLE — TARIFS D'ACHAT</h2>
+          <div className="flex gap-2">
+            <button onClick={() => setEditingPrix(!editingPrix)}
+              className={`text-xs px-3 py-1.5 rounded border transition font-semibold ${editingPrix ? 'bg-amber-500 border-amber-400 text-white' : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-amber-400'}`}>
+              {editingPrix ? '✓ Terminé' : '✎ Modifier prix'}
+            </button>
+            {editingPrix && (
+              <button onClick={addVinyl}
+                className="text-xs px-3 py-1.5 rounded border border-green-600 bg-green-800/40 text-green-300 hover:bg-green-700 transition">
+                + Ajouter type
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+          {vinyls.map((v, i) => (
+            <div key={i}>
+              {/* Bouton sélection */}
+              <button onClick={() => setSelectedIdx(i)}
+                className={`w-full p-2.5 rounded-lg border-2 transition text-xs font-bold mb-2 ${
+                  selectedIdx === i
+                    ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/50'
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:border-blue-400'
+                }`}>
+                {editingPrix ? (
+                  <input
+                    value={v.name}
+                    onChange={e => updateVinylName(i, e.target.value)}
+                    onClick={e => e.stopPropagation()}
+                    className="w-full bg-transparent text-center text-xs border-b border-blue-400 focus:outline-none"
+                  />
+                ) : v.name}
+              </button>
+
+              {/* Prix toujours visible (ou éditable) */}
+              {editingPrix ? (
+                <div className="bg-gray-900/60 rounded p-2 space-y-1.5">
+                  <div>
+                    <div className="text-gray-500 text-xs mb-0.5">USD/yard</div>
+                    <input type="number" value={v.priceUSD.toFixed(2)} step="0.01"
+                      onChange={e => updateVinylUSD(i, parseFloat(e.target.value)||0)}
+                      className="w-full bg-gray-700 border border-blue-600 rounded px-1.5 py-1 text-white text-xs focus:border-blue-400"/>
+                  </div>
+                  <div>
+                    <div className="text-gray-500 text-xs mb-0.5">XPF/yard</div>
+                    <input type="number" value={Math.round(v.priceUSD * usdXpf)} step="50"
+                      onChange={e => updateVinylXPF(i, parseInt(e.target.value)||0)}
+                      className="w-full bg-gray-700 border border-amber-600 rounded px-1.5 py-1 text-white text-xs focus:border-amber-400"/>
+                  </div>
+                  {vinyls.length > 1 && (
+                    <button onClick={() => removeVinyl(i)}
+                      className="w-full text-xs text-red-400 hover:text-red-300 py-0.5">✕ Suppr.</button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center bg-gray-700/30 rounded p-1.5">
+                  <div className="text-gray-400 text-xs">${v.priceUSD.toFixed(2)}/yd</div>
+                  <div className="text-sm font-bold text-amber-400">{Math.round(v.priceUSD * usdXpf).toLocaleString('fr-FR')} F</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══ Frais & Douane ══ */}
+      <div className="bg-gray-800/40 rounded-xl p-5 mb-5 border border-red-800/50">
+        <h2 className="text-base font-bold text-red-400 mb-4">💰 FRAIS & DOUANE (TAHITI)</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+          {[
+            { label:'Taux USD/XPF', val:usdXpf,      set:setUsdXpf,      step:0.1,  color:'border-gray-500' },
+            { label:'Port USPS $',  val:shippingUSD,  set:setShippingUSD, step:1,    color:'border-blue-600' },
+            { label:'Douane %',     val:dutyPct,      set:setDutyPct,     step:0.1,  color:'border-yellow-600' },
+            { label:'TVA %',        val:tvaPct,       set:setTvaPct,      step:0.1,  color:'border-yellow-600' },
+            { label:'Courtage $',   val:brokerageUSD, set:setBrokerageUSD,step:5,    color:'border-green-600' },
+            { label:'Manutention $',val:handlingUSD,  set:setHandlingUSD, step:5,    color:'border-green-600' },
+          ].map(({label, val, set, step, color}) => (
+            <div key={label} className="bg-black/20 rounded p-2.5">
+              <div className="text-gray-400 mb-1">{label}</div>
+              <input type="number" value={val} step={step}
+                onChange={e => set(Number(e.target.value))}
+                className={`w-full bg-gray-700 rounded px-2 py-1 text-white text-sm border ${color} focus:outline-none focus:brightness-125`}/>
+            </div>
+          ))}
+          <div className="bg-black/20 rounded p-2.5 flex flex-col justify-center">
+            <div className="text-gray-400 mb-1">Total rendu</div>
+            <div className="text-lg font-bold text-teal-400">{calc.total.toLocaleString('fr-FR')}</div>
+            <div className="text-xs text-gray-500">XPF · {yardsOrdered} yards</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-5 mb-5">
+        {/* ══ Commande ══ */}
+        <div className="bg-gray-800/40 rounded-xl p-5 border border-gray-700 space-y-4">
+          <h2 className="text-base font-bold text-teal-400">📋 COMMANDE</h2>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Yards commandés</label>
+            <input type="number" value={yardsOrdered} min="1"
+              onChange={e => setYardsOrdered(Math.max(1, +e.target.value))}
+              className="w-full bg-gray-700 rounded px-3 py-2 text-white border border-teal-600 focus:outline-none"/>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Coefficient marge (%)</label>
+            <input type="number" value={marginPercent} step="10"
+              onChange={e => setMarginPercent(+e.target.value)}
+              className="w-full bg-gray-700 rounded px-3 py-2 text-white border border-green-600 focus:outline-none"/>
+            <div className="text-xs text-gray-500 mt-1">
+              {marginPercent}% → prix = coût × {(1 + marginPercent/100).toFixed(2)}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Marge entre logos (cm)</label>
+            <input type="number" value={marginLogos} step="0.5" min="0"
+              onChange={e => setMarginLogos(Math.max(0, +e.target.value))}
+              className="w-full bg-gray-700 rounded px-3 py-2 text-white border border-violet-600 focus:outline-none"/>
+          </div>
+        </div>
+
+        {/* ══ Calculateur H×L interactif ══ */}
+        <div className="bg-gradient-to-r from-violet-800/30 to-purple-800/30 rounded-xl p-5 border border-violet-600/50">
+          <h2 className="text-base font-bold text-violet-400 mb-4">⚡ CALCUL RAPIDE H×L</h2>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Hauteur (cm)</label>
+              <input type="number" value={quickH} min="1"
+                onChange={e => setQuickH(Math.max(1, +e.target.value))}
+                className="w-full bg-gray-700 rounded px-3 py-3 text-white text-lg border-2 border-violet-500 focus:outline-none"/>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Largeur (cm)</label>
+              <input type="number" value={quickL} min="1"
+                onChange={e => setQuickL(Math.max(1, +e.target.value))}
+                className="w-full bg-gray-700 rounded px-3 py-3 text-white text-lg border-2 border-violet-500 focus:outline-none"/>
+            </div>
+          </div>
+          {qCalc && (
+            <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="bg-black/30 rounded-lg p-3">
+                <div className="text-xs text-gray-400">Surface</div>
+                <div className="text-xl font-bold text-violet-400">{quickH*quickL} cm²</div>
+              </div>
+              <div className="bg-black/30 rounded-lg p-3">
+                <div className="text-xs text-gray-400">Logos/Yard</div>
+                <div className="text-xl font-bold text-amber-400">{qCalc.lW}×{qCalc.lH}={qCalc.totalYard}</div>
+              </div>
+              <div className="bg-black/30 rounded-lg p-3">
+                <div className="text-xs text-gray-400">Coût matière</div>
+                <div className="text-lg font-bold text-teal-400">{qCalc.cout.toLocaleString('fr-FR')} F</div>
+              </div>
+              <div className="bg-black/30 rounded-lg p-3">
+                <div className="text-xs text-gray-400">Prix vente</div>
+                <div className="text-lg font-bold text-green-400">{qCalc.prix.toLocaleString('fr-FR')} F</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══ Visualisation yard ══ */}
+      {qCalc && yardLogos.length > 0 && (
+        <div className="bg-gray-800/40 rounded-xl p-5 mb-5 border border-gray-700">
+          <h2 className="text-base font-bold text-amber-400 mb-3">
+            📍 RÉPARTITION — {quickH}×{quickL}cm · {qCalc.totalYard} logos/yard
+          </h2>
+          <div className="flex justify-center">
+            <div className="yard-container">
+              <div className="yard-canvas">
+                {yardLogos.map(l => (
+                  <div key={l.id} className="logo-item"
+                    style={{left:`${l.x}%`,top:`${l.y}%`,width:`${l.w}%`,height:`${l.h}%`}}>
+                    <span>{quickH}×{quickL}</span>
+                    <div className="logo-price">{l.prix.toLocaleString('fr-FR')}F</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 text-center mt-2">50cm × 91.44cm · Marge {marginLogos}cm</p>
+        </div>
+      )}
+
+      {/* ══ Dimensions ══ */}
+      <div className="bg-gray-800/40 rounded-xl p-5 mb-5 border border-gray-700">
+        <h2 className="text-base font-bold text-violet-400 mb-3">📐 DIMENSIONS À CALCULER (HxL)</h2>
+        <div className="grid lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2">
+            <label className="text-xs text-gray-400 block mb-2">Une dimension par ligne (ex: 10x15)</label>
+            <textarea value={dimensionsText}
+              onChange={e => setDimensionsText(e.target.value)}
+              className="w-full h-28 bg-gray-700 rounded px-3 py-2 text-white text-sm border border-violet-600 font-mono focus:outline-none focus:border-violet-400"
+              placeholder="10x15&#10;15x20&#10;5x10"/>
+          </div>
+          <div className="bg-gray-900/50 rounded-lg p-3 text-xs space-y-2 self-start">
+            <p className="text-teal-400 font-bold">Coûts unitaires :</p>
+            <p className="text-gray-300">Coût/yard : <span className="text-amber-400 font-bold">{fmt(calc.cpy)} F</span></p>
+            <p className="text-gray-300">Coût/100cm² : <span className="text-violet-400 font-bold">{fmt(calc.cpc100)} F</span></p>
+            <p className="text-gray-300">Surface/yard : <span className="text-gray-400">{fmt(Math.round(YARD_AREA))} cm²</span></p>
+            <p className="text-gray-400">{dimensionsText.split('\n').filter(l=>l.trim()&&l.includes('x')).length} format(s)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ Boutons ══ */}
+      <div className="grid md:grid-cols-4 gap-4 mb-6">
+        <button onClick={() => { setShowResults(true); setTimeout(()=>resultsRef.current?.scrollIntoView({behavior:'smooth'}),100); }}
+          className="bg-gradient-to-r from-green-600 to-green-500 hover:brightness-110 px-6 py-4 rounded-xl text-base font-bold transition shadow-xl">
+          🧮 CALCULER & AFFICHER
+        </button>
+        <button onClick={exportCSV}
+          className="bg-gradient-to-r from-blue-600 to-blue-500 hover:brightness-110 px-6 py-4 rounded-xl text-base font-bold transition shadow-xl">
+          📊 EXPORTER CSV
+        </button>
+        <button onClick={exportHTML}
+          className="bg-gradient-to-r from-purple-600 to-purple-500 hover:brightness-110 px-6 py-4 rounded-xl text-base font-bold transition shadow-xl">
+          📄 EXPORTER RAPPORT HTML
+        </button>
+        <button onClick={exportProductCreator}
+          className="bg-gradient-to-r from-teal-600 to-cyan-500 hover:brightness-110 px-6 py-4 rounded-xl text-base font-bold transition shadow-xl">
+          📦 PRODUCT CREATOR CSV
+        </button>
+      </div>
+
+      {/* ══ Résultats ══ */}
+      {showResults && (
+        <div className="results-section space-y-5" ref={resultsRef}>
+
+          {/* KPIs */}
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              {label:'TOTAL RENDU TAHITI', val:`${fmt(calc.total)} F`, color:'text-teal-400'},
+              {label:'COÛT / YARD',        val:`${fmt(calc.cpy)} F`,   color:'text-amber-400'},
+              {label:'COÛT / 100 cm²',     val:`${fmt(calc.cpc100)} F`,color:'text-violet-400'},
+            ].map(k => (
+              <div key={k.label} className="bg-gray-800/50 rounded-xl p-5 border border-gray-700 text-center">
+                <div className="text-xs text-gray-400 mb-2">{k.label}</div>
+                <div className={`text-3xl font-bold ${k.color}`}>{k.val}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Détail coûts */}
+          <div className="bg-gradient-to-r from-teal-800/30 to-amber-800/30 rounded-xl p-5 border border-teal-600/40">
+            <h2 className="text-base font-bold text-teal-400 mb-4">💰 COÛT RENDU TAHITI — DÉTAIL</h2>
+            <div className="text-sm space-y-2">
+              {[
+                {lbl:'① Produits',         val:fmt(calc.prodXPF), cls:''},
+                {lbl:'② Port USPS',        val:fmt(calc.portXPF), cls:'text-blue-400'},
+                {lbl:'= CIF',              val:fmt(calc.cif),     cls:'text-teal-400 font-bold', bg:'bg-gray-900/30'},
+                {lbl:`③ Douane (${dutyPct}%)`,val:fmt(calc.douane),cls:'text-red-400'},
+                {lbl:`④ TVA (${tvaPct}%)`,  val:fmt(calc.tva),    cls:'text-red-400'},
+                {lbl:'⑤ Frais',            val:fmt(calc.frais),   cls:'text-gray-400'},
+              ].map(r => (
+                <div key={r.lbl} className={`flex justify-between py-2 border-b border-gray-700/50 px-2 rounded ${r.bg||''}`}>
+                  <span className="text-gray-400">{r.lbl}</span>
+                  <span className={`font-bold ${r.cls}`}>{r.val} F</span>
+                </div>
+              ))}
+              <div className="flex justify-between py-3 text-lg font-bold bg-teal-900/30 px-2 rounded">
+                <span>= TOTAL RENDU TAHITI</span>
+                <span className="text-teal-400">{fmt(calc.total)} F</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Table formats */}
+          {calc.designCosts.length > 0 && (
+            <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+              <h2 className="text-base font-bold text-green-400 mb-4">🏷️ TARIFS PAR DIMENSION</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead><tr className="border-b border-gray-700">
+                    {['Format','Surface','Logos/L','Logos/H','Total/Yd','Coût/Logo','Marge','Prix Vente'].map(h => (
+                      <th key={h} className={`py-2 text-gray-400 ${h==='Format'?'text-left':'text-right'}`}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {calc.designCosts.map((d,i) => (
+                      <tr key={i} className="border-b border-gray-700/40 hover:bg-gray-900/30">
+                        <td className="py-2">{d.h} × {d.l} cm</td>
+                        <td className="text-right">{d.surface} cm²</td>
+                        <td className="text-right font-bold text-amber-400">{d.logosW}</td>
+                        <td className="text-right font-bold text-amber-400">{d.logosH}</td>
+                        <td className="text-right font-bold text-green-400">{d.totalYard}</td>
+                        <td className="text-right text-gray-300">{fmt(d.coutLogo)} F</td>
+                        <td className="text-right text-violet-400">{d.margePct}%</td>
+                        <td className="text-right font-bold text-green-400 text-sm">{fmt(d.prixVente)} F</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gray-800/30 rounded-lg p-4 text-xs text-gray-500 space-y-1">
+            <p>* 1 yard Siser = 50cm × 91.44cm = {fmt(Math.round(YARD_AREA))} cm²</p>
+            <p>* Coût/logo = Surface × (coût/yard ÷ surface/yard)</p>
+            <p>* Prix vente = Coût × (1 + {marginPercent}%) = Coût × {(1+marginPercent/100).toFixed(2)}</p>
+            <p>* L'export HTML contient les données JSON pour import direct dans le Créateur Produits ERP</p>
+          </div>
+        </div>
+      )}
+    </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<CalculateurVinyle />, document.getElementById('root'));
+</script>
+</body>
+</html>

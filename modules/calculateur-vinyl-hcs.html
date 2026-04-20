@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCS — Calculateur Vinyle Autocollant / Stickers</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0d0d0d; --surface:#161616; --surface2:#1f1f1f;
+    --border:rgba(255,255,255,0.08); --border2:rgba(255,255,255,0.15);
+    --accent:#c8ff00; --accent2:#00ffc8;
+    --text:#f0ede8; --muted:#888;
+    --danger:#ff4d4d; --warn:#ffaa00;
+    --font-display:'Syne',sans-serif; --font-mono:'DM Mono',monospace;
+    --r:10px;
+  }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-mono); min-height:100vh; padding:2rem 1rem; }
+  .container { max-width:780px; margin:0 auto; }
+  header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:2.5rem; padding-bottom:1.5rem; border-bottom:0.5px solid var(--border2); }
+  .logo { font-family:var(--font-display); font-weight:800; font-size:1.6rem; letter-spacing:-.02em; }
+  .logo span { color:var(--accent); }
+  .badge { font-size:10px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); border:0.5px solid var(--border2); padding:4px 10px; border-radius:20px; }
+  .section-label { font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:1rem; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .field { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--r); padding:.875rem 1rem; transition:border-color .2s; }
+  .field:focus-within { border-color:var(--border2); }
+  .field label { display:block; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .field input { width:100%; background:transparent; border:none; outline:none; font-family:var(--font-mono); font-size:1.1rem; font-weight:500; color:var(--text); caret-color:var(--accent); }
+  .field .unit { font-size:11px; color:var(--muted); margin-top:4px; }
+  .divider { height:0.5px; background:var(--border); margin:2rem 0; }
+  .results { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--r); overflow:hidden; margin-bottom:12px; }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:.875rem 1.25rem; border-bottom:0.5px solid var(--border); font-size:13px; }
+  .result-row:last-child { border-bottom:none; }
+  .result-row .label { color:var(--muted); }
+  .result-row .value { font-weight:500; color:var(--text); font-size:14px; }
+  .highlight-row { background:var(--surface2); padding:1.25rem; display:flex; justify-content:space-between; align-items:center; border-radius:var(--r); margin-bottom:12px; }
+  .highlight-row .hl-label { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .highlight-row .hl-value { font-family:var(--font-display); font-size:2rem; font-weight:700; color:var(--accent); }
+  .ca-row { background:var(--accent); padding:1.25rem; display:flex; justify-content:space-between; align-items:center; border-radius:var(--r); margin-bottom:1.5rem; }
+  .ca-row .hl-label { color:rgba(0,0,0,.6); font-size:11px; letter-spacing:.1em; text-transform:uppercase; }
+  .ca-row .hl-value { font-family:var(--font-display); font-size:2rem; font-weight:800; color:#000; }
+  .presets { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:1.5rem; }
+  .preset-btn { background:var(--surface); border:0.5px solid var(--border); border-radius:20px; padding:5px 14px; font-family:var(--font-mono); font-size:12px; color:var(--muted); cursor:pointer; transition:all .15s; }
+  .preset-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .section { margin-bottom:2rem; }
+  .tag-line { font-size:11px; color:var(--muted); text-align:center; padding-top:2rem; border-top:0.5px solid var(--border); letter-spacing:.05em; }
+
+  /* Bouton export */
+  .btn-export { background:var(--accent); color:#000; border:none; border-radius:var(--r); padding:.75rem 1.5rem; font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.06em; cursor:pointer; width:100%; transition:opacity .2s; }
+  .btn-export:hover { opacity:.85; }
+  .btn-export:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* Table des formats */
+  .formats-block { background:var(--surface); border:0.5px solid var(--border2); border-radius:var(--r); overflow:hidden; margin-bottom:1.5rem; }
+  .formats-header { width:100%; background:var(--surface2); border:none; color:var(--text); padding:.875rem 1.25rem; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:background .2s; }
+  .formats-header:hover { background:rgba(200,255,0,0.06); }
+  .formats-body { display:none; }
+  .formats-body.open { display:block; }
+  table.fmt-tbl { width:100%; border-collapse:collapse; font-size:12px; }
+  table.fmt-tbl thead { background:rgba(255,255,255,.04); }
+  table.fmt-tbl th { padding:8px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); text-align:right; border-bottom:0.5px solid var(--border); }
+  table.fmt-tbl th:first-child { text-align:left; }
+  table.fmt-tbl td { padding:7px 12px; border-bottom:0.5px solid var(--border); text-align:right; font-family:var(--font-mono); color:var(--muted); }
+  table.fmt-tbl td:first-child { text-align:left; color:var(--text); }
+  table.fmt-tbl tr:last-child td { border-bottom:none; }
+  table.fmt-tbl .prix { color:var(--accent); font-weight:700; }
+  table.fmt-tbl .cout { color:var(--accent2); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">HCS <span>\/\/</span> Sticker Calc</div>
+    <div class="badge">Vinyle autocollant</div>
+  </header>
+
+  <div class="section">
+    <p class="section-label">Paramètres du rouleau</p>
+    <div class="grid3">
+      <div class="field">
+        <label>Prix / yard (XPF)</label>
+        <input type="number" id="prix-yard" value="10000" min="1" step="1">
+        <div class="unit">XPF par yard</div>
+      </div>
+      <div class="field">
+        <label>Largeur rouleau</label>
+        <input type="number" id="larg-roll" value="30.48" min="1" step="0.01">
+        <div class="unit">cm (12" = 30.48)</div>
+      </div>
+      <div class="field">
+        <label>Longueur rouleau</label>
+        <input type="number" id="long-roll" value="91.44" min="1" step="0.01">
+        <div class="unit">cm (1 yard = 91.44)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Dimensions personnalisées</p>
+    <div class="grid2">
+      <div class="field">
+        <label>Largeur sticker</label>
+        <input type="number" id="w" value="10" min="0.1" step="0.5">
+        <div class="unit">cm</div>
+      </div>
+      <div class="field">
+        <label>Hauteur sticker</label>
+        <input type="number" id="h" value="10" min="0.1" step="0.5">
+        <div class="unit">cm</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Formats prédéfinis</p>
+    <div class="presets">
+      <button class="preset-btn" onclick="setSize(5,5)">5×5</button>
+      <button class="preset-btn" onclick="setSize(5,10)">5×10</button>
+      <button class="preset-btn" onclick="setSize(10,10)">10×10</button>
+      <button class="preset-btn" onclick="setSize(10,15)">10×15</button>
+      <button class="preset-btn" onclick="setSize(15,15)">15×15</button>
+      <button class="preset-btn" onclick="setSize(15,20)">15×20</button>
+      <button class="preset-btn" onclick="setSize(20,20)">20×20</button>
+      <button class="preset-btn" onclick="setSize(21,29.7)">A4</button>
+      <button class="preset-btn" onclick="setSize(20,30)">20×30</button>
+      <button class="preset-btn" onclick="setSize(29.7,42)">A3</button>
+      <button class="preset-btn" onclick="setSize(30.48,91.44)">Yard entier</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">Quantité & marge</p>
+    <div class="grid2">
+      <div class="field">
+        <label>Quantité (pcs)</label>
+        <input type="number" id="qty" value="1" min="1" step="1">
+        <div class="unit">nombre de pièces</div>
+      </div>
+      <div class="field">
+        <label>Coefficient marge</label>
+        <input type="number" id="marge" value="100" min="0" step="5">
+        <div class="unit">% sur coût matière</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="section">
+    <p class="section-label">Résultats — format actuel</p>
+
+    <div class="highlight-row">
+      <div><div class="hl-label">Coût au cm²</div></div>
+      <div class="hl-value" id="r-cm2">— XPF</div>
+    </div>
+
+    <div class="results">
+      <div class="result-row"><span class="label">Surface du rouleau</span><span class="value" id="r-surf-roll">— cm²</span></div>
+      <div class="result-row"><span class="label">Surface par sticker</span><span class="value" id="r-surf-sticker">— cm²</span></div>
+      <div class="result-row"><span class="label">Coût matière / sticker</span><span class="value" id="r-mat-unit">— XPF</span></div>
+      <div class="result-row"><span class="label">Coût matière total (×qté)</span><span class="value" id="r-mat-tot">— XPF</span></div>
+      <div class="result-row"><span class="label">Nb stickers / yard</span><span class="value" id="r-nb">— pcs</span></div>
+      <div class="result-row"><span class="label">Prix de vente / pcs</span><span class="value" id="r-pvente">— XPF</span></div>
+    </div>
+
+    <div class="ca-row">
+      <div class="hl-label">CA total estimé</div>
+      <div class="hl-value" id="r-ca">— XPF</div>
+    </div>
+  </div>
+
+  <!-- Table de tous les formats HCS -->
+  <div class="formats-block">
+    <button class="formats-header" id="btn-fmt-toggle">
+      <span>📐 Tableau des formats HCS</span>
+      <span id="fmt-arrow">▼</span>
+    </button>
+    <div class="formats-body" id="formats-body">
+      <table class="fmt-tbl" id="formats-table"></table>
+    </div>
+  </div>
+
+  <!-- Export rapport -->
+  <div class="section">
+    <button class="btn-export" id="btn-export">⬇ Exporter rapport HTML → Transfert Creator</button>
+  </div>
+
+  <!-- Export Product Creator -->
+  <div class="section">
+    <button class="btn-export" id="btn-export-pc" style="background:#00ffc8;color:#000;">📦 Exporter vers Product Creator (CSV)</button>
+  </div>
+
+  <p class="tag-line">High Coffee Shirt · Papeete, Tahiti · vinyle autocollant & stickers</p>
+</div>
+
+<script>
+/* ── Formats HCS standards stickers ── */
+const HCS_STICKER_FORMATS = [
+  { l:5,  h:5   }, { l:5,  h:10  }, { l:10, h:10  },
+  { l:10, h:15  }, { l:15, h:15  }, { l:15, h:20  },
+  { l:20, h:20  }, { l:21, h:29.7 }, { l:20, h:30  },
+  { l:29.7, h:42 },
+];
+
+function fmt(n, d=2) {
+  return n.toLocaleString('fr-FR', { minimumFractionDigits:d, maximumFractionDigits:d });
+}
+
+function getParams() {
+  return {
+    prixYard: parseFloat(document.getElementById('prix-yard').value) || 0,
+    largRoll: parseFloat(document.getElementById('larg-roll').value) || 0,
+    longRoll: parseFloat(document.getElementById('long-roll').value) || 0,
+    w:        parseFloat(document.getElementById('w').value) || 0,
+    h:        parseFloat(document.getElementById('h').value) || 0,
+    qty:      parseInt(document.getElementById('qty').value) || 1,
+    marge:    parseFloat(document.getElementById('marge').value) || 0,
+  };
+}
+
+function calcForDims(w, h, p) {
+  const surfRoll = p.largRoll * p.longRoll;
+  const cpm2 = surfRoll > 0 ? p.prixYard / surfRoll : 0;
+  const surface = w * h;
+  const cout = Math.round(surface * cpm2);
+  const prix = Math.round(cout * (1 + p.marge / 100));
+  const nbYard = surface > 0 ? Math.floor(surfRoll / surface) : 0;
+  return { surface, cout, prix, nbYard, cpm2 };
+}
+
+function calc() {
+  const p = getParams();
+  const { surface:surfRoll } = { surface: p.largRoll * p.longRoll };
+  const cpm2 = surfRoll > 0 ? p.prixYard / surfRoll : 0;
+  const surfSticker = p.w * p.h;
+  const matUnit = surfSticker * cpm2;
+  const matTot = matUnit * p.qty;
+  const nbYard = surfSticker > 0 ? Math.floor(surfRoll / surfSticker) : 0;
+  const pvente = matUnit * (1 + p.marge / 100);
+  const ca = pvente * p.qty;
+
+  document.getElementById('r-cm2').textContent        = fmt(cpm2, 4) + ' XPF/cm²';
+  document.getElementById('r-surf-roll').textContent  = fmt(p.largRoll * p.longRoll, 2) + ' cm²';
+  document.getElementById('r-surf-sticker').textContent = fmt(surfSticker, 2) + ' cm²';
+  document.getElementById('r-mat-unit').textContent   = fmt(matUnit, 2) + ' XPF';
+  document.getElementById('r-mat-tot').textContent    = fmt(matTot, 2) + ' XPF';
+  document.getElementById('r-nb').textContent         = fmt(nbYard, 0) + ' pcs';
+  document.getElementById('r-pvente').textContent     = fmt(pvente, 0) + ' XPF';
+  document.getElementById('r-ca').textContent         = fmt(ca, 0) + ' XPF';
+
+  // Met à jour la table si ouverte
+  if (document.getElementById('formats-body').classList.contains('open')) {
+    renderFormatsTable();
+  }
+}
+
+function setSize(w, h) {
+  document.getElementById('w').value = w;
+  document.getElementById('h').value = h;
+  calc();
+}
+
+/* ── Table formats ── */
+let _fmtOpen = false;
+document.getElementById('btn-fmt-toggle').addEventListener('click', () => {
+  _fmtOpen = !_fmtOpen;
+  document.getElementById('formats-body').classList.toggle('open', _fmtOpen);
+  document.getElementById('fmt-arrow').textContent = _fmtOpen ? '▲' : '▼';
+  if (_fmtOpen) renderFormatsTable();
+});
+
+function renderFormatsTable() {
+  const p = getParams();
+  const tbl = document.getElementById('formats-table');
+  const rows = HCS_STICKER_FORMATS.map(f => {
+    const { surface, cout, prix, nbYard } = calcForDims(f.l, f.h, p);
+    return `<tr>
+      <td>${f.l}×${f.h} cm</td>
+      <td>${surface} cm²</td>
+      <td>${nbYard}</td>
+      <td class="cout">${cout.toLocaleString('fr-FR')} F</td>
+      <td class="prix">${prix.toLocaleString('fr-FR')} F</td>
+      <td>${p.marge}%</td>
+    </tr>`;
+  }).join('');
+  tbl.innerHTML = `
+    <thead><tr>
+      <th style="text-align:left">Format (L×H)</th>
+      <th>Surface</th><th>Pcs/Yard</th><th>Coût</th><th>Prix vente</th><th>Marge</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>`;
+}
+
+/* ── Export rapport HTML ── */
+document.getElementById('btn-export').addEventListener('click', () => {
+  const p = getParams();
+  const surfRoll = p.largRoll * p.longRoll;
+  const cpm2 = surfRoll > 0 ? p.prixYard / surfRoll : 0;
+  const coutPer100 = Math.round(cpm2 * 100 * 100) / 100;
+
+  const formats = HCS_STICKER_FORMATS.map(f => {
+    const { surface, cout, prix, nbYard } = calcForDims(f.l, f.h, p);
+    return { h: f.h, l: f.l, surface, cout, prix, totalYard: nbYard };
+  });
+
+  const jsonData = {
+    _hcs_version: '2.0',
+    _hcs_type: 'sticker',
+    prixYard: p.prixYard,
+    largRoll: p.largRoll,
+    longRoll: p.longRoll,
+    surfRoll: Math.round(surfRoll),
+    coutPer100cm2: coutPer100,
+    coeffMarge: p.marge,
+    formats
+  };
+
+  const htmlRows = formats.map(f =>
+    `<tr>
+      <td>${f.l}×${f.h} cm</td>
+      <td style="text-align:right">${f.surface} cm²</td>
+      <td style="text-align:right">${f.totalYard}</td>
+      <td style="text-align:right">${f.cout.toLocaleString('fr-FR')} F</td>
+      <td style="text-align:right;font-weight:bold;color:#34a853">${f.prix.toLocaleString('fr-FR')} F</td>
+      <td style="text-align:right">${p.marge}%</td>
+    </tr>`).join('');
+
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('fr-FR');
+  const fileStr = d.toISOString().slice(0,10);
+
+  const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><title>Rapport HCS - Vinyle Autocollant</title>
+<style>
+  body{font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px}
+  .container{max-width:1000px;margin:0 auto;background:white;padding:30px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+  h1{color:#1a73e8;border-bottom:3px solid #1a73e8;padding-bottom:10px;margin-bottom:30px}
+  h2{color:#34a853;margin-top:30px;margin-bottom:15px;border-left:4px solid #34a853;padding-left:10px}
+  .param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+  .param-box{background:#f0f4ff;padding:15px;border-radius:6px;border-left:4px solid #1a73e8}
+  .param-label{font-size:.85em;color:#666;font-weight:bold}
+  .param-value{font-size:1.3em;color:#1a73e8;font-weight:bold;margin-top:5px}
+  table{width:100%;border-collapse:collapse;margin:15px 0}
+  th{background:#1a73e8;color:white;padding:10px;text-align:left}
+  td{padding:8px 10px;border-bottom:1px solid #ddd}
+  tr:nth-child(even){background:#f9f9f9}
+  .footer{text-align:center;margin-top:40px;color:#666;font-size:.85em;padding-top:20px;border-top:1px solid #ddd}
+</style></head>
+<body><div class="container">
+  <h1>🏷️ Rapport Calculateur HCS Tahiti</h1>
+  <div class="param-grid">
+    <div class="param-box"><div class="param-label">Type de Vinyle</div><div class="param-value">Vinyle Autocollant</div></div>
+    <div class="param-box"><div class="param-label">Prix/Yard (XPF)</div><div class="param-value">${p.prixYard.toLocaleString('fr-FR')} F</div></div>
+    <div class="param-box"><div class="param-label">Largeur Rouleau</div><div class="param-value">${p.largRoll} cm</div></div>
+    <div class="param-box"><div class="param-label">Coefficient Marge</div><div class="param-value">${p.marge}%</div></div>
+    <div class="param-box"><div class="param-label">Coût/100 cm²</div><div class="param-value">${coutPer100} F</div></div>
+    <div class="param-box"><div class="param-label">Surface 1 Yard</div><div class="param-value">${Math.round(surfRoll).toLocaleString('fr-FR')} cm²</div></div>
+  </div>
+  <h2>🏷️ Tarifs par Dimension</h2>
+  <table>
+    <tr><th>Format (H×L)</th><th style="text-align:right">Surface</th><th style="text-align:right">Pcs/Yard</th><th style="text-align:right">Coût/Logo</th><th style="text-align:right">Prix Vente</th><th style="text-align:right">Marge</th></tr>
+    ${htmlRows}
+  </table>
+  <div class="footer"><p>Rapport généré le ${dateStr} | HCS Tahiti</p><p>Calculateur Vinyle Autocollant — Export HTML</p></div>
+  <script type="application/json" id="hcs-calc-data">${JSON.stringify(jsonData)}<\/script>
+</div></body></html>`;
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  a.download = `HCS_Rapport_Sticker_${fileStr}.html`;
+  a.click();
+});
+
+/* ── Export Product Creator CSV ── */
+document.getElementById('btn-export-pc').addEventListener('click', () => {
+  const p = getParams();
+  const CSV_FIELDS = ['emoji','nom','designation','ref','categorie','type','tailles','couleurs','prix','prixTTC','cout','tva','stock','stockMin','unite','paliers','description'];
+  const tva = 16;
+  const rows = [CSV_FIELDS.join(';')];
+
+  HCS_STICKER_FORMATS.forEach(f => {
+    const { cout, prix } = calcForDims(f.l, f.h, p);
+    const nom = `Sticker Vinyle ${f.l}×${f.h}cm`;
+    const ref = `VNL-${f.l}x${f.h}`;
+    const prixTTC = Math.round(prix * (1 + tva / 100));
+    const desc = `Vinyle autocollant ${f.l}×${f.h}cm — Surface ${f.l*f.h}cm² — Coût: ${cout} XPF — Marge: ${p.marge}%`;
+    const row = ['✂️', nom, nom, ref, 'Services Vinyle', 'service', '', '', prix, prixTTC, cout, tva, 0, 0, 'unité', '', desc];
+    rows.push(row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';'));
+  });
+
+  const csv = rows.join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'}));
+  a.download = `HCS_ProductCreator_Vinyle_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+});
+
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', calc));
+calc();
+</script>
+</body>
+</html>

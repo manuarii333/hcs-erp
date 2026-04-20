@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCS Designer — Agent DTF & Mockup</title>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d2e;
+      --surface2: #1e2235;
+      --border:   #2a2d45;
+      --accent:   #6366f1;
+      --accent2:  #a855f7;
+      --gold:     #f59e0b;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --radius:   10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    .hd {
+      background: linear-gradient(135deg, #1a1d2e 0%, #12152a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .hd-icon {
+      font-size: 26px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hd-title h1 { font-size: 15px; font-weight: 700; }
+    .hd-title p  { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .hd-badges { margin-left: auto; display: flex; gap: 6px; }
+    .badge {
+      padding: 3px 9px; border-radius: 20px;
+      font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+    }
+    .badge-dtf  { background: rgba(245,158,11,.12); color: var(--gold); border: 1px solid rgba(245,158,11,.3); }
+    .badge-ai   { background: rgba(99,102,241,.12); color: var(--accent); border: 1px solid rgba(99,102,241,.3); }
+
+    /* ── TABS ── */
+    .tabs-nav {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      padding: 11px 18px; cursor: pointer;
+      border: none; background: none; color: var(--muted);
+      font-size: 12px; font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── MAIN ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .tab-panel { display: none; flex: 1; overflow: hidden; }
+    .tab-panel.active { display: flex; }
+
+    /* ────────────────────────────────────────
+       TAB 1 — DTF STUDIO
+    ──────────────────────────────────────── */
+    .studio-layout { display: flex; width: 100%; height: 100%; }
+
+    .studio-sidebar {
+      width: 210px; background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+    }
+    .ss { padding: 11px 13px; border-bottom: 1px solid var(--border); }
+    .sl { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 9px; font-weight: 600; }
+
+    /* outils */
+    .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .tool-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 9px 5px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 7px;
+      cursor: pointer; font-size: 9px; color: var(--text); transition: all .15s;
+    }
+    .tool-btn:hover,.tool-btn.active {
+      background: rgba(99,102,241,.15); border-color: var(--accent); color: var(--accent);
+    }
+    .tool-btn .ti { font-size: 16px; }
+
+    /* palette */
+    .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .swatch {
+      width: 100%; aspect-ratio: 1; border-radius: 5px; cursor: pointer;
+      border: 2px solid transparent; transition: border-color .15s;
+    }
+    .swatch.active { border-color: #fff; }
+    .custom-color-row { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
+    .custom-color-row input[type=color] {
+      width: 28px; height: 26px; border: 1px solid var(--border);
+      border-radius: 5px; background: none; cursor: pointer;
+    }
+    .custom-color-row label { font-size: 10px; color: var(--muted); }
+
+    /* sliders */
+    .sz-row { display: flex; gap: 6px; align-items: center; }
+    .sz-row input[type=range] { flex: 1; accent-color: var(--accent); }
+    .sz-val { font-size: 10px; color: var(--muted); min-width: 28px; text-align: right; }
+    .txt-inp { display: flex; flex-direction: column; gap: 5px; }
+    .txt-inp input, .txt-inp select {
+      width: 100%; padding: 6px 9px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text); font-size: 11px;
+    }
+    .txt-inp input:focus,.txt-inp select:focus { border-color: var(--accent); outline: none; }
+
+    /* logo gallery */
+    .logo-gal { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 8px; }
+    .logo-thumb {
+      aspect-ratio: 1; border-radius: 5px; border: 2px solid var(--border);
+      cursor: pointer; overflow: hidden; background: #fff; transition: border-color .15s;
+    }
+    .logo-thumb:hover { border-color: var(--accent); }
+    .logo-thumb.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(99,102,241,.4); }
+    .logo-thumb img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* canvas area */
+    .studio-canvas-area {
+      flex: 1; display: flex; flex-direction: column; background: #0a0c14; overflow: hidden;
+    }
+    .canvas-toolbar {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .action-btn {
+      padding: 5px 12px; border-radius: 5px; font-size: 11px;
+      cursor: pointer; border: 1px solid var(--border); background: var(--surface2);
+      color: var(--text); transition: all .15s; display: flex; align-items: center; gap: 5px;
+    }
+    .action-btn:hover { border-color: var(--accent); background: rgba(99,102,241,.1); }
+    .action-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .action-btn.primary:hover { background: #4f46e5; }
+    .canvas-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 18px;
+    }
+    #dtf-canvas {
+      background: #fff; border-radius: 7px;
+      box-shadow: 0 0 40px rgba(99,102,241,.2);
+      cursor: crosshair; max-width: 100%; max-height: 100%;
+    }
+
+    /* props panel */
+    .studio-props {
+      width: 185px; background: var(--surface); border-left: 1px solid var(--border);
+      overflow-y: auto; flex-shrink: 0;
+    }
+    .pp { padding: 11px 13px; border-bottom: 1px solid var(--border); }
+    .sl-grp { margin-bottom: 9px; }
+    .sl-grp:last-child { margin-bottom: 0; }
+    .sl-grp label {
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--muted); margin-bottom: 3px;
+    }
+    .sl-grp input[type=range] { width: 100%; accent-color: var(--accent); }
+    .info-rw {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px;
+    }
+    .info-rw:last-child { border: none; }
+    .info-rw .k { color: var(--muted); }
+    .info-rw .v { font-weight: 500; }
+    .bg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+
+    /* ────────────────────────────────────────
+       TAB 2 — LECTURE DEVIS
+    ──────────────────────────────────────── */
+    .devis-layout { display: flex; width: 100%; height: 100%; }
+    .devis-list-panel {
+      width: 270px; background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+    }
+    .ph {
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ph h3 { font-size: 12px; font-weight: 600; }
+    .pf { padding: 7px 11px; border-bottom: 1px solid var(--border); display: flex; gap: 5px; }
+    .filter-btn {
+      padding: 3px 9px; border-radius: 11px; font-size: 9px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); background: none; color: var(--muted); transition: all .15s;
+    }
+    .filter-btn.active { background: rgba(99,102,241,.15); border-color: var(--accent); color: var(--accent); }
+    .doc-items { flex: 1; overflow-y: auto; }
+    .doc-item {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .15s; border-left: 3px solid transparent;
+    }
+    .doc-item:hover { background: rgba(99,102,241,.05); }
+    .doc-item.active { background: rgba(99,102,241,.08); border-left-color: var(--accent); }
+    .doc-ref { font-size: 11px; font-weight: 700; color: var(--accent); }
+    .doc-client { font-size: 10px; color: var(--text); margin-top: 2px; }
+    .doc-meta { display: flex; gap: 7px; margin-top: 3px; }
+    .doc-date { font-size: 9px; color: var(--muted); }
+    .doc-status { font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 9px; }
+    .st-brouillon { background: rgba(100,116,139,.15); color: #94a3b8; }
+    .st-confirme  { background: rgba(34,197,94,.15);  color: #22c55e; }
+    .st-envoye    { background: rgba(99,102,241,.15); color: #818cf8; }
+    .st-facture   { background: rgba(245,158,11,.15); color: #f59e0b; }
+    .st-annule    { background: rgba(239,68,68,.15);  color: #ef4444; }
+
+    .detail-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .det-hd {
+      padding: 13px 18px; background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .det-title { font-size: 13px; font-weight: 700; }
+    .det-body {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 13px; align-content: start;
+    }
+    .dcard {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .dcard h4 {
+      font-size: 9px; text-transform: uppercase; letter-spacing: .8px;
+      color: var(--muted); margin-bottom: 10px; font-weight: 600;
+    }
+    .dcard.span2 { grid-column: 1/-1; }
+    .dtf-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .dtf-tag { padding: 2px 9px; border-radius: 9px; font-size: 10px; font-weight: 600; }
+    .tag-p { background: rgba(99,102,241,.15); color: var(--accent); border: 1px solid rgba(99,102,241,.3); }
+    .tag-c { background: rgba(168,85,247,.15); color: var(--accent2); border: 1px solid rgba(168,85,247,.3); }
+    .tag-t { background: rgba(245,158,11,.15); color: var(--gold); border: 1px solid rgba(245,158,11,.3); }
+    .tag-pos { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+
+    /* ────────────────────────────────────────
+       TAB 3 — ENVOI ATELIER
+    ──────────────────────────────────────── */
+    .atelier-layout { display: flex; width: 100%; height: 100%; }
+    .atelier-form  { flex: 1; overflow-y: auto; padding: 20px; }
+    .atelier-hist  {
+      width: 280px; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0;
+    }
+    .fsec {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 17px; margin-bottom: 14px;
+    }
+    .fsec h3 { font-size: 12px; font-weight: 700; margin-bottom: 13px; display: flex; align-items: center; gap: 7px; }
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ff { display: flex; flex-direction: column; gap: 4px; }
+    .ff.span2 { grid-column: 1/-1; }
+    .ff label {
+      font-size: 9px; color: var(--muted); font-weight: 500;
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .ff input,.ff select,.ff textarea {
+      width: 100%; padding: 7px 11px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text); font-size: 11px; transition: border-color .15s;
+    }
+    .ff input:focus,.ff select:focus,.ff textarea:focus { border-color: var(--accent); outline: none; }
+    .ff textarea { resize: vertical; min-height: 70px; }
+    .ff input[readonly] { opacity: .65; cursor: default; }
+
+    .mac-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .mac-btn {
+      padding: 9px 7px; border-radius: 7px; border: 1px solid var(--border);
+      background: var(--surface2); cursor: pointer; text-align: center;
+      transition: all .15s; font-size: 10px; color: var(--text);
+    }
+    .mac-btn:hover,.mac-btn.active { border-color: var(--gold); background: rgba(245,158,11,.1); color: var(--gold); }
+    .mac-btn .mi { font-size: 18px; display: block; margin-bottom: 3px; }
+
+    .prio-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .prio-btn {
+      padding: 7px; border-radius: 5px; border: 1px solid var(--border);
+      background: var(--surface2); cursor: pointer; text-align: center;
+      font-size: 10px; font-weight: 600; transition: all .15s; color: var(--text);
+    }
+    .prio-btn:hover { border-color: var(--accent); }
+    .prio-btn.active { background: rgba(99,102,241,.2); border-color: var(--accent); color: var(--accent); }
+    .prio-btn[data-prio="Haute"].active  { background: rgba(239,68,68,.15); border-color: var(--red); color: var(--red); }
+    .prio-btn[data-prio="Urgente"].active{ background: rgba(239,68,68,.25); border-color: var(--red); color: var(--red); }
+
+    .logo-prev-box {
+      background: #f0f0f0; border-radius: 7px; height: 110px;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .logo-prev-box.empty { color: #aaa; font-size: 11px; }
+    .logo-prev-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    .recap-card {
+      background: rgba(99,102,241,.05); border: 1px solid rgba(99,102,241,.2);
+      border-radius: var(--radius); padding: 14px;
+    }
+    .rc-row {
+      display: flex; justify-content: space-between; padding: 5px 0;
+      font-size: 11px; border-bottom: 1px dashed var(--border);
+    }
+    .rc-row:last-child { border: none; }
+    .rc-row .rk { color: var(--muted); }
+    .rc-row .rv { font-weight: 600; }
+
+    .send-btn {
+      width: 100%; padding: 13px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 9px; transition: opacity .15s; margin-top: 7px;
+    }
+    .send-btn:hover { opacity: .9; }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-link {
+      background: none; border: none; color: var(--accent);
+      cursor: pointer; font-size: 10px; text-decoration: underline; padding: 0;
+    }
+
+    .hist-item { padding: 11px 14px; border-bottom: 1px solid var(--border); }
+    .hist-item .hr { font-size: 10px; font-weight: 700; color: var(--accent); }
+    .hist-item .hi { font-size: 9px; color: var(--muted); margin-top: 2px; }
+    .hist-item .hs { font-size: 9px; font-weight: 600; margin-top: 4px; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: #22c55e; color: #fff; padding: 10px 18px;
+      border-radius: 7px; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 7px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4); z-index: 9999;
+      transform: translateY(70px); opacity: 0; transition: all .3s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.err  { background: var(--red); }
+
+    /* ── EMPTY STATE ── */
+    .empty-st {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; gap: 10px; color: var(--muted);
+    }
+    .empty-st .ei { font-size: 42px; opacity: .3; }
+    .empty-st p { font-size: 12px; }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hd">
+  <div class="hd-icon">⬡</div>
+  <div class="hd-title">
+    <h1>HCS Designer</h1>
+    <p>Agent DTF Studio · Lecture Devis · Dispatch Atelier</p>
+  </div>
+  <div class="hd-badges">
+    <span class="badge badge-dtf">🖨️ DTF Studio</span>
+    <span class="badge badge-ai">⬡ Agent HCS</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-nav">
+  <button class="tab-btn active" data-tab="studio">🎨 DTF Studio</button>
+  <button class="tab-btn" data-tab="devis">📄 Lecture Devis / Facture</button>
+  <button class="tab-btn" data-tab="atelier">⚙️ Envoi Atelier</button>
+</div>
+
+<div class="main">
+
+  <!-- ══════════════════════════════════
+       TAB 1 — DTF STUDIO
+  ══════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-studio">
+    <div class="studio-layout">
+
+      <!-- Sidebar outils -->
+      <div class="studio-sidebar">
+
+        <div class="ss">
+          <div class="sl">Outils</div>
+          <div class="tool-grid">
+            <button class="tool-btn active" id="tool-select" onclick="setTool('select')"><span class="ti">↖</span>Sélection</button>
+            <button class="tool-btn" id="tool-text"   onclick="setTool('text')">  <span class="ti">T</span>Texte</button>
+            <button class="tool-btn" id="tool-rect"   onclick="setTool('rect')">  <span class="ti">▭</span>Rectangle</button>
+            <button class="tool-btn" id="tool-ellipse" onclick="setTool('ellipse')"><span class="ti">◯</span>Ellipse</button>
+            <button class="tool-btn" id="tool-image"  onclick="triggerImgUpload()"><span class="ti">🖼</span>Image</button>
+            <button class="tool-btn" id="tool-pen"    onclick="setTool('pen')">   <span class="ti">✏</span>Crayon</button>
+          </div>
+          <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="addImgToCanvas(event)">
+        </div>
+
+        <div class="ss">
+          <div class="sl">Couleurs DTF</div>
+          <div class="palette" id="dtf-palette"></div>
+          <div class="custom-color-row">
+            <input type="color" id="custom-color" value="#6366f1" onchange="setColor(this.value)">
+            <label>Couleur libre</label>
+          </div>
+        </div>
+
+        <div class="ss">
+          <div class="sl">Taille pinceau</div>
+          <div class="sz-row">
+            <input type="range" id="brush-size" min="1" max="60" value="20" oninput="setBrushSize(this.value)">
+            <span class="sz-val" id="bsz-val">20px</span>
+          </div>
+        </div>
+
+        <div class="ss">
+          <div class="sl">Texte</div>
+          <div class="txt-inp">
+            <input type="text" id="text-content" value="HCS COLLECTION" placeholder="Mon texte…">
+            <select id="font-family">
+              <option value="Impact">Impact</option>
+              <option value="'Arial Black', sans-serif">Arial Black</option>
+              <option value="'Courier New', monospace">Courier New</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Verdana, sans-serif">Verdana</option>
+            </select>
+            <div class="sz-row">
+              <input type="range" id="font-size" min="10" max="120" value="36" oninput="setFontSize(this.value)">
+              <span class="sz-val" id="fsz-val">36px</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ss">
+          <div class="sl">Logos sauvegardés</div>
+          <div class="logo-gal" id="logo-gallery">
+            <div style="grid-column:1/-1;text-align:center;font-size:10px;color:var(--muted);padding:8px 0;">Aucun logo</div>
+          </div>
+        </div>
+
+      </div><!-- /sidebar -->
+
+      <!-- Canvas central -->
+      <div class="studio-canvas-area">
+        <div class="canvas-toolbar">
+          <button class="action-btn" onclick="studioUndo()">↩ Annuler</button>
+          <button class="action-btn" onclick="studioClear()">🗑 Tout effacer</button>
+          <div style="flex:1"></div>
+          <button class="action-btn" onclick="studioSave()">💾 Sauvegarder logo</button>
+          <button class="action-btn primary" onclick="studioExport()">⬇ Exporter PNG</button>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="dtf-canvas" width="600" height="480"></canvas>
+        </div>
+      </div>
+
+      <!-- Props droite -->
+      <div class="studio-props">
+        <div class="pp">
+          <div class="sl">Collection</div>
+          <div class="txt-inp">
+            <input type="text" id="collection-name" value="COLLECTION ORIGINALE DTF" placeholder="Nom collection…">
+          </div>
+        </div>
+        <div class="pp">
+          <div class="sl">Effets</div>
+          <div class="sl-grp">
+            <label><span>Opacité</span><span id="v-opacity">100%</span></label>
+            <input type="range" id="sl-opacity" min="0" max="100" value="100" oninput="document.getElementById('v-opacity').textContent=this.value+'%'">
+          </div>
+          <div class="sl-grp">
+            <label><span>Rotation</span><span id="v-rotation">0°</span></label>
+            <input type="range" id="sl-rotation" min="0" max="360" value="0" oninput="document.getElementById('v-rotation').textContent=this.value+'°'">
+          </div>
+        </div>
+        <div class="pp">
+          <div class="sl">Fond canvas</div>
+          <div class="bg-grid">
+            <button class="tool-btn" onclick="setCanvasBg('#ffffff')">⬜ Blanc</button>
+            <button class="tool-btn" onclick="setCanvasBg('#000000')">⬛ Noir</button>
+            <button class="tool-btn" onclick="setCanvasBg('#c0392b')">🟥 Rouge</button>
+            <button class="tool-btn" onclick="setCanvasBg('checker')">◻ Trans.</button>
+          </div>
+        </div>
+        <div class="pp">
+          <div class="sl">Format DTF</div>
+          <div class="txt-inp">
+            <select id="dtf-format" onchange="document.getElementById('fmt-disp').textContent=this.value.replace('x','×')+' cm'">
+              <option value="30x40">30×40 cm (standard)</option>
+              <option value="20x30">20×30 cm (poitrine)</option>
+              <option value="10x10">10×10 cm (poche)</option>
+              <option value="40x50">40×50 cm (dos complet)</option>
+            </select>
+          </div>
+        </div>
+        <div class="pp">
+          <div class="sl">Infos</div>
+          <div class="info-rw"><span class="k">Canvas</span><span class="v">600×480</span></div>
+          <div class="info-rw"><span class="k">Format</span><span class="v" id="fmt-disp">30×40 cm</span></div>
+          <div class="info-rw"><span class="k">Couches</span><span class="v" id="layers-count">0</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-studio -->
+
+  <!-- ══════════════════════════════════
+       TAB 2 — LECTURE DEVIS
+  ══════════════════════════════════ -->
+  <div class="tab-panel" id="tab-devis">
+    <div class="devis-layout">
+
+      <!-- Liste documents -->
+      <div class="devis-list-panel">
+        <div class="ph">
+          <h3>📄 Documents</h3>
+          <button class="action-btn" onclick="loadDocs()" style="font-size:10px;padding:3px 9px;">↻</button>
+        </div>
+        <div class="pf">
+          <button class="filter-btn active" data-filter="devis"     onclick="setFilter('devis',this)">Devis</button>
+          <button class="filter-btn"        data-filter="factures"  onclick="setFilter('factures',this)">Factures</button>
+          <button class="filter-btn"        data-filter="commandes" onclick="setFilter('commandes',this)">Commandes</button>
+        </div>
+        <div class="doc-items" id="doc-list">
+          <div class="empty-st" style="height:200px;"><span class="ei">📄</span><p>Chargement…</p></div>
+        </div>
+      </div>
+
+      <!-- Détail document -->
+      <div class="detail-panel">
+        <div class="det-hd">
+          <div class="det-title" id="det-ref">← Sélectionner un document</div>
+          <button class="action-btn" id="btn-to-atelier" onclick="prefillAtelier()" style="display:none;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:var(--gold);font-size:11px;">
+            ⚙️ Envoyer à l'Atelier →
+          </button>
+        </div>
+        <div class="det-body" id="det-body">
+          <div class="empty-st" style="grid-column:1/-1;height:300px;">
+            <span class="ei">📄</span>
+            <p>Sélectionnez un document pour voir les détails</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-devis -->
+
+  <!-- ══════════════════════════════════
+       TAB 3 — ENVOI ATELIER
+  ══════════════════════════════════ -->
+  <div class="tab-panel" id="tab-atelier">
+    <div class="atelier-layout">
+
+      <div class="atelier-form">
+
+        <div class="fsec">
+          <h3>📄 Document source</h3>
+          <div class="fgrid">
+            <div class="ff"><label>Référence document</label><input type="text" id="of-ref" placeholder="DEV-2026-001" readonly></div>
+            <div class="ff"><label>Client</label><input type="text" id="of-client" placeholder="Nom du client"></div>
+            <div class="ff"><label>Produit / Description</label><input type="text" id="of-produit" placeholder="T-shirt noir XL DTF poitrine"></div>
+            <div class="ff"><label>Quantité</label><input type="number" id="of-qte" placeholder="50" min="1"></div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <h3>🖨️ Machine DTF</h3>
+          <div class="mac-grid">
+            <button class="mac-btn active" data-machine="BN20 Yannick"     onclick="selMac(this)"><span class="mi">🖨️</span>BN20 Yannick</button>
+            <button class="mac-btn"        data-machine="DTF USA"          onclick="selMac(this)"><span class="mi">🖨️</span>DTF USA</button>
+            <button class="mac-btn"        data-machine="Presse Transfert" onclick="selMac(this)"><span class="mi">🔥</span>Presse Transfert</button>
+            <button class="mac-btn"        data-machine="Sublimation"      onclick="selMac(this)"><span class="mi">🎨</span>Sublimation</button>
+            <button class="mac-btn"        data-machine="SignMaster"       onclick="selMac(this)"><span class="mi">📐</span>SignMaster</button>
+            <button class="mac-btn"        data-machine="Broderie"         onclick="selMac(this)"><span class="mi">💺</span>Broderie</button>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <h3>⚡ Priorité</h3>
+          <div class="prio-grid">
+            <button class="prio-btn"       data-prio="Basse"   onclick="selPrio(this)">🟢 Basse</button>
+            <button class="prio-btn active" data-prio="Moyenne" onclick="selPrio(this)">🟡 Moyenne</button>
+            <button class="prio-btn"       data-prio="Haute"   onclick="selPrio(this)">🔴 Haute</button>
+            <button class="prio-btn"       data-prio="Urgente" onclick="selPrio(this)">🆘 Urgente</button>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <h3>🎨 Logo DTF</h3>
+          <div class="fgrid">
+            <div class="ff">
+              <label>Logo sélectionné</label>
+              <div class="logo-prev-box empty" id="of-logo-prev"><span>Aucun logo</span></div>
+              <button class="btn-link" onclick="switchTab('studio')" style="margin-top:5px;">← Créer dans DTF Studio</button>
+            </div>
+            <div class="ff">
+              <label>Format DTF</label>
+              <select id="of-format">
+                <option value="30x40">30×40 cm (standard)</option>
+                <option value="20x30">20×30 cm (poitrine)</option>
+                <option value="10x10">10×10 cm (poche)</option>
+                <option value="40x50">40×50 cm (dos complet)</option>
+              </select>
+              <label style="margin-top:8px;">Position</label>
+              <select id="of-position">
+                <option value="poitrine">Poitrine gauche</option>
+                <option value="poitrine-centre">Poitrine centré</option>
+                <option value="dos">Dos complet</option>
+                <option value="manche-gauche">Manche gauche</option>
+                <option value="manche-droite">Manche droite</option>
+                <option value="poche">Poche</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <h3>📝 Instructions Atelier</h3>
+          <div class="ff span2">
+            <label>Instructions de production</label>
+            <textarea id="of-instructions" placeholder="Ex: Température 165°C, pression 3kg, 15s. Vérifier alignement poitrine. Client récupère vendredi."></textarea>
+          </div>
+          <div class="fgrid" style="margin-top:10px;">
+            <div class="ff"><label>Date de livraison</label><input type="date" id="of-date"></div>
+            <div class="ff">
+              <label>Responsable</label>
+              <select id="of-resp">
+                <option>Yannick</option><option>Marie</option><option>Pierre</option>
+                <option>John</option><option>Sophie</option><option>Marc</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="fsec">
+          <h3>📋 Récapitulatif OF</h3>
+          <div class="recap-card">
+            <div class="rc-row"><span class="rk">Document</span><span class="rv" id="rc-ref">—</span></div>
+            <div class="rc-row"><span class="rk">Client</span><span class="rv" id="rc-client">—</span></div>
+            <div class="rc-row"><span class="rk">Produit</span><span class="rv" id="rc-produit">—</span></div>
+            <div class="rc-row"><span class="rk">Quantité</span><span class="rv" id="rc-qte">—</span></div>
+            <div class="rc-row"><span class="rk">Machine</span><span class="rv" id="rc-machine">BN20 Yannick</span></div>
+            <div class="rc-row"><span class="rk">Priorité</span><span class="rv" id="rc-prio">Moyenne</span></div>
+            <div class="rc-row"><span class="rk">Format DTF</span><span class="rv" id="rc-format">30×40 cm</span></div>
+            <div class="rc-row"><span class="rk">Livraison</span><span class="rv" id="rc-date">—</span></div>
+          </div>
+          <button class="send-btn" id="btn-send" onclick="sendToAtelier()">
+            ⚙️ Créer l'Ordre de Fabrication & Notifier HCS-Atelier
+          </button>
+        </div>
+
+      </div><!-- /atelier-form -->
+
+      <!-- Historique -->
+      <div class="atelier-hist">
+        <div class="ph"><h3>⚙️ Historique envois</h3></div>
+        <div id="atelier-hist-list">
+          <div class="empty-st" style="height:200px;"><span class="ei">⚙️</span><p>Aucun envoi</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /tab-atelier -->
+
+</div><!-- /main -->
+
+<div class="toast" id="toast">✓ <span id="toast-msg"></span></div>
+
+<script>
+'use strict';
+
+/* ================================================================
+   STORE — accès localStorage partagé avec l'ERP parent
+   ================================================================ */
+const Store = (() => {
+  const KEY = 'hcs_erp_db';
+  function getDB() {
+    try {
+      return JSON.parse(localStorage.getItem(KEY) || '{}');
+    } catch(e) { return {}; }
+  }
+  function saveDB(db) { localStorage.setItem(KEY, JSON.stringify(db)); }
+  function getAll(col) { const db = getDB(); return Array.isArray(db[col]) ? db[col] : []; }
+  function create(col, record) {
+    const db = getDB();
+    if (!Array.isArray(db[col])) db[col] = [];
+    const id = 'dtf_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    const now = new Date().toISOString();
+    const rec = { ...record, id, _createdAt: now, _updatedAt: now };
+    db[col].push(rec);
+    saveDB(db);
+    return rec;
+  }
+  return { getAll, create, getDB };
+})();
+
+/* ================================================================
+   LOGOS LOCAUX
+   ================================================================ */
+const LOGOS_KEY = 'hcs_dtf_logos';
+let dtfLogos = JSON.parse(localStorage.getItem(LOGOS_KEY) || '[]');
+let selectedLogoId = null;
+
+function saveDTFLogo(name, dataURL, format) {
+  const logo = { id: 'logo_' + Date.now(), name, format, dataURL, createdAt: new Date().toISOString() };
+  dtfLogos.push(logo);
+  localStorage.setItem(LOGOS_KEY, JSON.stringify(dtfLogos));
+  return logo;
+}
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+function toast(msg, err = false) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.className = 'toast' + (err ? ' err' : '') + ' show';
+  setTimeout(() => t.className = 'toast', 3200);
+}
+
+/* ================================================================
+   TABS
+   ================================================================ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'devis')   loadDocs();
+  if (name === 'atelier') { loadHist(); updateRecap(); }
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+/* ================================================================
+   DTF STUDIO — Canvas
+   ================================================================ */
+const DTF_COLORS = [
+  { hex: '#000000' }, { hex: '#ffffff' }, { hex: '#ef4444' }, { hex: '#f59e0b' },
+  { hex: '#3b82f6' }, { hex: '#22c55e' }, { hex: '#a855f7' }, { hex: '#ec4899' },
+  { hex: '#06b6d4' }, { hex: '#84cc16' }, { hex: '#f97316' }, { hex: '#6366f1' }
+];
+
+let currentTool  = 'select';
+let currentColor = '#000000';
+let brushSize    = 20;
+let fontSize     = 36;
+let canvasBg     = '#ffffff';
+let layers       = [];
+let hist         = [];
+let histIdx      = -1;
+let isDrawing    = false;
+let startX, startY;
+let penPoints    = [];
+
+const canvas = document.getElementById('dtf-canvas');
+const ctx    = canvas.getContext('2d');
+
+/* Palette */
+function initPalette() {
+  const pal = document.getElementById('dtf-palette');
+  pal.innerHTML = DTF_COLORS.map(c =>
+    `<div class="swatch${c.hex===currentColor?' active':''}" style="background:${c.hex};border:2px solid ${c.hex==='#ffffff'?'#555':c.hex}"
+          onclick="setColor('${c.hex}',this)" title="${c.hex}"></div>`
+  ).join('');
+}
+
+function setColor(hex, el) {
+  currentColor = hex;
+  document.getElementById('custom-color').value = hex;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function setTool(t) {
+  currentTool = t;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tool-' + t);
+  if (btn) btn.classList.add('active');
+}
+
+function setBrushSize(v) { brushSize = +v; document.getElementById('bsz-val').textContent = v + 'px'; }
+function setFontSize(v)  { fontSize  = +v; document.getElementById('fsz-val').textContent  = v + 'px'; }
+function setCanvasBg(c)  { canvasBg = c; renderCanvas(); }
+function triggerImgUpload() { document.getElementById('img-upload').click(); }
+
+function addImgToCanvas(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      pushHist();
+      layers.push({ type: 'image', img, x: 80, y: 80, w: Math.min(img.width, 260), h: Math.min(img.height, 220), opacity: 1 });
+      updLayerCount(); renderCanvas();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+/* Canvas events */
+canvas.addEventListener('mousedown', e => {
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width, sy = canvas.height / r.height;
+  const x = (e.clientX - r.left) * sx, y = (e.clientY - r.top) * sy;
+  isDrawing = true; startX = x; startY = y;
+
+  if (currentTool === 'text') {
+    const content = document.getElementById('text-content').value || 'HCS';
+    pushHist();
+    layers.push({ type: 'text', content, font: document.getElementById('font-family').value, size: fontSize, color: currentColor, x, y });
+    updLayerCount(); renderCanvas(); isDrawing = false;
+  } else if (currentTool === 'pen') {
+    penPoints = [{ x, y }];
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!isDrawing) return;
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width, sy = canvas.height / r.height;
+  const x = (e.clientX - r.left) * sx, y = (e.clientY - r.top) * sy;
+
+  if (currentTool === 'pen') {
+    penPoints.push({ x, y });
+    renderCanvas();
+    ctx.save(); ctx.strokeStyle = currentColor; ctx.lineWidth = brushSize / 4;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+    penPoints.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke(); ctx.restore(); return;
+  }
+  renderCanvas();
+  ctx.save(); ctx.strokeStyle = currentColor; ctx.lineWidth = 2; ctx.setLineDash([5,3]);
+  if (currentTool === 'rect') {
+    ctx.strokeRect(startX, startY, x - startX, y - startY);
+  } else if (currentTool === 'ellipse') {
+    ctx.beginPath();
+    ctx.ellipse(startX+(x-startX)/2, startY+(y-startY)/2, Math.abs((x-startX)/2), Math.abs((y-startY)/2), 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  ctx.restore();
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (!isDrawing) return;
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width, sy = canvas.height / r.height;
+  const x = (e.clientX - r.left) * sx, y = (e.clientY - r.top) * sy;
+
+  if (currentTool === 'pen' && penPoints.length > 1) {
+    pushHist();
+    layers.push({ type: 'pen', points: [...penPoints], color: currentColor, size: brushSize / 4 });
+    penPoints = []; updLayerCount();
+  } else if (currentTool === 'rect') {
+    const w = x - startX, h = y - startY;
+    if (Math.abs(w) > 3 && Math.abs(h) > 3) {
+      pushHist();
+      layers.push({ type: 'rect', x: Math.min(startX,x), y: Math.min(startY,y), w: Math.abs(w), h: Math.abs(h), color: currentColor });
+      updLayerCount();
+    }
+  } else if (currentTool === 'ellipse') {
+    const w = x - startX, h = y - startY;
+    if (Math.abs(w) > 3 && Math.abs(h) > 3) {
+      pushHist();
+      layers.push({ type: 'ellipse', cx: startX+w/2, cy: startY+h/2, rx: Math.abs(w/2), ry: Math.abs(h/2), color: currentColor });
+      updLayerCount();
+    }
+  }
+  isDrawing = false; renderCanvas();
+});
+
+function renderCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (canvasBg === 'checker') {
+    for (let i = 0; i < canvas.width; i += 20)
+      for (let j = 0; j < canvas.height; j += 20) {
+        ctx.fillStyle = (i+j) % 40 === 0 ? '#ccc' : '#eee';
+        ctx.fillRect(i, j, 20, 20);
+      }
+  } else {
+    ctx.fillStyle = canvasBg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  layers.forEach(l => {
+    ctx.save();
+    if (l.type === 'text') {
+      ctx.fillStyle = l.color; ctx.font = `bold ${l.size}px ${l.font}`; ctx.fillText(l.content, l.x, l.y);
+    } else if (l.type === 'rect') {
+      ctx.fillStyle = l.color; ctx.fillRect(l.x, l.y, l.w, l.h);
+    } else if (l.type === 'ellipse') {
+      ctx.fillStyle = l.color; ctx.beginPath();
+      ctx.ellipse(l.cx, l.cy, l.rx, l.ry, 0, 0, Math.PI*2); ctx.fill();
+    } else if (l.type === 'image') {
+      ctx.globalAlpha = l.opacity || 1; ctx.drawImage(l.img, l.x, l.y, l.w, l.h);
+    } else if (l.type === 'pen') {
+      ctx.strokeStyle = l.color; ctx.lineWidth = l.size;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+      l.points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+function pushHist() {
+  hist = hist.slice(0, histIdx + 1);
+  hist.push(layers.map(l => ({ ...l, img: l.img ? l.img.src : undefined })));
+  histIdx++;
+}
+
+function studioUndo() {
+  if (histIdx > 0) { histIdx--; restoreHist(); }
+  else { layers = []; renderCanvas(); updLayerCount(); }
+}
+
+function restoreHist() {
+  const state = hist[histIdx];
+  Promise.all(state.map(l => {
+    if (l.img) return new Promise(res => { const i = new Image(); i.onload = () => { l.img = i; res(l); }; i.src = l.img; });
+    return Promise.resolve(l);
+  })).then(ls => { layers = ls; renderCanvas(); updLayerCount(); });
+}
+
+function studioClear() {
+  if (!confirm('Effacer tout le canvas ?')) return;
+  pushHist(); layers = []; renderCanvas(); updLayerCount();
+}
+
+function updLayerCount() { document.getElementById('layers-count').textContent = layers.length; }
+
+function studioSave() {
+  const name   = document.getElementById('collection-name').value || 'Logo DTF';
+  const format = document.getElementById('dtf-format').value;
+  const data   = canvas.toDataURL('image/png');
+  const logo   = saveDTFLogo(name, data, format);
+  selectedLogoId = logo.id;
+  renderLogoGallery();
+  setOfLogoPrev(data);
+  toast('Logo "' + name + '" sauvegardé !');
+}
+
+function studioExport() {
+  const data = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  const name = document.getElementById('collection-name').value || 'logo-dtf';
+  a.href = data; a.download = name.replace(/\s+/g,'-').toLowerCase() + '.png'; a.click();
+  toast('Exporté en PNG !');
+}
+
+function renderLogoGallery() {
+  const g = document.getElementById('logo-gallery');
+  if (!dtfLogos.length) {
+    g.innerHTML = '<div style="grid-column:1/-1;text-align:center;font-size:10px;color:var(--muted);padding:8px 0;">Aucun logo</div>'; return;
+  }
+  g.innerHTML = dtfLogos.slice(-6).reverse().map(l =>
+    `<div class="logo-thumb${l.id===selectedLogoId?' active':''}" title="${l.name}" onclick="selLogo('${l.id}')">
+       <img src="${l.dataURL}" alt="${l.name}">
+     </div>`
+  ).join('');
+}
+
+function selLogo(id) {
+  selectedLogoId = id;
+  const logo = dtfLogos.find(l => l.id === id);
+  if (logo) { setOfLogoPrev(logo.dataURL); renderLogoGallery(); toast('Logo "' + logo.name + '" sélectionné'); }
+}
+
+function setOfLogoPrev(dataURL) {
+  const b = document.getElementById('of-logo-prev');
+  b.className = 'logo-prev-box';
+  b.innerHTML = `<img src="${dataURL}" alt="Logo">`;
+}
+
+/* ================================================================
+   TAB 2 — LECTURE DEVIS / FACTURES
+   ================================================================ */
+let docFilter  = 'devis';
+let selectedDoc = null;
+
+function setFilter(f, btn) {
+  docFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); loadDocs();
+}
+
+function loadDocs() {
+  const db   = Store.getDB();
+  let docs   = Array.isArray(db[docFilter]) ? db[docFilter] : [];
+  docs = [...docs].sort((a,b) => new Date(b._createdAt||0) - new Date(a._createdAt||0));
+
+  const list = document.getElementById('doc-list');
+  if (!docs.length) {
+    list.innerHTML = `<div class="empty-st" style="height:200px;"><span class="ei">📄</span><p>Aucun ${docFilter}</p></div>`; return;
+  }
+  list.innerHTML = docs.map(doc => {
+    const ref    = doc.ref || doc.numero || doc.id || '—';
+    const client = doc.client || doc.clientNom || '—';
+    const statut = doc.statut || 'Brouillon';
+    const date   = doc._createdAt ? new Date(doc._createdAt).toLocaleDateString('fr-FR') : '—';
+    const scls   = 'st-' + statut.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
+    return `<div class="doc-item${selectedDoc?.id===doc.id?' active':''}" onclick="selDoc(this, ${JSON.stringify(JSON.stringify(doc))})">
+      <div class="doc-ref">${ref}</div>
+      <div class="doc-client">${client}</div>
+      <div class="doc-meta">
+        <span class="doc-date">${date}</span>
+        <span class="doc-status ${scls}">${statut}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selDoc(el, jsonStr) {
+  try { selectedDoc = JSON.parse(jsonStr); } catch(e) { return; }
+  document.querySelectorAll('.doc-item').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  renderDocDetail(selectedDoc);
+  document.getElementById('btn-to-atelier').style.display = '';
+}
+
+/* ── Parser DTF automatique ── */
+function parseDTF(doc) {
+  const raw = [
+    doc.description||'', doc.notes||'', doc.remarques||'',
+    ...(doc.lignes||[]).map(l => [l.produit||'', l.description||''].join(' '))
+  ].join(' ').toLowerCase();
+
+  const match = (list) => { for (const { kw, label, ...rest } of list) if (kw.some(k => raw.includes(k))) return { label, ...rest }; return null; };
+
+  const prodType  = match([
+    { kw:['t-shirt','tshirt','tee-shirt'],     label:'T-shirt'     },
+    { kw:['hoodie','sweat','sweatshirt'],       label:'Hoodie/Sweat'},
+    { kw:['polo'],                             label:'Polo'        },
+    { kw:['casquette','cap'],                  label:'Casquette'   },
+    { kw:['sac','tote','bag'],                 label:'Sac'         },
+    { kw:['veste','jacket','blouson'],         label:'Veste'       },
+    { kw:['tablier','apron'],                  label:'Tablier'     }
+  ]);
+  const technique = match([
+    { kw:['dtf'],                              label:'DTF (Direct To Film)' },
+    { kw:['sublimation','subli'],              label:'Sublimation' },
+    { kw:['broderie','brodé'],                 label:'Broderie'    },
+    { kw:['sérigraph','serigraph'],            label:'Sérigraphie' },
+    { kw:['transfert','transfer'],             label:'Transfert thermique'},
+    { kw:['vinyl','vinyle'],                   label:'Vinyle découpe'}
+  ]) || { label: 'DTF (Direct To Film)' };
+  const couleur   = match([
+    { kw:['noir','black'],  label:'Noir',  hex:'#111' },
+    { kw:['blanc','white'], label:'Blanc', hex:'#eee' },
+    { kw:['rouge','red'],   label:'Rouge', hex:'#ef4444' },
+    { kw:['bleu','blue','marine','navy'], label:'Bleu/Marine', hex:'#3b82f6' },
+    { kw:['vert','green','kaki'],         label:'Vert/Kaki',   hex:'#22c55e' },
+    { kw:['gris','grey','gray'],          label:'Gris',        hex:'#9ca3af' },
+    { kw:['jaune','yellow'],              label:'Jaune',       hex:'#fbbf24' },
+    { kw:['orange'],                      label:'Orange',      hex:'#f97316' },
+    { kw:['violet','purple'],             label:'Violet',      hex:'#a855f7' },
+    { kw:['rose','pink'],                 label:'Rose',        hex:'#ec4899' }
+  ]);
+  const position  = match([
+    { kw:['poitrine','chest','devant','front'], label:'Poitrine'},
+    { kw:['dos','back','arrière'],             label:'Dos'     },
+    { kw:['manche','sleeve'],                  label:'Manche'  },
+    { kw:['poche','pocket'],                   label:'Poche'   }
+  ]);
+
+  const qteMatch = raw.match(/(\d+)\s*(pcs?|pièce|pce|unité|ex\.?|t-shirt|tshirt|polo|hoodie)/i);
+  const qte      = qteMatch ? qteMatch[1] : null;
+  const tailles  = ['xs','s','m','l','xl','xxl','xxxl'].filter(t => new RegExp('\\b'+t+'\\b','i').test(raw)).map(t => t.toUpperCase());
+
+  return { prodType: prodType?.label||'—', technique: technique.label, couleur, position: position?.label||'—', qte, tailles };
+}
+
+function renderDocDetail(doc) {
+  const ref    = doc.ref || doc.numero || doc.id || '—';
+  const client = doc.client || doc.clientNom || '—';
+  const statut = doc.statut || '—';
+  const date   = doc._createdAt ? new Date(doc._createdAt).toLocaleDateString('fr-FR') : '—';
+  const total  = doc.totalTTC || doc.montantTTC || doc.total || 0;
+  const lignes = doc.lignes || [];
+  const dtf    = parseDTF(doc);
+
+  document.getElementById('det-ref').textContent = ref + ' — ' + client;
+  document.getElementById('det-body').innerHTML = `
+    <div class="dcard">
+      <h4>📋 Informations</h4>
+      ${row('Référence', `<strong style="color:var(--accent)">${ref}</strong>`)}
+      ${row('Client', client)} ${row('Statut', statut)} ${row('Date', date)}
+      ${row('Total TTC', fmt(total) + ' XPF')}
+    </div>
+    <div class="dcard">
+      <h4>🖨️ Détection DTF</h4>
+      ${row('Type produit', dtf.prodType)}
+      ${row('Technique', `<strong style="color:var(--gold)">${dtf.technique}</strong>`)}
+      ${row('Couleur', dtf.couleur ? `<span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:${dtf.couleur.hex};border:1px solid #555;display:inline-block"></span>${dtf.couleur.label}</span>` : '—')}
+      ${row('Position', dtf.position)}
+      ${row('Quantité', dtf.qte ? `<strong>${dtf.qte} pcs</strong>` : '—')}
+      <div class="dtf-tags">
+        ${dtf.prodType!=='—' ? `<span class="dtf-tag tag-p">🎽 ${dtf.prodType}</span>` : ''}
+        <span class="dtf-tag tag-t">🖨️ ${dtf.technique}</span>
+        ${dtf.couleur ? `<span class="dtf-tag tag-c">🎨 ${dtf.couleur.label}</span>` : ''}
+        ${dtf.position!=='—' ? `<span class="dtf-tag tag-pos">📍 ${dtf.position}</span>` : ''}
+        ${dtf.tailles.length ? `<span class="dtf-tag tag-p">📏 ${dtf.tailles.join(', ')}</span>` : ''}
+      </div>
+    </div>
+    <div class="dcard">
+      <h4>📦 Lignes (${lignes.length})</h4>
+      ${lignes.length ? lignes.map(l => row(l.produit||l.description||'—', `${l.qte||1} × ${fmt(l.prixUnitaire||0)} XPF`)).join('') : '<div style="font-size:11px;color:var(--muted)">Aucune ligne</div>'}
+    </div>
+    <div class="dcard">
+      <h4>👕 Aperçu Mockup</h4>
+      <canvas id="mockup-prev" width="180" height="220"></canvas>
+      <div style="margin-top:7px">
+        <button class="action-btn" onclick="prefillAtelier()" style="font-size:10px;padding:4px 9px;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);color:var(--gold);">⚙️ Envoyer Atelier</button>
+      </div>
+    </div>
+    <div class="dcard span2">
+      <h4>📝 Description / Notes</h4>
+      <div style="font-size:11px;line-height:1.6;background:var(--surface2);padding:9px;border-radius:6px;min-height:55px;">
+        ${doc.description || doc.notes || doc.remarques || '<span style="color:var(--muted)">Aucune description</span>'}
+      </div>
+    </div>`;
+  renderMockupPrev(dtf);
+}
+
+function row(k, v) { return `<div class="info-rw"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
+function fmt(n) { return Math.round(n).toLocaleString('fr-FR'); }
+
+function renderMockupPrev(dtf) {
+  setTimeout(() => {
+    const mc = document.getElementById('mockup-prev'); if (!mc) return;
+    const c = mc.getContext('2d'), w = mc.width, h = mc.height;
+    const bg = dtf.couleur?.hex || '#222';
+    c.clearRect(0,0,w,h);
+    c.fillStyle = '#dde'; c.fillRect(0,0,w,h);
+    /* Silhouette t-shirt */
+    c.fillStyle = bg;
+    c.beginPath();
+    c.moveTo(35,60); c.lineTo(0,85); c.lineTo(8,120); c.lineTo(40,98);
+    c.lineTo(40,200); c.lineTo(140,200); c.lineTo(140,98); c.lineTo(172,120);
+    c.lineTo(180,85); c.lineTo(145,60);
+    c.quadraticCurveTo(90,80,35,60); c.fill();
+    /* Zone DTF */
+    const zx=60, zy=95, zw=60, zh=55;
+    c.fillStyle = lighten(bg,18); c.fillRect(zx,zy,zw,zh);
+    c.strokeStyle='rgba(255,255,255,.4)'; c.lineWidth=1; c.setLineDash([3,2]); c.strokeRect(zx,zy,zw,zh); c.setLineDash([]);
+    /* Logo DTF si sélectionné */
+    if (selectedLogoId) {
+      const lg = dtfLogos.find(l => l.id === selectedLogoId);
+      if (lg) { const i = new Image(); i.onload = () => c.drawImage(i,zx+2,zy+2,zw-4,zh-4); i.src = lg.dataURL; return; }
+    }
+    c.fillStyle='rgba(255,255,255,.8)'; c.font='bold 8px Impact'; c.textAlign='center';
+    c.fillText('DTF',90,122); c.font='6px Arial'; c.fillText(dtf.technique.split(' ')[0],90,132); c.textAlign='left';
+    c.fillStyle='#555'; c.font='bold 9px Arial'; c.textAlign='center';
+    c.fillText(dtf.prodType!=='—'?dtf.prodType:'Produit',90,215); c.textAlign='left';
+  }, 80);
+}
+
+function lighten(hex, pct) {
+  if (!hex || hex.length < 7) return '#555';
+  try {
+    const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16), f=pct/100;
+    return `rgb(${Math.min(255,r+(255-r)*f)},${Math.min(255,g+(255-g)*f)},${Math.min(255,b+(255-b)*f)})`;
+  } catch(e) { return hex; }
+}
+
+function prefillAtelier() {
+  if (!selectedDoc) return;
+  const d   = selectedDoc;
+  const dtf = parseDTF(d);
+  document.getElementById('of-ref').value     = d.ref || d.numero || d.id || '';
+  document.getElementById('of-client').value  = d.client || d.clientNom || '';
+  document.getElementById('of-produit').value = dtf.prodType !== '—'
+    ? `${dtf.prodType}${dtf.couleur?' '+dtf.couleur.label:''} | ${dtf.technique}${dtf.position!=='—'?' | '+dtf.position:''}`
+    : (d.lignes?.[0]?.produit || d.description || '');
+  document.getElementById('of-qte').value = dtf.qte || '';
+  switchTab('atelier');
+  toast('Document chargé dans l\'Atelier ✓');
+}
+
+/* ================================================================
+   TAB 3 — ENVOI ATELIER
+   ================================================================ */
+let selMachine = 'BN20 Yannick';
+let selPrioVal = 'Moyenne';
+
+function selMac(btn) {
+  document.querySelectorAll('.mac-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); selMachine = btn.dataset.machine; updateRecap();
+}
+function selPrio(btn) {
+  document.querySelectorAll('.prio-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); selPrioVal = btn.dataset.prio; updateRecap();
+}
+
+function updateRecap() {
+  document.getElementById('rc-ref').textContent     = document.getElementById('of-ref').value || '—';
+  document.getElementById('rc-client').textContent  = document.getElementById('of-client').value || '—';
+  document.getElementById('rc-produit').textContent = document.getElementById('of-produit').value || '—';
+  document.getElementById('rc-qte').textContent     = document.getElementById('of-qte').value || '—';
+  document.getElementById('rc-machine').textContent = selMachine;
+  document.getElementById('rc-prio').textContent    = selPrioVal;
+  const fmt = document.getElementById('of-format').value;
+  document.getElementById('rc-format').textContent  = fmt.replace('x','×') + ' cm';
+  const dv = document.getElementById('of-date').value;
+  document.getElementById('rc-date').textContent    = dv ? new Date(dv).toLocaleDateString('fr-FR') : '—';
+}
+
+['of-ref','of-client','of-produit','of-qte','of-format','of-date'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) { el.addEventListener('input', updateRecap); el.addEventListener('change', updateRecap); }
+});
+
+function sendToAtelier() {
+  const docRef       = document.getElementById('of-ref').value;
+  const client       = document.getElementById('of-client').value;
+  const produit      = document.getElementById('of-produit').value;
+  const qte          = document.getElementById('of-qte').value;
+  const instructions = document.getElementById('of-instructions').value;
+  const dateLiv      = document.getElementById('of-date').value;
+  const responsable  = document.getElementById('of-resp').value;
+  const format       = document.getElementById('of-format').value;
+  const position     = document.getElementById('of-position').value;
+
+  if (!client || !produit) { toast('Veuillez renseigner client et produit', true); return; }
+
+  const logo  = selectedLogoId ? dtfLogos.find(l => l.id === selectedLogoId) : null;
+  const ofRef = 'OF-DTF-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4);
+
+  /* Créer l'OF dans le Store ERP */
+  Store.create('ordresFab', {
+    ref: ofRef, type: 'DTF', docRef, client, produit,
+    qte: parseInt(qte)||1, machine: selMachine, priorite: selPrioVal,
+    statut: 'Prêt', instructions, dateFin: dateLiv||null, responsable,
+    formatDTF: format, positionDTF: position,
+    logoId: logo?.id||null, source: 'hcs-designer'
+  });
+
+  /* Notifier HCS-Atelier via messages */
+  const prioEmoji = { Basse:'🟢', Moyenne:'🟡', Haute:'🔴', Urgente:'🆘' };
+  Store.create('messages', {
+    agentId: 'HCS-Atelier', agentName: 'HCS-Atelier',
+    type: 'of-dtf', ofRef, client, machine: selMachine, priorite: selPrioVal,
+    text: `${prioEmoji[selPrioVal]||''} **Nouvel OF DTF — HCS Designer**\n\n` +
+          `**OF:** ${ofRef}\n**Document:** ${docRef||'N/A'}\n**Client:** ${client}\n` +
+          `**Produit:** ${produit}\n**Quantité:** ${qte||'?'} pcs\n` +
+          `**Machine:** ${selMachine}\n**Priorité:** ${selPrioVal}\n` +
+          `**Format DTF:** ${format.replace('x','×')} cm | Position: ${position}\n` +
+          `**Responsable:** ${responsable}\n` +
+          `**Livraison:** ${dateLiv ? new Date(dateLiv).toLocaleDateString('fr-FR') : 'Non définie'}\n` +
+          `**Instructions:** ${instructions||'—'}\n` +
+          `**Logo DTF:** ${logo ? '✅ Fourni ('+logo.name+')' : '⚠️ À créer dans DTF Studio'}\n\n` +
+          `➡️ Veuillez confirmer la prise en charge.`
+  });
+
+  /* Historique local */
+  _saveHist({ ofRef, docRef, client, produit, machine: selMachine, priorite: selPrioVal, responsable, dateLiv, logo: logo?.name||null, sentAt: new Date().toISOString() });
+
+  toast(`OF ${ofRef} créé — HCS-Atelier notifié ✓`);
+  document.getElementById('of-instructions').value = '';
+  loadHist(); updateRecap();
+
+  /* Redirection vers module Agents (si contexte parent ERP) */
+  try { if (window.parent?.openApp) { setTimeout(() => window.parent.openApp('agents'), 2200); } } catch(e) {}
+}
+
+const HIST_KEY = 'hcs_designer_hist';
+function _saveHist(e) {
+  const h = JSON.parse(localStorage.getItem(HIST_KEY)||'[]');
+  h.unshift(e); localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(0,30)));
+}
+function loadHist() {
+  const h = JSON.parse(localStorage.getItem(HIST_KEY)||'[]');
+  const el = document.getElementById('atelier-hist-list');
+  if (!h.length) {
+    el.innerHTML = '<div class="empty-st" style="height:200px;"><span class="ei">⚙️</span><p>Aucun envoi</p></div>'; return;
+  }
+  const pc = { Basse:'#22c55e', Moyenne:'#f59e0b', Haute:'#ef4444', Urgente:'#ef4444' };
+  const pe = { Basse:'🟢', Moyenne:'🟡', Haute:'🔴', Urgente:'🆘' };
+  el.innerHTML = h.map(e => {
+    const d = e.sentAt ? new Date(e.sentAt).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `<div class="hist-item">
+      <div class="hr">⚙️ ${e.ofRef}</div>
+      <div class="hi">📄 ${e.docRef||'—'} | 👤 ${e.client}</div>
+      <div class="hi">🖨️ ${e.machine} | 👷 ${e.responsable}</div>
+      ${e.logo ? `<div class="hi">🎨 Logo: ${e.logo}</div>` : ''}
+      <div class="hs" style="color:${pc[e.priorite]||'#64748b'}">${pe[e.priorite]||''} ${e.priorite} — ${d}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Init ── */
+initPalette();
+renderCanvas();
+renderLogoGallery();
+
+/* Date livraison par défaut: +5 jours */
+const d5 = new Date(); d5.setDate(d5.getDate() + 5);
+document.getElementById('of-date').value = d5.toISOString().split('T')[0];
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+nom,categorie,prix,cout,stock,unite,description,ref,emoji
+"Nom produit","Catégorie","Prix vente (XPF)","Coût achat (XPF)","Stock initial","Unité","Description","Référence / SKU","Emoji"
+"T-Shirt Blanc Classic","Vêtements","2500","800","50","unité","T-shirt 100% coton peigné — disponible toutes tailles","TSH-001","👕"
+"Hoodie HCS Logo","Vêtements","5800","2100","20","unité","Sweat à capuche sérigraphié logo HCS","HOD-001","🧥"
+"Casquette Brodée","Accessoires","3200","900","30","unité","Casquette broderie personnalisée 3D","CAP-001","🧢"
+"Transfert DTF A4","Consommables DTF","450","120","200","unité","Transfert DTF format A4 prêt à presser","DTF-A4","🖨"
+"Transfert DTF A3","Consommables DTF","750","200","150","unité","Transfert DTF format A3 prêt à presser","DTF-A3","🖨"
+"Vinyle Thermocollant Blanc","Consommables Vinyle","280","70","500","feuille A4","Vinyle thermocollant blanc mat découpe silhouette","VIN-BLC","✂"
+"Sticker Personnalisé 10x10","Stickers","350","80","300","unité","Sticker vinyle imperméable UV 10x10cm","STK-001","🏷"
+"Tote Bag Coton","Sacs","1800","600","40","unité","Tote bag coton naturel 140g personnalisable","TOT-001","🛍"

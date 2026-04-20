@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCS — Créateur Produits Transfert</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* ── Mode sombre HCS ── */
+      --p:#22c997; --ph:#1aad80; --ps:rgba(34,201,151,.12);
+      --gold:#D4AF37; --golds:rgba(212,175,55,.15);
+      --bg:#0d1117; --surf:#161b22; --brd:#30363d; --brdl:#21262d;
+      --tx:#e6edf3; --tx2:#8b949e; --tx3:#484f58;
+      --top:#010409;
+      --ok:#3fb950; --oks:rgba(63,185,80,.12);
+      --wn:#d29922; --wns:rgba(210,153,34,.12);
+      --er:#f85149; --ers:rgba(248,81,73,.12);
+      --in:#58a6ff; --ins:rgba(88,166,255,.12);
+      --mono:'JetBrains Mono',monospace;
+      --r:10px; --rs:6px;
+      --sh:0 1px 6px rgba(0,0,0,.4),0 4px 20px rgba(0,0,0,.3);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;font-size:14px;background:var(--bg);color:var(--tx);min-height:100vh}
+
+    /* Topbar */
+    .topbar{background:var(--top);color:#fff;display:flex;align-items:center;gap:14px;padding:0 20px;height:52px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--brd),0 4px 16px rgba(0,0,0,.5)}
+    .tl{font-size:18px;font-weight:700;color:var(--gold)}
+    .tt{font-size:13px;color:rgba(255,255,255,.5)}
+    .tsep{flex:1}
+    .tpill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:3px 12px;font-size:12px;color:rgba(255,255,255,.65)}
+    .tpill strong{color:var(--gold)}
+
+    /* Layout */
+    .layout{display:grid;grid-template-columns:390px 1fr;gap:16px;padding:16px;max-width:1440px;margin:0 auto;align-items:start}
+    @media(max-width:920px){.layout{grid-template-columns:1fr}}
+
+    /* Panel */
+    .panel{background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);margin-bottom:14px}
+    .ph{padding:12px 18px;border-bottom:1px solid var(--brdl);display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.02)}
+    .ph h2{font-size:13px;font-weight:700;flex:1;color:var(--tx)}
+    .pb{padding:14px 18px}
+
+    /* Mode tabs */
+    .mode-tabs{display:flex;gap:0;margin-bottom:14px;border:1px solid var(--brd);border-radius:var(--rs);overflow:hidden}
+    .mtab{flex:1;padding:8px 12px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;border:none;background:transparent;color:var(--tx2);transition:all .15s;text-align:center}
+    .mtab:hover{background:rgba(255,255,255,.04);color:var(--tx)}
+    .mtab.on{background:var(--p);color:#fff}
+    .mtab:not(:last-child){border-right:1px solid var(--brd)}
+
+    /* Import zone */
+    .drop-zone{border:2px dashed var(--brd);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.02);color:var(--tx3)}
+    .drop-zone:hover,.drop-zone.drag{border-color:var(--p);background:var(--ps);color:var(--p)}
+    .drop-zone.loaded{border-color:var(--ok);background:var(--oks);color:var(--ok);border-style:solid}
+    .dz-icon{font-size:2.2rem;margin-bottom:8px;display:block}
+    .dz-title{font-size:14px;font-weight:600;margin-bottom:4px}
+    .dz-sub{font-size:11px;opacity:.75}
+
+    /* Resume extrait */
+    .resume-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    .rk{background:var(--bg);border:1px solid var(--brdl);border-radius:var(--rs);padding:9px 12px}
+    .rk-label{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+    .rk-val{font-size:15px;font-family:var(--mono);font-weight:700;color:var(--p)}
+    .rk.gold{border-left:3px solid var(--gold);background:var(--golds)}
+    .rk.gold .rk-val{color:var(--gold)}
+
+    /* Fields */
+    .fg{display:grid;gap:10px}
+    .fg2{grid-template-columns:1fr 1fr}
+    .fg3{grid-template-columns:1fr 1fr 1fr}
+    .f{display:flex;flex-direction:column;gap:4px}
+    .f label{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em}
+    .f input,.f select,.f textarea{border:1px solid var(--brd);border-radius:var(--rs);padding:7px 10px;font-size:13px;font-family:inherit;color:var(--tx);background:#0d1117;outline:none;transition:border-color .15s,box-shadow .15s}
+    .f input:focus,.f select:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(34,201,151,.12)}
+    .f input[type=number]{font-family:var(--mono)}
+    .fhint{font-size:10px;color:var(--tx3);margin-top:2px}
+    .sep{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tx3);margin:12px 0 8px;display:flex;align-items:center;gap:6px}
+    .sep::after{content:'';flex:1;height:1px;background:var(--brdl)}
+
+    /* Buttons */
+    .btn{border:none;border-radius:var(--rs);padding:8px 16px;font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+    .btn-p{background:var(--p);color:#fff}.btn-p:hover{background:var(--ph)}
+    .btn-g{background:var(--gold);color:#fff;font-weight:700}.btn-g:hover{filter:brightness(.9)}
+    .btn-s{background:var(--bg);border:1px solid var(--brd);color:var(--tx2)}.btn-s:hover{border-color:var(--p);color:var(--p)}
+    .btn-d{background:var(--ers);color:var(--er)}.btn-d:hover{background:var(--er);color:#fff}
+    .btn-ok{background:var(--oks);color:var(--ok);border:1px solid var(--ok)}.btn-ok:hover{background:var(--ok);color:#fff}
+    .btn-sm{padding:4px 10px;font-size:11px}
+    .btn-full{width:100%;justify-content:center}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+    /* Positions picker */
+    .pos-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+    .pc{border:1px solid var(--brd);background:var(--bg);border-radius:20px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--tx2);transition:all .15s;white-space:nowrap}
+    .pc:hover{border-color:var(--p);color:var(--p);background:var(--ps)}
+    .pc.on{background:var(--in);color:#fff;border-color:var(--in);font-weight:600}
+
+    /* Vinyl chips */
+    .vchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+    .vc{border:1px solid var(--brd);background:var(--bg);border-radius:20px;padding:3px 9px;font-size:11px;cursor:pointer;font-family:inherit;color:var(--tx2);transition:all .15s}
+    .vc:hover{border-color:var(--p);color:var(--p)}
+    .vc.on{background:var(--p);color:#fff;border-color:var(--p);font-weight:600}
+
+    /* Table formats */
+    .tw{overflow-x:auto;border:1px solid var(--brd);border-radius:var(--rs)}
+    table{width:100%;border-collapse:collapse}
+    thead{background:rgba(255,255,255,.03)}
+    th{padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);border-bottom:1px solid var(--brd);white-space:nowrap;text-align:right}
+    th.lft{text-align:left}
+    td{padding:7px 10px;border-bottom:1px solid var(--brdl);vertical-align:middle;text-align:right;font-size:12px}
+    td.lft{text-align:left}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,.025)}
+    .mono{font-family:var(--mono)}
+    .pxv{font-family:var(--mono);font-weight:700;color:var(--p);font-size:13px}
+    .cxv{font-family:var(--mono);color:var(--tx2)}
+
+    /* Position select inline */
+    .pos-sel{border:1px solid var(--brd);border-radius:4px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--tx);background:var(--surf);outline:none;min-width:150px}
+    .pos-sel:focus{border-color:var(--p)}
+    .pos-offset{font-size:9px;color:var(--tx3);margin-top:2px;max-width:180px;line-height:1.3}
+
+    /* Badge */
+    .bd{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap}
+    .bd-g{background:var(--oks);color:var(--ok)}
+    .bd-o{background:var(--wns);color:var(--wn)}
+    .bd-r{background:var(--ers);color:var(--er)}
+    .bd-b{background:var(--ins);color:var(--in)}
+    .bd-gr{background:var(--bg);border:1px solid var(--brd);color:var(--tx3)}
+
+    /* Fiche atelier preview */
+    .fiche{background:#1a1a2e;color:#e0e0ff;border-radius:var(--rs);padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.7;margin-top:6px;white-space:pre-wrap;max-height:180px;overflow-y:auto}
+    .fiche .fn{color:#7ee8a2;font-weight:700}
+    .fiche .fv{color:#fff}
+    .fiche .fk{color:#ffd700}
+
+    /* Empty state */
+    .empty{text-align:center;padding:40px 20px;color:var(--tx3)}
+    .empty-icon{font-size:2.5rem;margin-bottom:8px}
+
+    /* Table footer */
+    .tfoot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--brdl);background:rgba(255,255,255,.02);font-size:12px;color:var(--tx3);flex-wrap:wrap;gap:8px}
+    .tfoot strong{color:var(--tx)}
+
+    /* Alert */
+    .alert{border-radius:var(--rs);padding:10px 14px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+    .alert-ok{background:var(--oks);border:1px solid var(--ok);color:var(--ok)}
+    .alert-info{background:var(--ins);border:1px solid var(--in);color:var(--in)}
+    .alert-warn{background:var(--wns);border:1px solid var(--wn);color:var(--wn)}
+
+    /* Toast */
+    #toast{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+    .t{background:var(--top);color:#fff;padding:10px 16px;border-radius:var(--rs);font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:si .2s;display:flex;align-items:center;gap:8px}
+    .t-ok{border-left:3px solid var(--ok)}.t-er{border-left:3px solid var(--er)}.t-in{border-left:3px solid var(--in)}
+    @keyframes si{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
+
+    /* Editable dims */
+    .dim-inp{border:1px solid var(--brd);border-radius:4px;padding:3px 6px;font-size:12px;font-family:var(--mono);width:50px;text-align:center;color:var(--tx);background:var(--surf);outline:none}
+    .dim-inp:focus{border-color:var(--p)}
+
+    /* Editable cost/price inputs in table */
+    .num-inp{border:1px solid var(--brd);border-radius:4px;padding:3px 7px;font-size:12px;font-family:var(--mono);width:72px;text-align:right;color:var(--tx);background:var(--surf);outline:none;transition:border-color .15s}
+    .num-inp:focus{border-color:var(--p)}
+    .num-inp.auto{border-color:var(--p);color:var(--p)}
+    .num-inp.manual{border-color:var(--wn);color:var(--wn)}
+    .num-inp.prix{color:var(--p);font-weight:700}
+    .num-inp.prix.manual{color:var(--wn)}
+
+    /* Preset chips */
+    .preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:5px}
+    .pchip{background:var(--bg);border:1px solid var(--brd);border-radius:var(--rs);padding:8px 9px;cursor:pointer;transition:all .15s;text-align:left;font-family:inherit;width:100%}
+    .pchip:hover{border-color:var(--p);background:var(--ps)}
+    .pchip.added{border-color:var(--ok);background:var(--oks)}
+    .pchip.in-list{border-color:var(--in);opacity:.6;cursor:default}
+    .pchip-top{display:flex;align-items:center;gap:4px;margin-bottom:2px}
+    .pchip-icon{font-size:12px;line-height:1}
+    .pchip-label{font-size:11px;font-weight:700;color:var(--tx);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pchip-dim{font-size:10px;font-family:var(--mono);color:var(--p)}
+    .pchip-pos{font-size:10px;color:var(--tx3)}
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <span class="tl">HCS</span>
+  <span class="tt">Créateur Produits Transfert</span>
+  <div class="tsep"></div>
+  <span class="tpill" id="tp-mat">Aucun rapport importé</span>
+  <span class="tpill">Coût/yard : <strong id="tp-cpy">—</strong></span>
+  <span class="tpill"><strong id="tp-nb">0</strong> produit(s)</span>
+</header>
+
+<div class="layout">
+
+<!-- ══════════════════════════
+     GAUCHE — Config + Import
+══════════════════════════ -->
+<div>
+
+  <!-- Import rapport -->
+  <div class="panel">
+    <div class="ph"><span>📂</span><h2>Importer le rapport calculateur</h2></div>
+    <div class="pb">
+      <div class="drop-zone" id="dz">
+        <span class="dz-icon">📊</span>
+        <div class="dz-title">Glisser le rapport HTML ici</div>
+        <div class="dz-sub">ou cliquer pour choisir · HCS_Rapport_*.html</div>
+      </div>
+      <input type="file" id="file-in" accept=".html,.htm" style="display:none">
+
+      <div id="resume-ok" style="display:none">
+        <div class="alert alert-ok" style="margin-top:10px">
+          ✅ Rapport importé — données extraites avec succès
+        </div>
+        <div class="resume-grid" id="resume-grid"></div>
+      </div>
+
+      <div id="resume-err" style="display:none" class="alert alert-warn" style="margin-top:10px">
+        ⚠️ Format non reconnu. Vérifiez que c'est un rapport HCS.
+      </div>
+    </div>
+  </div>
+
+  <!-- Formats HCS standards -->
+  <div class="panel">
+    <div class="ph">
+      <span>🎯</span>
+      <h2>Formats Standards HCS</h2>
+      <div style="margin-left:auto;display:flex;gap:5px">
+        <button class="btn btn-s btn-sm" id="btn-presets-all" title="Ajouter tous les formats standards">+ Tous</button>
+        <button class="btn btn-s btn-sm" id="btn-presets-clear" title="Supprimer tous les formats">🗑</button>
+      </div>
+    </div>
+    <div class="pb" style="padding-top:10px">
+      <div class="fhint" style="margin-bottom:9px">
+        Cliquez pour ajouter · si un rapport est chargé, les tarifs sont calculés automatiquement.
+      </div>
+      <div class="preset-grid" id="preset-grid"></div>
+    </div>
+  </div>
+
+  <!-- Complément produit -->
+  <div class="panel">
+    <div class="ph"><span>🎨</span><h2>Informations produit ERP</h2></div>
+    <div class="pb">
+      <div class="sep">Matériau</div>
+      <div class="vchips" id="vchips">
+        <button class="vc" data-v="EasyWeed Stretch">EasyWeed Stretch</button>
+        <button class="vc" data-v="EasyWeed Standard">EasyWeed Standard</button>
+        <button class="vc" data-v="EasyWeed Extra">EasyWeed Extra</button>
+        <button class="vc" data-v="ThermoFlex Plus">ThermoFlex Plus</button>
+        <button class="vc" data-v="StripFlock Pro">StripFlock Pro</button>
+        <button class="vc" data-v="GlitterFlex Ultra">GlitterFlex Ultra</button>
+        <button class="vc" data-v="Flex Métallisé">Flex Métallisé</button>
+        <button class="vc" data-v="DTF Transfer">DTF Transfer</button>
+        <button class="vc" data-v="Vinyle Autocollant">Vinyle Autocollant</button>
+      </div>
+
+      <div class="fg fg2" style="margin-top:12px">
+        <div class="f">
+          <label>Nom / désignation</label>
+          <input type="text" id="c-nom" placeholder="EasyWeed Stretch">
+        </div>
+        <div class="f">
+          <label>Couleur / finition</label>
+          <input type="text" id="c-couleur" placeholder="Rouge, Noir…">
+        </div>
+      </div>
+      <div class="fg fg2" style="margin-top:10px">
+        <div class="f">
+          <label>Fournisseur</label>
+          <input type="text" id="c-four" value="Siser / Amazon US">
+        </div>
+        <div class="f">
+          <label>SKU base</label>
+          <input type="text" id="c-sku" placeholder="EW-STR">
+        </div>
+      </div>
+
+      <div class="sep">Classification ERP</div>
+      <div class="fg fg2">
+        <div class="f">
+          <label>Catégorie</label>
+          <select id="c-cat">
+            <option value="Services Vinyle">Services Vinyle</option>
+            <option value="Services DTF">Services DTF</option>
+            <option value="Services Personnalisation">Services Personnalisation</option>
+            <option value="Vinyle & Flex">Vinyle & Flex</option>
+            <option value="Stickers & Impression">Stickers & Impression</option>
+          </select>
+        </div>
+        <div class="f">
+          <label>Type ERP</label>
+          <select id="c-type">
+            <option value="service">🔧 Service</option>
+            <option value="marchandise">🛍 Marchandise</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sep">Paramètres presse</div>
+      <div class="fg fg3">
+        <div class="f">
+          <label>Température (°C)</label>
+          <input type="number" id="c-temp" value="150" min="100" max="220" step="5">
+        </div>
+        <div class="f">
+          <label>Temps (sec)</label>
+          <input type="number" id="c-sec" value="12" min="5" max="60" step="1">
+        </div>
+        <div class="f">
+          <label>Pression</label>
+          <select id="c-pres">
+            <option>Moyenne</option>
+            <option>Légère</option>
+            <option>Forte</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-p btn-full" id="btn-gen">⚡ Générer les produits</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /gauche -->
+
+
+<!-- ══════════════════════════
+     DROITE — Formats + Produits
+══════════════════════════ -->
+<div>
+
+  <!-- Table formats avec positions -->
+  <div class="panel">
+    <div class="ph">
+      <span>📐</span>
+      <h2>Formats & Positions d'application</h2>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn btn-s btn-sm" id="btn-add">+ Format</button>
+        <button class="btn btn-s btn-sm" id="btn-all-pos" title="Assigner position par défaut à tous">🗺 Positions auto</button>
+      </div>
+    </div>
+    <div id="pos-info" class="pb" style="padding-bottom:8px;padding-top:8px">
+      <div class="alert alert-info">
+        📂 Importez le rapport calculateur pour charger les formats et les tarifs calculés.
+      </div>
+    </div>
+    <div class="tw" id="fmt-wrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th class="lft">Format (H×L)</th>
+            <th class="lft" style="min-width:190px">Position atelier</th>
+            <th>Surface</th>
+            <th>Logos/Yard</th>
+            <th>Coût matière</th>
+            <th>Prix vente</th>
+            <th>Marge</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="fmt-body"></tbody>
+      </table>
+    </div>
+    <div class="tfoot" id="fmt-foot" style="display:none">
+      <div id="fmt-stats"></div>
+      <div style="font-size:11px;color:var(--tx3)">La position est incluse dans le nom et la fiche atelier</div>
+    </div>
+  </div>
+
+  <!-- Aperçu produits générés -->
+  <div class="panel">
+    <div class="ph">
+      <span>📦</span>
+      <h2>Produits générés — Aperçu ERP</h2>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span class="bd bd-gr" id="badge-nb">0 produit</span>
+        <button class="btn btn-g" id="btn-exp" disabled>📤 Exporter CSV</button>
+        <button class="btn btn-p" id="btn-save-erp" disabled style="background:#22c997;font-weight:700;">💾 Enregistrer dans l'ERP</button>
+      </div>
+    </div>
+
+    <div id="prev-wrap">
+      <div class="empty">
+        <div class="empty-icon">🏷️</div>
+        <p>Les produits apparaîtront ici après génération.</p>
+        <p style="font-size:12px;margin-top:4px">Importez le rapport, assignez les positions, puis cliquez <strong>Générer</strong>.</p>
+      </div>
+    </div>
+
+    <div class="tfoot" style="font-size:11px;color:var(--tx3)">
+      Cliquez <strong>💾 Enregistrer dans l'ERP</strong> pour envoyer directement · ou <strong>📤 Exporter CSV</strong> pour import manuel via Stock → Produits
+    </div>
+  </div>
+
+</div><!-- /droite -->
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ================================================================
+   POSITIONS D'APPLICATION — catalogue atelier
+   ================================================================ */
+const POSITIONS = [
+  { code:'PG',  label:'Poitrine gauche',  icon:'👕', offset:'8 cm du col · 3 cm du bord gauche',      hintDim:'5×10 → 10×15' },
+  { code:'PC',  label:'Poitrine centre',  icon:'👕', offset:'8 cm du col · centré horizontalement',    hintDim:'10×15 → 15×20' },
+  { code:'PD',  label:'Poitrine droite',  icon:'👕', offset:'8 cm du col · 3 cm du bord droit',       hintDim:'5×10 → 10×15' },
+  { code:'DOS', label:'Dos complet',      icon:'🔙', offset:'10 cm du col · centré horizontalement',   hintDim:'24×24 → 30×42' },
+  { code:'DH',  label:'Dos haut',         icon:'🔙', offset:'6 cm du col · centré',                   hintDim:'10×30 → 20×30' },
+  { code:'DB',  label:'Dos bas',          icon:'🔙', offset:'10 cm de la base · centré',               hintDim:'10×20 → 15×30' },
+  { code:'MG',  label:'Manche gauche',    icon:'🦾', offset:'5 cm de la couture épaule · centré',      hintDim:'5×10 → 10×15' },
+  { code:'MD',  label:'Manche droite',    icon:'🦾', offset:'5 cm de la couture épaule · centré',      hintDim:'5×10 → 10×15' },
+  { code:'FL',  label:'Flanc / Côté',     icon:'👔', offset:'Côté gauche · 5 cm des aisselles · mi-hauteur', hintDim:'15×20 → 20×30' },
+  { code:'BG',  label:'Bas gauche',       icon:'👕', offset:'3 cm du bas · aligné gauche',             hintDim:'5×10 → 10×20' },
+  { code:'COL', label:'Col / Nuque',      icon:'🏷',  offset:'Centré nuque · 2 cm sous le col',         hintDim:'5×5 → 5×10'  },
+  { code:'CAP', label:'Capuche',          icon:'🧢', offset:'Centré · 5 cm du bord avant',             hintDim:'10×15 → 15×20' },
+  { code:'TOT', label:'Tote bag (face)',  icon:'👜', offset:'Centré · 8 cm du haut',                   hintDim:'15×20 → 24×30' },
+  { code:'CUS', label:'Personnalisé…',    icon:'📝', offset:'Voir instructions client',                 hintDim:'—' },
+];
+
+/* Position suggérée selon la surface (pour "Positions auto") */
+function _suggestPos(surface) {
+  if (surface <= 75)  return 'COL';   // nuque, col ≤ 8×9 env
+  if (surface <= 200) return 'PG';    // cœur, petite poitrine
+  if (surface <= 625) return 'PC';    // poitrine centre
+  if (surface <= 900) return 'DH';    // dos haut, bandes
+  return 'DOS';                        // dos complet
+}
+
+/* ================================================================
+   PRESETS FORMATS HCS STANDARDS (12 formats essentiels)
+   ================================================================ */
+const HCS_PRESETS = [
+  { label:'Cœur',           h:10, l:10, pos:'PG',  multi:null,  note:'Poitrine gauche classique' },
+  { label:'Nuque 8×8',      h:8,  l:8,  pos:'COL', multi:null,  note:'Col / étiquette intérieure' },
+  { label:'Manche G',       h:10, l:10, pos:'MG',  multi:null,  note:'Manche gauche' },
+  { label:'Manche D',       h:10, l:10, pos:'MD',  multi:null,  note:'Manche droite' },
+  { label:'Manches ×2',     h:10, l:10, pos:'MG',  multi:'MD',  note:'Les 2 manches — ajoute MG+MD' },
+  { label:'Flanc 20×20',    h:20, l:20, pos:'FL',  multi:null,  note:'Côté gauche du vêtement' },
+  { label:'Bande Poitrine', h:10, l:30, pos:'PC',  multi:null,  note:'Bande horizontale poitrine' },
+  { label:'Bande Dos',      h:10, l:30, pos:'DH',  multi:null,  note:'Bande horizontale dos haut' },
+  { label:'Poitrine 24×24', h:24, l:24, pos:'PC',  multi:null,  note:'Poitrine centré standard' },
+  { label:'Poitrine 30×30', h:30, l:30, pos:'PC',  multi:null,  note:'Grande poitrine' },
+  { label:'Dos 24×24',      h:24, l:24, pos:'DOS', multi:null,  note:'Dos médium' },
+  { label:'Dos 30×30',      h:30, l:30, pos:'DOS', multi:null,  note:'Dos complet standard' },
+];
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let _formats    = [];   // { h, l, cout, prix, pos, totalYard }
+let _reportData = null; // données extraites du rapport
+let _products   = [];   // produits générés
+
+/* ================================================================
+   INIT
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  _bindImport();
+  _bindVinylChips();
+  _bindButtons();
+  _renderPresets();
+});
+
+/* ================================================================
+   IMPORT RAPPORT HTML
+   ================================================================ */
+function _bindImport() {
+  const dz  = document.getElementById('dz');
+  const fi  = document.getElementById('file-in');
+
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag');
+    const f = e.dataTransfer?.files?.[0];
+    if (f) _readFile(f);
+  });
+  fi.addEventListener('change', () => {
+    if (fi.files?.[0]) _readFile(fi.files[0]);
+    fi.value = '';
+  });
+}
+
+function _readFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => _parseReport(e.target.result, file.name);
+  reader.readAsText(file, 'UTF-8');
+}
+
+function _parseReport(html, filename) {
+  try {
+    const parser = new DOMParser();
+    const doc    = parser.parseFromString(html, 'text/html');
+
+    /* ── 0. JSON embarqué (tous les calculateurs HCS v2) ── */
+    const jsonEl = doc.getElementById('hcs-calc-data');
+    if (jsonEl) {
+      try {
+        const jd = JSON.parse(jsonEl.textContent);
+        if (jd._hcs_type === 'dtf')     return _parseJSONReport_DTF(jd, filename);
+        if (jd._hcs_type === 'sticker') return _parseJSONReport_Sticker(jd, filename);
+        // type vinyl/thermocollant → continuer parsing normal ci-dessous
+        if (jd.formats?.length) return _parseJSONReport_Vinyl(jd, filename);
+      } catch(e) { /* JSON invalide → parsing DOM fallback */ }
+    }
+
+    /* ── 1. Paramètres (param-box) ── */
+    const params = {};
+    doc.querySelectorAll('.param-box').forEach(box => {
+      const lbl = box.querySelector('.param-label')?.textContent?.trim();
+      const val = box.querySelector('.param-value')?.textContent?.trim();
+      if (lbl && val) params[lbl] = val;
+    });
+
+    /* ── 2. Trouver la table "Tarifs par Dimension" ── */
+    let tarifsTable = null;
+    doc.querySelectorAll('h2,h3').forEach(h => {
+      if (h.textContent.includes('Tarifs') || h.textContent.includes('tarifs')) {
+        let el = h.nextElementSibling;
+        while (el && el.tagName !== 'TABLE') el = el.nextElementSibling;
+        if (el?.tagName === 'TABLE') tarifsTable = el;
+      }
+    });
+
+    if (!tarifsTable) throw new Error('Table "Tarifs par Dimension" introuvable');
+
+    /* ── 3. Parser les lignes ── */
+    const fmts = [];
+    tarifsTable.querySelectorAll('tbody tr, tr').forEach((row, ri) => {
+      if (ri === 0) return; // skip header
+      const cells = [...row.querySelectorAll('td')];
+      if (cells.length < 7) return;
+
+      const dimTxt  = cells[0].textContent.trim();
+      const dimMatch = dimTxt.match(/(\d+(?:[.,]\d+)?)\s*[×xX]\s*(\d+(?:[.,]\d+)?)/);
+      if (!dimMatch) return;
+
+      const h         = parseFloat(dimMatch[1].replace(',','.'));
+      const l         = parseFloat(dimMatch[2].replace(',','.'));
+      const surface   = Math.round(h * l);
+      const totalYard = parseInt(cells[4].textContent.replace(/\s/g,'')) || 0;
+      const cout      = _parseXPF(cells[5].textContent);
+      const prix      = _parseXPF(cells[6].textContent);
+
+      fmts.push({
+        h, l, surface, totalYard, cout, prix,
+        pos: _suggestPos(surface)
+      });
+    });
+
+    if (fmts.length === 0) throw new Error('Aucun format trouvé dans la table');
+
+    /* ── 4. Extraire KPIs ── */
+    const typVinyle  = params['Type de Vinyl'] || params['Type de Vinyle'] || 'Vinyle Transfert';
+    const coutYardTxt = params['Coût par Yard'] || '';
+    const coutYard   = _parseXPF(coutYardTxt);
+    const coeffTxt   = params['Coefficient Marge'] || '300%';
+    const coeff      = parseInt(coeffTxt.replace('%','')) || 300;
+    const margeLogo  = parseFloat((params['Marge entre Logos'] || '1').replace(/[^\d.]/g,'')) || 1;
+    const largRouleau = 50;
+    const surfYard   = _parseFloat_clean(params['Surface 1 Yard']) || (largRouleau * 91.44);
+    const totalXPF   = _parseXPF(params['TOTAL RENDU TAHITI'] || '');
+    const hcsType    = 'vinyl'; // rapport thermocollant = type vinyl
+
+    _reportData = { typVinyle, coutYard, coeff, margeLogo, surfYard, totalXPF, filename, hcsType };
+    _formats    = fmts;
+
+    /* ── 5. Pré-remplir le nom si vide ── */
+    const nomInp = document.getElementById('c-nom');
+    if (!nomInp.value) nomInp.value = typVinyle;
+    _syncVinylChip(typVinyle);
+
+    _showResume();
+    _renderFormats();
+    _renderPresets();
+    _toast(`${fmts.length} formats extraits depuis ${filename}`, 'ok');
+
+  } catch(err) {
+    document.getElementById('resume-ok').style.display  = 'none';
+    document.getElementById('resume-err').style.display = 'block';
+    _toast('Erreur import : ' + err.message, 'er');
+  }
+}
+
+function _parseXPF(txt) {
+  if (!txt) return 0;
+  return parseInt(txt.replace(/\s/g,'').replace(/[^\d]/g,'')) || 0;
+}
+function _parseFloat_clean(txt) {
+  if (!txt) return 0;
+  return parseFloat(txt.replace(/\s/g,'').replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+}
+
+/* ── Parsers JSON embarqués ── */
+function _parseJSONReport_Vinyl(jd, filename) {
+  _formats = jd.formats.map(f => ({
+    h: f.h, l: f.l, surface: f.h * f.l,
+    totalYard: f.totalYard ?? 0,
+    cout: f.coutLogo ?? f.cout ?? 0,
+    prix: f.prixVente ?? f.prix ?? 0,
+    pos: _suggestPos(f.h * f.l), auto: true
+  }));
+  _reportData = {
+    typVinyle: jd.vinyl || 'Vinyle Thermocollant',
+    coutYard: jd.costPerYardXPF ?? 0,
+    coeff: jd.coeffMarge ?? 300,
+    margeLogo: jd.marginLogos ?? 1,
+    surfYard: jd.surfaceYard ?? 4572,
+    largeurRouleau: jd.largeurRouleau ?? 50,
+    filename, hcsType: 'vinyl'
+  };
+  const nom = document.getElementById('c-nom');
+  if (!nom.value) nom.value = _reportData.typVinyle;
+  _syncVinylChip(_reportData.typVinyle);
+  _showResume(); _renderFormats(); _renderPresets();
+  _toast(`${_formats.length} formats (thermocollant) extraits`, 'ok');
+}
+
+function _parseJSONReport_DTF(jd, filename) {
+  _formats = (jd.formats || []).map(f => ({
+    h: f.h, l: f.l, surface: f.h * f.l,
+    totalYard: 0,
+    cout: f.cout ?? 0, prix: f.prix ?? 0,
+    pos: _suggestPos(f.h * f.l), auto: true,
+    label: f.name ?? ''
+  }));
+  _reportData = {
+    typVinyle: 'DTF Transfer',
+    coutYard: 0, coeff: jd.coeffMarge ?? 250,
+    margeLogo: 0, surfYard: 0,
+    totalXPF: jd.totalCostXPF ?? 0,
+    pricePerDesign: jd.pricePerDesign ?? 0,
+    filename, hcsType: 'dtf'
+  };
+  document.getElementById('c-nom').value = 'DTF Transfer';
+  _syncVinylChip('DTF Transfer');
+  document.getElementById('c-cat').value = 'Services DTF';
+  document.getElementById('c-temp').value = 160;
+  document.getElementById('c-sec').value = 10;
+  _showResume(); _renderFormats(); _renderPresets();
+  _toast(`${_formats.length} designs DTF importés`, 'ok');
+}
+
+function _parseJSONReport_Sticker(jd, filename) {
+  _formats = (jd.formats || []).map(f => ({
+    h: f.h, l: f.l, surface: f.h * f.l,
+    totalYard: f.totalYard ?? 0,
+    cout: f.cout ?? 0, prix: f.prix ?? 0,
+    pos: _suggestPos(f.h * f.l), auto: true
+  }));
+  _reportData = {
+    typVinyle: 'Vinyle Autocollant',
+    coutYard: 0, coeff: jd.coeffMarge ?? 100,
+    margeLogo: 0, surfYard: jd.surfRoll ?? 0,
+    prixYard: jd.prixYard ?? 0,
+    filename, hcsType: 'sticker'
+  };
+  document.getElementById('c-nom').value = 'Vinyle Autocollant';
+  _syncVinylChip('Vinyle Autocollant');
+  document.getElementById('c-cat').value = 'Services Personnalisation';
+  document.getElementById('c-type').value = 'marchandise';
+  _showResume(); _renderFormats(); _renderPresets();
+  _toast(`${_formats.length} formats stickers importés`, 'ok');
+}
+
+function _showResume() {
+  if (!_reportData) return;
+  const d = _reportData;
+
+  const dz = document.getElementById('dz');
+  dz.classList.add('loaded');
+  dz.querySelector('.dz-icon').textContent = '✅';
+  dz.querySelector('.dz-title').textContent = d.filename || 'Rapport importé';
+  dz.querySelector('.dz-sub').textContent   = `${_formats.length} formats · ${d.typVinyle}`;
+
+  document.getElementById('resume-ok').style.display  = 'block';
+  document.getElementById('resume-err').style.display = 'none';
+
+  document.getElementById('resume-grid').innerHTML = `
+    <div class="rk gold"><div class="rk-label">Coût / yard</div><div class="rk-val">${_fxpf(d.coutYard)}</div></div>
+    <div class="rk gold"><div class="rk-label">Coeff. marge</div><div class="rk-val">${d.coeff}%</div></div>
+    <div class="rk"><div class="rk-label">Formats extraits</div><div class="rk-val">${_formats.length}</div></div>
+    <div class="rk"><div class="rk-label">Marge logos</div><div class="rk-val">${d.margeLogo} cm</div></div>
+  `;
+
+  document.getElementById('tp-mat').textContent = d.typVinyle;
+  document.getElementById('tp-cpy').textContent = _fxpf(d.coutYard);
+}
+
+/* ================================================================
+   TABLE FORMATS
+   ================================================================ */
+function _renderFormats() {
+  const wrap  = document.getElementById('fmt-wrap');
+  const foot  = document.getElementById('fmt-foot');
+  const info  = document.getElementById('pos-info');
+  const tbody = document.getElementById('fmt-body');
+
+  if (_formats.length === 0) {
+    wrap.style.display = 'none';
+    foot.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  foot.style.display = 'flex';
+  info.style.display = 'none';
+
+  const posOpts = POSITIONS.map(p =>
+    `<option value="${p.code}">${p.icon} ${p.label}</option>`
+  ).join('');
+
+  tbody.innerHTML = _formats.map((fmt, i) => {
+    const pos    = POSITIONS.find(p => p.code === (fmt.pos || 'PG')) || POSITIONS[0];
+    const marge  = fmt.prix > 0 ? Math.round(((fmt.prix - fmt.cout) / fmt.cout) * 100) : 0;
+    const mcls   = marge >= 200 ? 'bd-g' : marge >= 100 ? 'bd-b' : 'bd-o';
+    const lpyCls = fmt.totalYard >= 20 ? 'bd-g' : fmt.totalYard >= 5 ? 'bd-b' : 'bd-gr';
+    return `
+      <tr data-i="${i}">
+        <td class="lft">
+          <div style="display:flex;align-items:center;gap:5px">
+            <input class="dim-inp" data-f="h" data-i="${i}" type="number" value="${fmt.h}" min="1" step="0.5" title="Hauteur cm">
+            <span style="color:var(--tx3);font-size:10px">×</span>
+            <input class="dim-inp" data-f="l" data-i="${i}" type="number" value="${fmt.l}" min="1" step="0.5" title="Largeur cm">
+            <span style="font-size:10px;color:var(--tx3)">cm</span>
+          </div>
+        </td>
+        <td class="lft">
+          <select class="pos-sel" data-i="${i}">
+            ${POSITIONS.map(p => `<option value="${p.code}"${p.code===fmt.pos?' selected':''}>${p.icon} ${p.label}</option>`).join('')}
+          </select>
+          <div class="pos-offset" data-hint="${i}">${pos.offset}</div>
+        </td>
+        <td class="mono">${_fn(fmt.surface)} cm²</td>
+        <td><span class="bd ${lpyCls}">${fmt.totalYard > 0 ? fmt.totalYard : '—'}</span></td>
+        <td>
+          <input class="num-inp${fmt.auto?' auto':''}" data-cout-i="${i}" type="number"
+            value="${fmt.cout}" min="0" step="1" title="Coût matière (XPF) — modifiable">
+        </td>
+        <td>
+          <input class="num-inp prix${fmt.auto?' auto':''}" data-prix-i="${i}" type="number"
+            value="${fmt.prix}" min="0" step="1" title="Prix vente (XPF) — modifiable">
+        </td>
+        <td><span class="bd ${mcls}">${marge}%</span></td>
+        <td><button class="btn btn-d btn-sm" data-del="${i}">✕</button></td>
+      </tr>`;
+  }).join('');
+
+  /* Bind: position select */
+  tbody.querySelectorAll('.pos-sel').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const i = parseInt(sel.dataset.i);
+      _formats[i].pos = sel.value;
+      const pos = POSITIONS.find(p => p.code === sel.value);
+      const hint = tbody.querySelector(`[data-hint="${i}"]`);
+      if (hint && pos) hint.textContent = pos.offset;
+    });
+  });
+
+  /* Bind: dimensions */
+  tbody.querySelectorAll('.dim-inp').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const i = parseInt(inp.dataset.i);
+      _formats[i][inp.dataset.f] = parseFloat(inp.value) || 1;
+      _formats[i].surface = Math.round(_formats[i].h * _formats[i].l);
+    });
+  });
+
+  /* Bind: delete */
+  tbody.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _formats.splice(parseInt(btn.dataset.del), 1);
+      _renderFormats();
+      _renderPresets(); // refresh preset "in-list" state
+    });
+  });
+
+  /* Bind: coût éditable → recalcule prix automatiquement */
+  tbody.querySelectorAll('[data-cout-i]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = parseInt(inp.dataset.coutI ?? inp.getAttribute('data-cout-i'));
+      const newCout = parseInt(inp.value) || 0;
+      _formats[i].cout = newCout;
+      _formats[i].auto = false;
+      inp.classList.remove('auto'); inp.classList.add('manual');
+      const coeff = _reportData?.coeff ?? 300;
+      const newPrix = Math.round(newCout * (1 + coeff / 100));
+      _formats[i].prix = newPrix;
+      const pInp = tbody.querySelector(`[data-prix-i="${i}"]`);
+      if (pInp) { pInp.value = newPrix; pInp.classList.remove('auto'); pInp.classList.add('manual'); }
+      // Update marge badge inline
+      const row = inp.closest('tr');
+      const mBadge = row?.querySelector('.bd[class*="bd-"]');
+      if (mBadge && newCout > 0) {
+        const m = Math.round(((newPrix - newCout) / newCout) * 100);
+        mBadge.textContent = m + '%';
+        mBadge.className = 'bd ' + (m >= 200 ? 'bd-g' : m >= 100 ? 'bd-b' : 'bd-o');
+      }
+    });
+  });
+
+  /* Bind: prix éditable manuel */
+  tbody.querySelectorAll('[data-prix-i]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = parseInt(inp.getAttribute('data-prix-i'));
+      _formats[i].prix = parseInt(inp.value) || 0;
+      _formats[i].auto = false;
+      inp.classList.remove('auto'); inp.classList.add('manual');
+    });
+  });
+
+  /* Stats footer */
+  const total = _formats.reduce((s, f) => s + f.prix, 0);
+  document.getElementById('fmt-stats').innerHTML =
+    `<strong>${_formats.length}</strong> format(s) · Prix moyen : <strong>${_fxpf(Math.round(total/_formats.length))}</strong>`;
+  document.getElementById('tp-nb').textContent = _formats.length;
+}
+
+/* ================================================================
+   GÉNÉRATION PRODUITS
+   ================================================================ */
+/* ================================================================
+   SAVE TO ERP (postMessage → app.js listener)
+   ================================================================ */
+function _saveToERP() {
+  if (_products.length === 0) { _toast('Générez les produits d\'abord.', 'er'); return; }
+  const payload = _products.map(p => ({
+    emoji:       p.emoji || '✂️',
+    nom:         p.nom,
+    designation: p.designation,
+    ref:         p.ref,
+    categorie:   p.categorie,
+    type:        p.type,
+    tailles:     p.tailles || '',
+    couleurs:    p.couleurs || '',
+    prix:        p.prix,
+    prixTTC:     p.prixTTC,
+    cout:        p.cout,
+    tva:         p.tva || 16,
+    stock:       0,
+    stockMin:    0,
+    unite:       'unité',
+    paliers:     '',
+    description: p.description,
+  }));
+  window.parent.postMessage({ type: 'HCS_SAVE_PRODUCTS', products: payload }, '*');
+  _toast(`${payload.length} produit(s) envoyés à l'ERP…`, 'ok');
+}
+
+function _generate() {
+  if (_formats.length === 0) {
+    _toast('Aucun format chargé. Importez le rapport calculateur.', 'er');
+    return;
+  }
+
+  const cfg = {
+    nom:      document.getElementById('c-nom').value.trim()    || 'Vinyle Transfert',
+    couleur:  document.getElementById('c-couleur').value.trim(),
+    four:     document.getElementById('c-four').value.trim(),
+    sku:      document.getElementById('c-sku').value.trim(),
+    cat:      document.getElementById('c-cat').value,
+    type:     document.getElementById('c-type').value,
+    temp:     document.getElementById('c-temp').value,
+    sec:      document.getElementById('c-sec').value,
+    pres:     document.getElementById('c-pres').value,
+  };
+
+  const skuBase = cfg.sku || cfg.nom.replace(/\s+/g,'').toUpperCase().slice(0,6);
+
+  _products = _formats.map((fmt, i) => {
+    const pos    = POSITIONS.find(p => p.code === (fmt.pos || 'PG')) || POSITIONS[0];
+    const nomFmt = `${fmt.h}×${fmt.l} cm`;
+    const nomMat = cfg.nom + (cfg.couleur ? ' ' + cfg.couleur : '');
+    const nomProd = `${nomMat} — ${pos.label} ${nomFmt}`;
+    const ref     = `${skuBase}-${pos.code}-${String(fmt.h).replace('.','p')}x${String(fmt.l).replace('.','p')}`;
+    const marge   = fmt.prix > 0 ? Math.round(((fmt.prix - fmt.cout) / fmt.cout) * 100) : 0;
+
+    /* Description structurée pour la fiche atelier */
+    const desc = [
+      `▶ POSITION    : ${pos.label}`,
+      `▶ PLACEMENT   : ${pos.offset}`,
+      `▶ FORMAT      : ${nomFmt}  (surface ${fmt.surface} cm²)`,
+      `▶ MATÉRIAU    : ${cfg.nom}${cfg.couleur ? ' — ' + cfg.couleur : ''}`,
+      `▶ FOURNISSEUR : ${cfg.four || '—'}`,
+      `▶ PRESSE      : ${cfg.temp}°C · ${cfg.sec} sec · Pression ${cfg.pres}`,
+      `▶ RENDEMENT   : ${fmt.totalYard > 0 ? fmt.totalYard + ' logos/yard' : 'Hors format standard'}`,
+      `▶ COÛT MAT.   : ${_fxpf(fmt.cout)}  →  PRIX VENTE : ${_fxpf(fmt.prix)}  (marge ${marge}%)`,
+    ].join('\n');
+
+    return {
+      _id: i + 1, _pos: pos, _fmt: fmt, _marge: marge,
+      emoji:'✂️', nom:nomProd,
+      designation:`${pos.label} · ${nomFmt} · ${nomMat}`,
+      ref, categorie:cfg.cat, type:cfg.type, tva:16,
+      prix:fmt.prix, prixTTC:Math.round(fmt.prix*1.16),
+      cout:fmt.cout, stock:0, stockMin:0, unite:'unité',
+      tailles:'', couleurs:cfg.couleur||'', paliers:'',
+      description:desc,
+    };
+  });
+
+  _renderPreview();
+  document.getElementById('btn-exp').disabled = false;
+  document.getElementById('btn-save-erp').disabled = false;
+  _toast(`${_products.length} produit(s) générés.`, 'ok');
+}
+
+/* ================================================================
+   PREVIEW PRODUITS
+   ================================================================ */
+function _renderPreview() {
+  const wrap = document.getElementById('prev-wrap');
+  const nb   = document.getElementById('badge-nb');
+  nb.textContent = _products.length + ' produit' + (_products.length > 1 ? 's' : '');
+
+  if (_products.length === 0) {
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">🏷️</div><p>Aucun produit généré.</p></div>`;
+    return;
+  }
+
+  const rows = _products.map(p => {
+    const mc = p._marge >= 200 ? 'bd-g' : p._marge >= 100 ? 'bd-b' : 'bd-o';
+    return `
+      <tr>
+        <td class="lft">
+          <div style="font-weight:600;font-size:12px">${_esc(p.nom)}</div>
+          <div style="font-size:10px;color:var(--tx3);margin-top:2px">${_esc(p.designation)}</div>
+        </td>
+        <td class="lft">
+          <span class="bd bd-b">${p._pos.icon} ${p._pos.label}</span>
+          <div class="pos-offset">${_esc(p._pos.offset)}</div>
+        </td>
+        <td class="pxv">${_fxpf(p.prix)}</td>
+        <td class="cxv">${_fxpf(p.cout)}</td>
+        <td><span class="bd ${mc}">${p._marge}%</span></td>
+        <td style="font-size:10px;color:var(--tx3);">${_esc(p.ref)}</td>
+        <td>
+          <button class="btn btn-s btn-sm" data-fiche="${p._id}" title="Voir fiche atelier">📋 Fiche</button>
+        </td>
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th class="lft">Produit ERP</th>
+            <th class="lft">Position atelier</th>
+            <th>Prix HT</th>
+            <th>Coût</th>
+            <th>Marge</th>
+            <th>Réf.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="prev-body">${rows}</tbody>
+      </table>
+    </div>`;
+
+  /* Bind: bouton fiche */
+  wrap.querySelectorAll('[data-fiche]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = _products.find(x => x._id === parseInt(btn.dataset.fiche));
+      if (p) _showFiche(p);
+    });
+  });
+}
+
+/* ================================================================
+   POPUP FICHE ATELIER
+   ================================================================ */
+function _showFiche(p) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = `
+    <div style="background:var(--surf);border-radius:var(--r);max-width:600px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.3);overflow:hidden">
+      <div style="background:var(--top);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.2rem">📋</span>
+        <div>
+          <div style="font-weight:700;font-size:14px">Fiche Atelier — ${_esc(p.nom)}</div>
+          <div style="font-size:11px;opacity:.7">Référence : ${_esc(p.ref)}</div>
+        </div>
+        <button id="close-fiche" style="margin-left:auto;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px">✕ Fermer</button>
+      </div>
+      <div style="padding:16px 20px">
+        <div style="font-size:11px;color:var(--tx3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:700">Description / Instructions atelier</div>
+        <div class="fiche">${_esc(p.description)}</div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="copy-fiche" class="btn btn-s btn-sm">📋 Copier le texte</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#close-fiche').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#copy-fiche').addEventListener('click', () => {
+    navigator.clipboard?.writeText(p.description).then(() => _toast('Copié !', 'ok'));
+  });
+}
+
+/* ================================================================
+   EXPORT CSV
+   ================================================================ */
+function _exportCSV() {
+  if (_products.length === 0) { _toast('Générez les produits d\'abord.', 'er'); return; }
+
+  const cols = ['emoji','nom','designation','ref','categorie','type','tailles','couleurs',
+                'prix','prixTTC','cout','tva','stock','stockMin','unite','description'];
+  const rows = _products.map(p => cols.map(c => _cell(p[c]??'')).join(','));
+  const csv  = '\uFEFF' + [cols.join(','), ...rows].join('\r\n');
+
+  const a = document.createElement('a');
+  a.href  = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = `HCS_Transfert_${(document.getElementById('c-nom').value||'Vinyle').replace(/\s+/g,'_')}_${_date()}.csv`;
+  a.click();
+  _toast(`${_products.length} produit(s) exporté(s) en CSV.`, 'ok');
+}
+
+/* ================================================================
+   CALCUL COÛT DEPUIS RAPPORT (pour presets)
+   ================================================================ */
+function _calcCostForDims(h, l) {
+  if (!_reportData?.coutYard) return { cout:0, prix:0, totalYard:0, auto:false };
+  const W   = _reportData.largeurRouleau || 50;
+  const H   = 91.44;
+  const mg  = _reportData.margeLogo || 1;
+  const lpy = Math.max(1, Math.floor(W / (l + mg)));
+  const hpy = Math.max(1, Math.floor(H / (h + mg)));
+  const totalYard = lpy * hpy;
+  const surfYard  = W * H;
+  const cout  = Math.round((h * l / surfYard) * _reportData.coutYard);
+  const prix  = Math.round(cout * (1 + (_reportData.coeff ?? 300) / 100));
+  return { cout, prix, totalYard, auto:true };
+}
+
+/* ================================================================
+   PRESET — ajouter un format HCS standard
+   ================================================================ */
+function _addPreset(preset) {
+  const _mk = (h, l, pos) => {
+    const { cout, prix, totalYard, auto } = _calcCostForDims(h, l);
+    return { h, l, surface:h*l, totalYard, cout, prix, pos, auto };
+  };
+
+  // Multi (Manches ×2) : ajoute MG + MD sauf si déjà présents
+  if (preset.multi) {
+    let added = 0;
+    if (!_formats.some(f => f.h===preset.h && f.l===preset.l && f.pos===preset.pos)) {
+      _formats.push(_mk(preset.h, preset.l, preset.pos)); added++;
+    }
+    if (!_formats.some(f => f.h===preset.h && f.l===preset.l && f.pos===preset.multi)) {
+      _formats.push(_mk(preset.h, preset.l, preset.multi)); added++;
+    }
+    if (added === 0) { _toast('Ces formats sont déjà dans la liste.', 'in'); return; }
+    _renderFormats(); _renderPresets();
+    const info = _reportData ? '· tarifs calculés' : '· renseignez le coût';
+    _toast(`${added} format(s) ajouté(s) ${info}`, _reportData ? 'ok' : 'in');
+    return;
+  }
+
+  if (_formats.some(f => f.h===preset.h && f.l===preset.l && f.pos===preset.pos)) {
+    _toast(`${preset.label} est déjà dans la liste.`, 'in'); return;
+  }
+  _formats.push(_mk(preset.h, preset.l, preset.pos));
+  _renderFormats(); _renderPresets();
+  const info = _reportData ? '· tarifs calculés depuis le rapport' : '· saisissez le coût manuellement';
+  _toast(`${preset.label} ajouté ${info}`, _reportData ? 'ok' : 'in');
+}
+
+/* ================================================================
+   RENDU PRESET CHIPS
+   ================================================================ */
+function _renderPresets() {
+  const grid = document.getElementById('preset-grid');
+  if (!grid) return;
+
+  grid.innerHTML = HCS_PRESETS.map((p, i) => {
+    const pos = POSITIONS.find(x => x.code === p.pos) || POSITIONS[0];
+    const inList = p.multi
+      ? _formats.some(f => f.h===p.h && f.l===p.l && f.pos===p.pos)
+        && _formats.some(f => f.h===p.h && f.l===p.l && f.pos===p.multi)
+      : _formats.some(f => f.h===p.h && f.l===p.l && f.pos===p.pos);
+    const cls = inList ? 'pchip in-list' : 'pchip';
+    const dimLbl = p.multi
+      ? `${p.h}×${p.l} cm ×2`
+      : `${p.h}×${p.l} cm`;
+    const posLbl = p.multi
+      ? `${pos.label} + Manche D`
+      : pos.label;
+    return `
+      <button class="${cls}" data-preset-idx="${i}" title="${p.note}${inList?' — déjà ajouté':''}">
+        <div class="pchip-top"><span class="pchip-icon">${pos.icon}</span><span class="pchip-label">${p.label}</span>${inList?'<span style="color:var(--ok);font-size:9px">✓</span>':''}</div>
+        <div class="pchip-dim">${dimLbl}</div>
+        <div class="pchip-pos">${posLbl}</div>
+      </button>`;
+  }).join('');
+
+  grid.querySelectorAll('.pchip:not(.in-list)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = HCS_PRESETS[parseInt(btn.getAttribute('data-preset-idx'))];
+      _addPreset(p);
+      btn.classList.add('added');
+      setTimeout(() => btn.classList.remove('added'), 1200);
+    });
+  });
+}
+
+/* ================================================================
+   VINYL CHIPS
+   ================================================================ */
+function _bindVinylChips() {
+  document.querySelectorAll('.vc').forEach(c => {
+    c.addEventListener('click', () => {
+      document.querySelectorAll('.vc').forEach(x => x.classList.remove('on'));
+      c.classList.add('on');
+      document.getElementById('c-nom').value = c.dataset.v;
+    });
+  });
+  document.getElementById('c-nom').addEventListener('input', e => {
+    _syncVinylChip(e.target.value.trim());
+  });
+}
+
+function _syncVinylChip(val) {
+  document.querySelectorAll('.vc').forEach(c => {
+    c.classList.toggle('on', c.dataset.v === val);
+  });
+}
+
+/* ================================================================
+   BOUTONS
+   ================================================================ */
+function _bindButtons() {
+  document.getElementById('btn-gen').addEventListener('click', _generate);
+  document.getElementById('btn-exp').addEventListener('click', _exportCSV);
+  document.getElementById('btn-save-erp').addEventListener('click', _saveToERP);
+
+  document.getElementById('btn-add').addEventListener('click', () => {
+    _formats.push({ h:10, l:10, surface:100, totalYard:0, cout:0, prix:0, pos:'PG', auto:false });
+    _renderFormats(); _renderPresets();
+    _toast('Format ajouté — renseignez les dimensions et le coût.', 'in');
+  });
+
+  document.getElementById('btn-all-pos').addEventListener('click', () => {
+    _formats.forEach(f => { f.pos = _suggestPos(f.surface); });
+    _renderFormats();
+    _toast('Positions assignées automatiquement selon la surface.', 'ok');
+  });
+
+  document.getElementById('btn-presets-all').addEventListener('click', () => {
+    HCS_PRESETS.forEach(p => _addPreset(p));
+  });
+
+  document.getElementById('btn-presets-clear').addEventListener('click', () => {
+    if (_formats.length === 0) return;
+    if (!confirm(`Supprimer les ${_formats.length} format(s) chargés ?`)) return;
+    _formats = []; _products = [];
+    _renderFormats(); _renderPresets();
+    document.getElementById('btn-exp').disabled = true;
+    document.getElementById('prev-wrap').innerHTML = `<div class="empty"><div class="empty-icon">🏷️</div><p>Les produits apparaîtront ici après génération.</p></div>`;
+    _toast('Formats effacés.', 'in');
+  });
+}
+
+/* ================================================================
+   UTILS
+   ================================================================ */
+function _fn(n)    { return Number(n||0).toLocaleString('fr-FR'); }
+function _fxpf(n)  { return _fn(Math.round(n||0)) + ' F'; }
+function _esc(s)   { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _date()   { const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+function _cell(v)  { const s=String(v??''); return (s.includes(',')||s.includes('"')||s.includes('\n'))?'"'+s.replace(/"/g,'""')+'"':s; }
+
+function _toast(msg, type='in') {
+  const ct=document.getElementById('toast');
+  const el=document.createElement('div');
+  el.className=`t t-${type}`;
+  el.textContent=msg;
+  ct.appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+</script>
+</body>
+</html>
