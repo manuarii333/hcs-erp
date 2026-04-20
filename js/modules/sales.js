@@ -932,7 +932,7 @@ const Sales = (() => {
     /* Toolbar : retour + boutons d'actions */
     toolbar.innerHTML = `
       <button class="btn btn-ghost btn-sm" id="btn-back">← Retour</button>
-      ${_quoteActionBtns(statut, isNew)}`;
+      ${_quoteActionBtns(statut, isNew, doc)}`;
 
     document.getElementById('btn-back')
       ?.addEventListener('click', () => _goList('quotes', toolbar, area));
@@ -1166,31 +1166,24 @@ const Sales = (() => {
     });
   }
 
-  /** Crée une facture partielle pour le montant restant */
+  /** Crée une facture (Brouillon) reprenant toutes les lignes du devis */
   function _createPartialInvoice(devis, reste, area) {
-    const ref = _genRef('FAC', 'factures');
-    const ligne = {
-      id:            'l-' + Date.now(),
-      produit:       `Acompte sur devis ${devis.ref}`,
-      qte:           1,
-      prixUnitaire:  Math.round(reste / 1.13),  // montant HT depuis TTC
-      remise:        0
-    };
-    const totaux = _calcTotaux([ligne]);
+    const ref    = _genRef('FAC', 'factures');
+    const totaux = _calcTotaux(devis.lignes);
     Store.create('factures', {
       ref,
-      _type:         'Facture',
-      contactId:     devis.contactId,
-      client:        devis.client,
-      date:          new Date().toISOString().slice(0, 10),
-      statut:        'Brouillon',
-      devisId:       devis.id,
-      lignes:        [ligne],
-      paiements:     [],
+      _type:        'Facture',
+      contactId:    devis.contactId,
+      client:       devis.client,
+      date:         new Date().toISOString().slice(0, 10),
+      statut:       'Brouillon',
+      devisId:      devis.id,
+      lignes:       devis.lignes,
+      paiements:    [],
       ...totaux,
-      notes:         `Facture partielle — solde restant sur ${devis.ref}`
+      notes:        `Facture — ${devis.ref} — Reste à régler : ${_fmt(reste)}`
     });
-    toast(`📄 Facture partielle ${ref} créée (${_fmt(reste)}).`, 'success');
+    toast(`📄 Facture ${ref} créée depuis ${devis.ref} (reste : ${_fmt(reste)}).`, 'success');
   }
 
   /**
@@ -1211,29 +1204,12 @@ const Sales = (() => {
       type:    'Paiement'
     }));
 
-    let lignesFac, totauxFac, facStatut, typeLabel;
-
-    if (isTotal) {
-      /* Facture totale : reprend toutes les lignes du devis */
-      lignesFac  = devis.lignes;
-      totauxFac  = totauxDevis;
-      facStatut  = 'Payé';
-      typeLabel  = 'totale';
-    } else {
-      /* Facture partielle : une ligne d'acompte = montant HT calculé depuis TTC */
-      const htAcompte = Math.round(totalRegle / 1.13);
-      const ligne = {
-        id:           `l-${Date.now()}`,
-        produit:      `Acompte sur devis ${devis.ref}`,
-        qte:          1,
-        prixUnitaire: htAcompte,
-        remise:       0
-      };
-      lignesFac = [ligne];
-      totauxFac = _calcTotaux(lignesFac);
-      facStatut = 'Payé partiel';
-      typeLabel = 'partielle';
-    }
+    /* Toujours reprendre les lignes complètes du devis.
+       Le paiement partiel est tracké via paiements[] — reste = totalTTC - Σpaiements */
+    const lignesFac = devis.lignes;
+    const totauxFac = totauxDevis;
+    const facStatut = isTotal ? 'Payé' : 'Payé partiel';
+    const typeLabel = isTotal ? 'totale' : 'partielle';
 
     const today   = new Date().toISOString().slice(0, 10);
     const facData = {
@@ -1360,8 +1336,13 @@ const Sales = (() => {
     });
   }
 
-  function _quoteActionBtns(statut, isNew) {
+  function _quoteActionBtns(statut, isNew, doc = null) {
     if (isNew) return '';
+
+    /* Vérifie si une facture ou commande est déjà liée à ce devis */
+    const factureLiee  = doc ? Store.getAll('factures').find(f => f.devisId === doc.id) : null;
+    const commandeLiee = doc ? Store.getAll('commandes').find(c => c.quoteId === doc.id) : null;
+
     const btns = [];
     btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="apercu" title="Aperçu du document devis">📄 Aperçu</button>`);
     if (statut === 'Brouillon') {
@@ -1372,10 +1353,23 @@ const Sales = (() => {
       btns.push(`<button class="btn btn-danger btn-sm"  data-q-action="annuler">✕ Annuler</button>`);
     }
     if (['Envoyé', 'Confirmé'].includes(statut)) {
-      btns.push(`<button class="btn btn-success btn-sm" data-q-action="facturer" title="Le client valide — convertir en facture">🧾 → Facture</button>`);
+      if (factureLiee) {
+        /* Facture déjà créée → lien direct, bouton désactivé */
+        btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="voir-facture" data-linked-id="${factureLiee.id}"
+          title="Ouvrir la facture liée ${factureLiee.ref}" style="color:var(--accent-green);">
+          🧾 ${_esc(factureLiee.ref)} ↗</button>`);
+      } else {
+        btns.push(`<button class="btn btn-success btn-sm" data-q-action="facturer" title="Convertir en facture">🧾 → Facture</button>`);
+      }
     }
     if (statut === 'Confirmé') {
-      btns.push(`<button class="btn btn-primary btn-sm" data-q-action="convertir">📦 → Commande</button>`);
+      if (commandeLiee) {
+        btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="voir-commande" data-linked-id="${commandeLiee.id}"
+          title="Ouvrir la commande liée ${commandeLiee.reference || commandeLiee.ref}" style="color:var(--accent-blue);">
+          📦 ${_esc(commandeLiee.reference || commandeLiee.ref)} ↗</button>`);
+      } else {
+        btns.push(`<button class="btn btn-primary btn-sm" data-q-action="convertir">📦 → Commande</button>`);
+      }
     }
     btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="supprimer" style="color:var(--accent-red);margin-left:8px;" title="Supprimer ce devis">🗑 Supprimer</button>`);
     return btns.join('');
@@ -1522,6 +1516,18 @@ const Sales = (() => {
 
         if (action === 'facturer') {
           _createInvoiceFromQuote(doc, toolbar, area);
+          return;
+        }
+
+        if (action === 'voir-facture') {
+          const facId = btn.dataset.linkedId;
+          if (facId) { _goForm('invoices', facId, toolbar, area); }
+          return;
+        }
+
+        if (action === 'voir-commande') {
+          const cmdId = btn.dataset.linkedId;
+          if (cmdId) { _goForm('orders', cmdId, toolbar, area); }
           return;
         }
 
@@ -2505,7 +2511,18 @@ const Sales = (() => {
             return `<span class="mono" style="color:${color};font-weight:600;">${_fmt(v)}</span>`;
           }
         },
-        { key: 'statut',   label: 'Statut', type: 'badge', badgeMap: BADGE_FAC }
+        { key: 'statut',   label: 'Statut', type: 'badge', badgeMap: BADGE_FAC },
+        { type: 'actions', width: '60px', actions: [
+            { label: '🗑', className: 'btn btn-ghost btn-sm', title: 'Supprimer', onClick: (row) => {
+                showConfirm(`Supprimer la facture ${row.ref || row.id} ?`, () => {
+                  Store.remove('factures', row.id);
+                  toast('Facture supprimée.', 'success');
+                  _goList('invoices', toolbar, area);
+                });
+              }
+            }
+          ]
+        }
       ],
       onRowClick: (item) => _goForm('invoices', item.id, toolbar, area),
       emptyMsg:   'Aucune facture.'
@@ -2529,9 +2546,21 @@ const Sales = (() => {
     const statut = doc?.statut || 'Brouillon';
     const chips  = doc?.commandeId ? `<span class="chip">📦 ${_esc(doc.commandeId)}</span>` : '';
 
+    /* Lien vers le devis d'origine si la facture est liée */
+    const devisLie = doc?.devisId ? Store.getById('devis', doc.devisId) : null;
+    const btnDevisLie = devisLie
+      ? `<button class="btn btn-ghost btn-sm" id="btn-voir-devis"
+          title="Ouvrir le devis ${devisLie.ref}" style="color:var(--accent-blue);">
+          📄 ${_esc(devisLie.ref)} ↗</button>`
+      : '';
+
     toolbar.innerHTML = `
       <button class="btn btn-ghost btn-sm" id="btn-back">← Retour</button>
+      ${btnDevisLie}
       ${_invoiceActionBtns(statut, isNew)}`;
+
+    document.getElementById('btn-voir-devis')
+      ?.addEventListener('click', () => _goForm('quotes', devisLie.id, toolbar, area));
 
     document.getElementById('btn-back')
       ?.addEventListener('click', () => _goList('invoices', toolbar, area));

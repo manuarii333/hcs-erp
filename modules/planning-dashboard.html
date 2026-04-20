@@ -994,10 +994,19 @@ function renderCard(c) {
   // ── Boutons d'action selon la colonne ──
   let actionsHtml = '';
 
+  /* Bouton "Lancer en production" : visible si la carte n'est pas encore en prod/qualite/pret */
+  const canLaunch = !['prod','qualite','pret'].includes(c.col);
+  const btnLancer = canLaunch
+    ? `<button class="cmd-btn cmd-btn-prod" onclick="lancerEnProduction('${c.id}')"
+        title="Lancer directement en production" style="background:var(--accent-green,#00d4aa);color:#000;font-weight:600;">
+        🚀 Lancer en prod.
+       </button>`
+    : '';
+
   if (c.col === 'matiere') {
-    // Bouton spécial : ouvrir le modal de réservation
     actionsHtml = `
       <button class="cmd-btn cmd-btn-reserve" onclick="openReservationModal('${c.id}')">📦 Réserver stock</button>
+      ${btnLancer}
       <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
     `;
   } else if (c.col === 'reservation') {
@@ -1011,6 +1020,7 @@ function renderCard(c) {
         title="${canAdvance ? 'Passer en production' : 'Confirmez la disponibilité pour débloquer'}">
         → Production
       </button>
+      ${btnLancer}
       <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
     `;
   } else {
@@ -1019,6 +1029,7 @@ function renderCard(c) {
       ${nextLabel
         ? `<button class="cmd-btn cmd-btn-next" onclick="advanceCmd('${c.id}')">→ ${nextLabel}</button>`
         : '<button class="cmd-btn cmd-btn-next" style="opacity:.4" disabled>✅ Terminé</button>'}
+      ${btnLancer}
       <button class="cmd-btn cmd-btn-del" onclick="deleteCmd('${c.id}')">✕</button>
     `;
   }
@@ -1169,6 +1180,16 @@ function advanceCmd(id) {
   if (!cmd) return;
   const next = NEXT_COL[cmd.col];
   if (next) { cmd.col = next; save(); render(); }
+}
+
+function lancerEnProduction(id) {
+  const cmd = commandes.find(c => c.id === id);
+  if (!cmd) return;
+  if (!confirm(`Lancer "${cmd.client || cmd.ref}" directement en production ?`)) return;
+  cmd.col = 'prod';
+  cmd.lancedAt = new Date().toISOString();
+  save();
+  render();
 }
 
 // ─── DELETE ───
