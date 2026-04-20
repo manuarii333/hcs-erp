@@ -700,6 +700,15 @@
       desc: 'Met à jour le numéro de version ?v= dans index.html pour forcer tous les navigateurs à recharger les scripts JS/CSS.',
       when: 'Quand les utilisateurs voient encore l\'ancienne version malgré Ctrl+Shift+R.',
       cmd: 'python -c "import re,datetime; ..."'
+    },
+    {
+      id: 'kill-python-hooks',
+      icon: '🔪',
+      name: 'Kill Python Hooks',
+      trigger: '/kill-python-hooks',
+      desc: 'Supprime les processus Python hook accumulés (watch-deploy.py one-shots) sans toucher au watcher FTP principal ni au serveur Dropbox.',
+      when: 'Quand la mémoire/CPU monte après une longue session — les hooks Claude Code s\'accumulent sans se terminer.',
+      cmd: 'powershell -Command "Get-WmiObject Win32_Process -Filter \\"name=\'python.exe\'\\"|?{$_.CommandLine -match \'watch-deploy\\.py.+\\\\\\\\\'} | %{Stop-Process -Id $_.ProcessId -Force}"'
     }
   ];
 
