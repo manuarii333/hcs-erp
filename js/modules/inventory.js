@@ -2351,12 +2351,29 @@ const Inventory = (() => {
                 ${fmt(prix)}</span>` : ''}
               <span style="font-size:11px;white-space:nowrap;
                 color:${stock > 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">
-                ${stock} u</span>`;
+                ${stock} u</span>
+              <button id="vp-confirm-btn" type="button"
+                style="margin-left:8px;padding:5px 14px;border-radius:6px;border:none;
+                  background:var(--accent-green,#22c55e);color:#fff;font-weight:700;
+                  font-size:13px;cursor:pointer;white-space:nowrap;">
+                ✔ Confirmer
+              </button>`;
           } else {
             descEl.innerHTML = `<span style="opacity:.6;">${
               chosen.map(k => `${k}: ${selection[k]}`).join(' · ')
             }</span>`;
           }
+        }
+
+        /* Bouton confirmer — bind après injection dans le DOM */
+        const confirmBtn = document.getElementById('vp-confirm-btn');
+        if (confirmBtn) {
+          confirmBtn.onclick = () => {
+            const parts = chosen.map(k => `${k}: ${selection[k]}`);
+            if (matchedVariante.ref) parts.push(`Réf: ${matchedVariante.ref}`);
+            closeModal();
+            if (typeof onSelect === 'function') onSelect(matchedVariante, parts.join(' — '));
+          };
         }
 
         if (allSet && matchedVariante) {
