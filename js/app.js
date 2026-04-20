@@ -74,9 +74,10 @@ const APPS = [
     color: '#4a5fff',
     pinned: true,
     views: [
-      { id: 'products',     label: 'Produits',   icon: '📋', section: 'Catalogue' },
-      { id: 'categories',   label: 'Catégories', icon: '🏷',  section: 'Catalogue' },
-      { id: 'stock-moves',  label: 'Mouvements', icon: '↕️', section: 'Stock'    },
+      { id: 'products',          label: 'Produits',           icon: '📋', section: 'Catalogue' },
+      { id: 'categories',        label: 'Catégories',         icon: '🏷',  section: 'Catalogue' },
+      { id: 'transfert-creator', label: '✂️ Créateur Vinyle', icon: '🎨', section: 'Catalogue' },
+      { id: 'stock-moves',       label: 'Mouvements',         icon: '↕️', section: 'Stock'    },
       { id: 'suppliers',       label: 'Fournisseurs',  icon: '🏭', section: 'Approvisionnement' },
       { id: 'po',              label: 'Commandes achat',icon: '🛒', section: 'Approvisionnement' },
       { id: 'purchase-report', label: 'Rapport achats', icon: '📈', section: 'Approvisionnement' },
@@ -204,6 +205,7 @@ const APPS = [
       { id: 'calculateur-vinyl-hcs',               label: 'Calculateur Vinyle',      icon: '✂️', section: 'Applications HCS' },
       { id: 'calculateur-transfert-thermocollant', label: 'Calculateur Transfert',   icon: '♨️', section: 'Applications HCS' },
       { id: 'product-creator',                     label: 'Product Creator CSV',     icon: '📦', section: 'Applications HCS' },
+      { id: 'transfert-creator',                   label: 'Créateur Vinyle',          icon: '✂️', section: 'Applications HCS' },
       { id: 'ext-hcs-builder', label: 'HCS Builder v2',    icon: '🏗️', section: 'Applications HCS', external: true, url: '../hcs-builder-v2-fixed.html' },
       { id: 'ext-pass-hcs',    label: 'Pass HCS',          icon: '🎫', section: 'Applications HCS', external: true, url: '../hcs-hub-ecosystem/hcs-hub-ecosystem/hcs-pass-test.html' },
       { id: 'ext-hub',         label: 'HCS Hub',           icon: '🗄️', section: 'Applications HCS', external: true, url: '../hcs-hub.html' },
@@ -478,8 +480,11 @@ function renderView() {
       }
       break;
     case 'stock':
+      /* Créateur Vinyle — iframe dédiée */
+      if (view === 'transfert-creator') {
+        renderIframe('modules/transfert-creator.html', container);
       /* Fournisseurs et achats délégués au module Purchases */
-      if (['suppliers','po','purchase-report'].includes(view) && typeof Purchases !== 'undefined') {
+      } else if (['suppliers','po','purchase-report'].includes(view) && typeof Purchases !== 'undefined') {
         Purchases.init(document.getElementById('toolbar-actions'), container, view);
       } else if (typeof Inventory !== 'undefined') {
         Inventory.init(document.getElementById('toolbar-actions'), container, view);

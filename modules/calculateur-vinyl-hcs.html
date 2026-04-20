@@ -53,6 +53,19 @@
   .btn-export:hover { opacity:.85; }
   .btn-export:disabled { opacity:.4; cursor:not-allowed; }
 
+  /* Calcul rapide / visualisation rouleau */
+  .calcul-rapide { background:var(--surface2); border:0.5px solid var(--border2); border-radius:var(--r); padding:1.25rem; margin-bottom:1.5rem; }
+  .cr-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1rem; }
+  .cr-kpi { background:rgba(0,0,0,.3); border-radius:8px; padding:.75rem; text-align:center; }
+  .cr-kpi .ck-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+  .cr-kpi .ck-val { font-family:var(--font-display); font-size:1.3rem; font-weight:700; color:var(--accent); }
+  .cr-kpi .ck-val.green { color:var(--accent2); }
+  .yard-viz { display:flex; justify-content:center; margin-top:1rem; }
+  .yard-box { position:relative; width:100%; max-width:220px; background:linear-gradient(135deg,#0d2a1a 0%,#1a4a2a 50%,#0d2a1a 100%); border:2px solid var(--accent); border-radius:4px; overflow:hidden; box-shadow:inset 0 0 20px rgba(0,0,0,.5),0 4px 15px rgba(200,255,0,.2); }
+  .yard-inner { position:relative; width:100%; height:100%; }
+  .logo-chip { position:absolute; background:linear-gradient(135deg,var(--accent),#89b300); border:1px solid rgba(200,255,0,.8); border-radius:2px; display:flex; align-items:center; justify-content:center; font-size:.38rem; color:#000; font-weight:bold; }
+  .yard-caption { text-align:center; font-size:9px; color:var(--muted); margin-top:6px; }
+
   /* Table des formats */
   .formats-block { background:var(--surface); border:0.5px solid var(--border2); border-radius:var(--r); overflow:hidden; margin-bottom:1.5rem; }
   .formats-header { width:100%; background:var(--surface2); border:none; color:var(--text); padding:.875rem 1.25rem; font-family:var(--font-mono); font-size:12px; letter-spacing:.08em; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:background .2s; }
@@ -149,6 +162,23 @@
   </div>
 
   <div class="divider"></div>
+
+  <!-- Calcul Rapide H×L + Visualisation -->
+  <div class="section calcul-rapide">
+    <p class="section-label">⚡ Calcul rapide H×L + répartition rouleau</p>
+    <div class="cr-grid">
+      <div class="cr-kpi"><div class="ck-label">Surface</div><div class="ck-val" id="cr-surface">— cm²</div></div>
+      <div class="cr-kpi"><div class="ck-label">Stickers/rouleau</div><div class="ck-val" id="cr-total">—</div></div>
+      <div class="cr-kpi"><div class="ck-label">Coût matière</div><div class="ck-val" id="cr-cout">— F</div></div>
+      <div class="cr-kpi"><div class="ck-label">Prix vente</div><div class="ck-val green" id="cr-prix">— F</div></div>
+    </div>
+    <div class="yard-viz">
+      <div>
+        <div class="yard-box" id="yard-box" style="aspect-ratio:1/1"></div>
+        <div class="yard-caption" id="yard-caption"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="section">
     <p class="section-label">Résultats — format actuel</p>
@@ -251,6 +281,8 @@ function calc() {
   document.getElementById('r-nb').textContent         = fmt(nbYard, 0) + ' pcs';
   document.getElementById('r-pvente').textContent     = fmt(pvente, 0) + ' XPF';
   document.getElementById('r-ca').textContent         = fmt(ca, 0) + ' XPF';
+
+  renderYardViz();
 
   // Met à jour la table si ouverte
   if (document.getElementById('formats-body').classList.contains('open')) {
@@ -374,6 +406,53 @@ document.getElementById('btn-export').addEventListener('click', () => {
   a.download = `HCS_Rapport_Sticker_${fileStr}.html`;
   a.click();
 });
+
+/* ── Calcul Rapide + Visualisation rouleau ── */
+function renderYardViz() {
+  const p = getParams();
+  const box = document.getElementById('yard-box');
+  if (!box) return;
+
+  const mg = 0.5;
+  const nbW = p.w > 0 ? Math.floor(p.largRoll / (p.w + mg)) : 0;
+  const nbH = p.h > 0 ? Math.floor(p.longRoll / (p.h + mg)) : 0;
+  const total = nbW * nbH;
+
+  const surfRoll = p.largRoll * p.longRoll;
+  const cpm2 = surfRoll > 0 ? p.prixYard / surfRoll : 0;
+  const matUnit = p.w * p.h * cpm2;
+  const pvente = matUnit * (1 + p.marge / 100);
+
+  document.getElementById('cr-surface').textContent = fmt(p.w * p.h, 2) + ' cm²';
+  document.getElementById('cr-total').textContent   = total > 0 ? total + ' pcs' : '—';
+  document.getElementById('cr-cout').textContent    = fmt(matUnit, 0) + ' F';
+  document.getElementById('cr-prix').textContent    = fmt(pvente, 0) + ' F';
+
+  if (nbW <= 0 || nbH <= 0 || total > 600) {
+    box.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(200,255,0,.3);font-size:10px;padding:20px;text-align:center;">Format trop grand ou dimensions invalides</div>';
+    box.style.aspectRatio = '1/1';
+    document.getElementById('yard-caption').textContent = '';
+    return;
+  }
+
+  const ar = p.longRoll / p.largRoll;
+  box.style.aspectRatio = `${p.largRoll}/${p.longRoll}`;
+
+  const sX = p.largRoll / nbW, sY = p.longRoll / nbH;
+  const logos = [];
+  for (let r = 0; r < nbH; r++) {
+    for (let c = 0; c < nbW; c++) {
+      const x = (c * sX + (sX - p.w) / 2) / p.largRoll * 100;
+      const y = (r * sY + (sY - p.h) / 2) / p.longRoll * 100;
+      const w = p.w / p.largRoll * 100;
+      const h = p.h / p.longRoll * 100;
+      logos.push(`<div class="logo-chip" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%">${fmt(pvente,0)}F</div>`);
+    }
+  }
+  box.innerHTML = `<div class="yard-inner">${logos.join('')}</div>`;
+  document.getElementById('yard-caption').textContent =
+    `${p.largRoll}cm × ${p.longRoll}cm · Marge ${mg}cm · ${nbW}×${nbH} = ${total} pcs`;
+}
 
 /* ── Export Product Creator CSV ── */
 document.getElementById('btn-export-pc').addEventListener('click', () => {

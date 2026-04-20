@@ -846,9 +846,11 @@ function _saveToERP() {
     tva:         p.tva || 16,
     stock:       0,
     stockMin:    0,
-    unite:       'unité',
-    paliers:     '',
-    description: p.description,
+    unite:          'unité',
+    paliers:        '',
+    description:    p.description,
+    positionAtelier: p._pos?.label || '',
+    positionsAtelier: [],
   }));
   window.parent.postMessage({ type: 'HCS_SAVE_PRODUCTS', products: payload }, '*');
   _toast(`${payload.length} produit(s) envoyés à l'ERP…`, 'ok');
@@ -933,10 +935,6 @@ function _renderPreview() {
           <div style="font-weight:600;font-size:12px">${_esc(p.nom)}</div>
           <div style="font-size:10px;color:var(--tx3);margin-top:2px">${_esc(p.designation)}</div>
         </td>
-        <td class="lft">
-          <span class="bd bd-b">${p._pos.icon} ${p._pos.label}</span>
-          <div class="pos-offset">${_esc(p._pos.offset)}</div>
-        </td>
         <td class="pxv">${_fxpf(p.prix)}</td>
         <td class="cxv">${_fxpf(p.cout)}</td>
         <td><span class="bd ${mc}">${p._marge}%</span></td>
@@ -953,7 +951,6 @@ function _renderPreview() {
         <thead>
           <tr>
             <th class="lft">Produit ERP</th>
-            <th class="lft">Position atelier</th>
             <th>Prix HT</th>
             <th>Coût</th>
             <th>Marge</th>

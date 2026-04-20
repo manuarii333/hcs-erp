@@ -164,6 +164,62 @@ const Sales = (() => {
     return (s || '').replace(/[\\/:*?"<>|]/g, '').trim().replace(/\s+/g, '_');
   }
 
+  /** Picker position atelier — affiche un modal de sélection rapide */
+  function _showPositionPicker(positions, callback) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+    const items = positions.map(pos => `
+      <button class="pos-pick-btn" data-pos="${_esc(pos)}"
+        style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+          background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;
+          padding:10px 14px;font-size:13px;color:var(--text-primary);cursor:pointer;
+          transition:border .15s,background .15s;">
+        ${_esc(pos)}
+      </button>`).join('');
+
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card);border-radius:16px;max-width:420px;width:100%;
+        box-shadow:0 8px 40px rgba(0,0,0,.4);overflow:hidden;">
+        <div style="background:var(--bg-elevated);padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+          <span style="font-size:18px;">📍</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--text-primary);">Position atelier</div>
+            <div style="font-size:11px;color:var(--text-muted);">Choisir l'emplacement du visuel sur le vêtement</div>
+          </div>
+          <button id="pos-close" style="margin-left:auto;background:rgba(255,255,255,.1);border:none;
+            color:var(--text-secondary);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px;">✕</button>
+        </div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;">
+          ${items}
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--border);text-align:right;">
+          <button id="pos-skip" style="background:transparent;border:none;color:var(--text-muted);
+            font-size:12px;cursor:pointer;text-decoration:underline;">Ignorer pour l'instant</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(overlay);
+
+    overlay.querySelectorAll('.pos-pick-btn').forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        btn.style.background = 'var(--bg-elevated)';
+        btn.style.borderColor = 'var(--accent-blue)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.background = 'var(--bg-surface)';
+        btn.style.borderColor = 'var(--border)';
+      });
+      btn.addEventListener('click', () => {
+        overlay.remove();
+        callback(btn.dataset.pos);
+      });
+    });
+
+    overlay.querySelector('#pos-close')?.addEventListener('click', () => { overlay.remove(); callback(null); });
+    overlay.querySelector('#pos-skip')?.addEventListener('click', () => { overlay.remove(); callback(null); });
+  }
+
   /** Crée le dossier Dropbox client du mois en cours (silencieux si serveur absent) */
   async function _createDropboxFolder(clientName) {
     if (!clientName) return;
@@ -416,9 +472,25 @@ const Sales = (() => {
           _state.lignes[idx].description = descParts.join(' — ');
           _applyPalierPrix(idx);
           _refreshLineTable();
-          /* Auto-ouvrir le picker si le produit a des variantes */
-          if ((produit.variantes || []).length > 0 &&
-              typeof Inventory !== 'undefined' && Inventory.showVariantePicker) {
+          /* Auto-ouvrir le picker variantes puis position atelier */
+          const hasVariantes = (produit.variantes || []).length > 0 &&
+            typeof Inventory !== 'undefined' && Inventory.showVariantePicker;
+          const hasPositions = (produit.positionsAtelier || []).length > 0;
+
+          const _openPositionPicker = () => {
+            if (!hasPositions) return;
+            _showPositionPicker(produit.positionsAtelier, (position) => {
+              if (!position) return;
+              _state.lignes[idx].positionAtelier = position;
+              const base = _state.lignes[idx].description || produit.nom;
+              if (!base.includes(position)) {
+                _state.lignes[idx].description = `${base} — ${position}`;
+              }
+              _refreshLineTable();
+            });
+          };
+
+          if (hasVariantes) {
             Inventory.showVariantePicker(produit, (variante, descriptionAuto) => {
               if (!variante) return;
               const SKIP_VAR = new Set(['ref', 'prix', 'cout', 'quantite', 'customDims']);
@@ -429,7 +501,10 @@ const Sales = (() => {
               _state.lignes[idx].description  = descriptionAuto || produit.nom;
               _applyPalierPrix(idx);
               _refreshLineTable();
+              _openPositionPicker();
             });
+          } else {
+            _openPositionPicker();
           }
         } else {
           _state.lignes[idx].produitId   = '';
@@ -1654,6 +1729,39 @@ const Sales = (() => {
           ${devis.notes ? `
           <div class="section-title">Notes &amp; Conditions</div>
           <div class="notes-box">${_esc(devis.notes).replace(/\n/g, '<br>')}</div>` : ''}
+
+          <!-- Fiche atelier (uniquement si au moins une ligne a une position) -->
+          ${(() => {
+            const lignesAvecPos = (devis.lignes || []).filter(l => l.positionAtelier);
+            if (!lignesAvecPos.length) return '';
+            return `
+              <div style="margin-top:24px;border-top:2px dashed #e5e7eb;padding-top:16px;">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:1px;color:#6b7280;margin-bottom:10px;">📋 Fiche Atelier</div>
+                <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                  <thead>
+                    <tr style="background:#f3f4f6;">
+                      <th style="padding:6px 10px;text-align:left;font-weight:700;color:#374151;">Article</th>
+                      <th style="padding:6px 10px;text-align:center;font-weight:700;color:#374151;">Qté</th>
+                      <th style="padding:6px 10px;text-align:left;font-weight:700;color:#374151;">Position atelier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${lignesAvecPos.map(l => `
+                      <tr style="border-bottom:1px solid #f3f4f6;">
+                        <td style="padding:7px 10px;">${_esc(l.produit || l.description || '—')}</td>
+                        <td style="padding:7px 10px;text-align:center;font-weight:600;">${l.qte || 1}</td>
+                        <td style="padding:7px 10px;">
+                          <span style="background:#eff6ff;color:#1d4ed8;border-radius:6px;
+                            padding:3px 10px;font-weight:600;">
+                            ${_esc(l.positionAtelier)}
+                          </span>
+                        </td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>`;
+          })()}
 
           <!-- Pied de page -->
           <div class="doc-footer">
