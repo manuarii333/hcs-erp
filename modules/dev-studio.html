@@ -709,6 +709,15 @@
       desc: 'Supprime les processus Python hook accumulés (watch-deploy.py one-shots) sans toucher au watcher FTP principal ni au serveur Dropbox.',
       when: 'Quand la mémoire/CPU monte après une longue session — les hooks Claude Code s\'accumulent sans se terminer.',
       cmd: 'powershell -Command "Get-WmiObject Win32_Process -Filter \\"name=\'python.exe\'\\"|?{$_.CommandLine -match \'watch-deploy\\.py.+\\\\\\\\\'} | %{Stop-Process -Id $_.ProcessId -Force}"'
+    },
+    {
+      id: 'mysql-field-check',
+      icon: '🔎',
+      name: 'MySQL Field Check',
+      trigger: '/mysql-field-check',
+      desc: 'Vérifie les correspondances camelCase JS ↔ snake_case MySQL pour toutes les collections. Signale les champs null en MySQL alors que les données existent.',
+      when: 'Avant d\'ajouter une nouvelle collection MySQL, ou quand un champ retourne null en API alors que les données sont en localStorage.',
+      cmd: 'curl -s "https://highcoffeeshirts.com/erp/api/{table}?limit=1" -H "x-api-key: hcs-erp-2026"'
     }
   ];
 
@@ -842,6 +851,24 @@
       tags: ['python'],
       fix: 'sys.stdout.reconfigure',
       workaround: 'Ajouter sys.stdout.reconfigure(encoding="utf-8", errors="replace") en tête de script'
+    },
+    {
+      num: '#07',
+      severity: 'high',
+      title: 'MySQL — Colonnes legacy null (camelCase JS ≠ snake_case MySQL)',
+      desc: 'Le JS envoie des clés camelCase (contactId, totalHT, paiementsDevis…) mais MySQL a des colonnes legacy snake_case (client_id, total_ht, paiements_devis…). Résultat : client_nom, total_ht, total_ttc restent null.',
+      tags: ['mysql', 'sync'],
+      fix: 'Doubler les clés dans le record (camelCase + snake_case)',
+      workaround: 'Ajouter client_nom, client_id, total_ht, total_ttc, total_tva, date_expiration, paiements_devis dans chaque record avant Store.create/update. Voir sales.js lignes devis record et facData.'
+    },
+    {
+      num: '#08',
+      severity: 'med',
+      title: 'Select client vide — contacts MySQL non sync avant ouverture formulaire',
+      desc: 'La sync MySQL démarre avec 300ms de délai. Si le formulaire devis/facture s\'ouvre avant, le select client est vide. Save button bloqué par validation.',
+      tags: ['mysql', 'sync', 'ui'],
+      fix: 'Repopuler le select après 500ms',
+      workaround: 'Auto-refresh du select client 500ms après rendu (déjà codé dans sales.js _bindQuoteFormEvents).'
     }
   ];
 

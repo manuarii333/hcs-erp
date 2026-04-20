@@ -50,7 +50,8 @@ const APPS = [
       { id: 'contacts',  label: 'Contacts',  icon: '👤', section: 'Clients' },
       { id: 'pipeline',  label: 'Pipeline',  icon: '⊞',  section: 'Clients' },
       { id: 'receipts',     label: 'Bons de livraison', icon: '📋', section: 'Réception' },
-      { id: 'sales-report', label: 'Rapport',           icon: '📈', section: 'Rapports'  }
+      { id: 'sales-report', label: 'Rapport',           icon: '📈', section: 'Rapports'  },
+      { id: 'doc-params',   label: 'Mise en forme',    icon: '🎨', section: 'Paramètres' }
     ]
   },
   {

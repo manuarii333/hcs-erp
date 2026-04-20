@@ -982,6 +982,11 @@ const Inventory = (() => {
 
     if (!data.nom) { toastError('Le nom du produit est obligatoire.'); return; }
 
+    /* MySQL legacy column aliases */
+    data.prix_ht   = data.prix;
+    data.prix_ttc  = data.prixTTC;
+    data.stock_min = data.stockMin;
+
     const isNew = !_state.currentId;
     if (isNew) {
       Store.create('produits', data);

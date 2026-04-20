@@ -896,10 +896,30 @@ const Sales = (() => {
           }
         },
         { key: 'totalTTC', label: 'Total TTC',  render: (v) => `<span class="mono">${_fmt(v)}</span>` },
-        { key: 'statut',   label: 'Statut',     type: 'badge', badgeMap: BADGE_DEVIS }
+        { key: 'statut',   label: 'Statut',     type: 'badge', badgeMap: BADGE_DEVIS },
+        { key: 'id', label: '', render: (_, row) =>
+            `<button class="btn btn-ghost btn-sm" data-del-devis="${row.id}"
+              style="color:var(--accent-red);padding:2px 8px;"
+              title="Supprimer ce devis" onclick="event.stopPropagation()">🗑</button>`
+        }
       ],
       onRowClick: (item) => _goForm('quotes', item.id, toolbar, area),
       emptyMsg:   'Aucun devis. Cliquez sur "+ Nouveau Devis" pour commencer.'
+    });
+
+    /* Délégation suppression depuis la liste */
+    document.getElementById('sales-quotes-table')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-del-devis]');
+      if (!btn) return;
+      e.stopPropagation();
+      const id  = btn.dataset.delDevis;
+      const doc = Store.getById('devis', id);
+      if (!doc) return;
+      showConfirm(`Supprimer le devis ${doc.ref || id} ?`, () => {
+        Store.remove('devis', id);
+        toast(`Devis supprimé.`, 'success');
+        _goList('quotes', toolbar, area);
+      });
     });
   }
 
@@ -1226,16 +1246,22 @@ const Sales = (() => {
 
     const today   = new Date().toISOString().slice(0, 10);
     const facData = {
-      _type:     'Facture',
-      contactId: devis.contactId,
-      client:    devis.client,
-      date:      today,
-      statut:    facStatut,
-      devisId:   devis.id,
-      lignes:    lignesFac,
-      paiements: facPaiements,
-      notes:     `Facture ${typeLabel} — ${devis.ref}${resteAPayer > 0.01 ? ` — Reste à payer : ${_fmt(resteAPayer)}` : ''}`,
-      ...totauxFac
+      _type:      'Facture',
+      contactId:  devis.contactId,
+      client:     devis.client,
+      client_nom: devis.client,      /* MySQL: colonne legacy */
+      client_id:  devis.contactId,   /* MySQL: colonne legacy */
+      date:       today,
+      statut:     facStatut,
+      devisId:    devis.id,
+      devis_id:   devis.id,          /* MySQL: colonne legacy */
+      lignes:     lignesFac,
+      paiements:  facPaiements,
+      notes:      `Facture ${typeLabel} — ${devis.ref}${resteAPayer > 0.01 ? ` — Reste à payer : ${_fmt(resteAPayer)}` : ''}`,
+      ...totauxFac,
+      total_ht:   totauxFac.totalHT,  /* MySQL: colonne legacy */
+      total_ttc:  totauxFac.totalTTC, /* MySQL: colonne legacy */
+      total_tva:  totauxFac.totalTVA, /* MySQL: colonne legacy */
     };
 
     /* Cherche une facture déjà liée à ce devis */
@@ -1346,7 +1372,6 @@ const Sales = (() => {
   function _quoteActionBtns(statut, isNew) {
     if (isNew) return '';
     const btns = [];
-    /* Aperçu disponible pour tous les devis enregistrés */
     btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="apercu" title="Aperçu du document devis">📄 Aperçu</button>`);
     if (statut === 'Brouillon') {
       btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="envoyer">📤 Envoyer</button>`);
@@ -1355,13 +1380,13 @@ const Sales = (() => {
       btns.push(`<button class="btn btn-success btn-sm" data-q-action="confirmer">✔ Confirmer</button>`);
       btns.push(`<button class="btn btn-danger btn-sm"  data-q-action="annuler">✕ Annuler</button>`);
     }
-    /* Conversion facture disponible dès "Envoyé" (client valide) ou "Confirmé" */
     if (['Envoyé', 'Confirmé'].includes(statut)) {
       btns.push(`<button class="btn btn-success btn-sm" data-q-action="facturer" title="Le client valide — convertir en facture">🧾 → Facture</button>`);
     }
     if (statut === 'Confirmé') {
       btns.push(`<button class="btn btn-primary btn-sm" data-q-action="convertir">📦 → Commande</button>`);
     }
+    btns.push(`<button class="btn btn-ghost btn-sm" data-q-action="supprimer" style="color:var(--accent-red);margin-left:8px;" title="Supprimer ce devis">🗑 Supprimer</button>`);
     return btns.join('');
   }
 
@@ -1369,16 +1394,47 @@ const Sales = (() => {
     /* Création rapide client depuis la liste déroulante */
     _bindClientSelectCreation('q-client');
 
+    /* Re-peupler le select client après sync MySQL (contacts chargés async) */
+    (async () => {
+      await new Promise(r => setTimeout(r, 500));
+      const sel = document.getElementById('q-client');
+      if (!sel) return;
+      const currentVal = sel.value;
+      const contacts = Store.getAll('contacts');
+      if (contacts.length + 2 > sel.options.length) {
+        while (sel.options.length > 2) sel.remove(2);
+        contacts.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.text  = _esc(c.nom);
+          opt.selected = c.id === currentVal || c.id === doc?.contactId;
+          sel.appendChild(opt);
+        });
+      }
+    })();
+
     /* Remise client spéciale : appliquée dès la sélection */
     document.getElementById('q-client')?.addEventListener('change', () => {
       _applyRemiseClient('q-client');
     });
 
-    /* Sauvegarder */
-    document.getElementById('q-save')?.addEventListener('click', () => {
+    /* Sauvegarder — guard anti double-clic */
+    document.getElementById('q-save')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = '…';
+      setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = '✔ Sauvegarder'; } }, 3000);
+
       const contactId = document.getElementById('q-client')?.value;
-      if (!contactId || contactId === '__new__') { toast('Veuillez sélectionner un client.', 'error'); return; }
-      if (_state.lignes.length === 0) { toast('Ajoutez au moins un article.', 'error'); return; }
+      if (!contactId || contactId === '__new__') {
+        btn.disabled = false; btn.textContent = '✔ Sauvegarder';
+        toast('Veuillez sélectionner un client.', 'error'); return;
+      }
+      if (_state.lignes.length === 0) {
+        btn.disabled = false; btn.textContent = '✔ Sauvegarder';
+        toast('Ajoutez au moins un article.', 'error'); return;
+      }
 
       /* Collecter les montants saisis dans le DOM (évite désync) */
       area.querySelectorAll('.reg-montant').forEach(inp => {
@@ -1405,21 +1461,34 @@ const Sales = (() => {
         ? 'Confirmé'
         : (doc?.statut || 'Brouillon');
 
+      const clientNom = _contactNom(contactId);
+      const dateExp   = document.getElementById('q-validite')?.value || '';
       const record = {
         ref,
-        _type:          'Devis',
+        _type:           'Devis',
         contactId,
-        client:         _contactNom(contactId),
-        date:           document.getElementById('q-date')?.value    || '',
-        dateExpiration: document.getElementById('q-validite')?.value || '',
+        client:          clientNom,
+        client_nom:      clientNom,      /* MySQL: colonne legacy */
+        client_id:       contactId,      /* MySQL: colonne legacy */
+        date:            document.getElementById('q-date')?.value || '',
+        dateExpiration:  dateExp,
+        date_expiration: dateExp,        /* MySQL: colonne legacy */
+        date_validite:   dateExp,        /* MySQL: colonne legacy */
         modeReglement,
+        mode_reglement:  modeReglement,  /* MySQL: colonne legacy */
         paiementsDevis,
+        paiements_devis: paiementsDevis, /* MySQL: colonne legacy */
         totalRegle,
+        total_regle:     totalRegle,     /* MySQL: colonne legacy */
         resteAPayer,
-        notes:          document.getElementById('q-notes')?.value   || '',
-        statut:         statutFinal,
-        lignes:         _state.lignes,
-        ...totaux
+        reste_a_payer:   resteAPayer,    /* MySQL: colonne legacy */
+        notes:           document.getElementById('q-notes')?.value || '',
+        statut:          statutFinal,
+        lignes:          _state.lignes,
+        ...totaux,
+        total_ht:        totaux.totalHT,  /* MySQL: colonne legacy */
+        total_ttc:       totaux.totalTTC, /* MySQL: colonne legacy */
+        total_tva:       totaux.totalTVA, /* MySQL: colonne legacy */
       };
 
       /* 1 — Sauvegarder le devis */
@@ -1465,6 +1534,15 @@ const Sales = (() => {
           return;
         }
 
+        if (action === 'supprimer') {
+          showConfirm(`Supprimer le devis ${doc.ref} ? Cette action est irréversible.`, () => {
+            Store.remove('devis', doc.id);
+            toast(`Devis ${doc.ref} supprimé.`, 'success');
+            _goList('quotes', toolbar, area);
+          });
+          return;
+        }
+
         const newStatut = { envoyer: 'Envoyé', confirmer: 'Confirmé', annuler: 'Annulé' }[action];
         if (newStatut) {
           showConfirm(`Passer ce devis en "${newStatut}" ?`, () => {
@@ -1485,9 +1563,30 @@ const Sales = (() => {
    * Ouvre une fenêtre d'aperçu du devis avec mise en forme professionnelle.
    * Propose d'imprimer le document et, si le statut le permet, de convertir en facture.
    */
+  /* Paramètres de mise en forme des documents (stockés en localStorage) */
+  function _getDocParams() {
+    const defaults = {
+      entreprise:   'HCS — High Coffee Shirts',
+      slogan:       'Tenue · Sublimation · DTF · Broderie · Impression textile',
+      adresse:      'Tahiti, Polynésie française',
+      telephone:    '',
+      email:        'contact@highcoffeeshirts.com',
+      website:      'highcoffeeshirts.com',
+      logoUrl:      '',
+      accentColor:  '#4a5fff',
+      footerText:   'Merci de votre confiance — High Coffee Shirts',
+      conditions:   '',
+      gmailFrom:    'highcoffeeshirt@gmail.com'
+    };
+    try {
+      return { ...defaults, ...JSON.parse(localStorage.getItem('hcs_doc_params') || '{}') };
+    } catch { return defaults; }
+  }
+
   function _previewDevis(devis, toolbar, area) {
-    const contact = Store.getById('contacts', devis.contactId) || {};
+    const contact      = Store.getById('contacts', devis.contactId) || {};
     const peutFacturer = ['Envoyé', 'Confirmé'].includes(devis.statut);
+    const p            = _getDocParams();
 
     /* Calcul des totaux ligne par ligne pour affichage détaillé */
     const lignesHtml = (devis.lignes || []).map(l => {
@@ -1640,14 +1739,18 @@ const Sales = (() => {
 
           <!-- En-tête société -->
           <div class="header">
-            <div>
-              <div class="brand-name">HCS — High Coffee Shirts</div>
-              <div class="brand-sub">Tenue · Sublimation · DTF · Broderie · Impression textile</div>
+            <div style="display:flex;align-items:center;gap:14px;">
+              ${p.logoUrl ? `<img src="${p.logoUrl}" style="height:52px;width:auto;object-fit:contain;" alt="logo">` : ''}
+              <div>
+                <div class="brand-name" style="color:${p.accentColor};">${_esc(p.entreprise)}</div>
+                <div class="brand-sub">${_esc(p.slogan)}</div>
+              </div>
             </div>
             <div class="brand-contact">
-              Tahiti, Polynésie française<br>
-              contact@highcoffeeshirts.com<br>
-              highcoffeeshirts.com
+              ${p.adresse ? _esc(p.adresse) + '<br>' : ''}
+              ${p.telephone ? '📞 ' + _esc(p.telephone) + '<br>' : ''}
+              ${p.email ? _esc(p.email) + '<br>' : ''}
+              ${p.website ? _esc(p.website) : ''}
             </div>
           </div>
 
@@ -1765,8 +1868,9 @@ const Sales = (() => {
 
           <!-- Pied de page -->
           <div class="doc-footer">
+            ${p.footerText ? _esc(p.footerText) + '<br>' : ''}
+            ${p.conditions ? '<em>' + _esc(p.conditions) + '</em><br>' : ''}
             Document généré le ${new Date().toLocaleDateString('fr-FR')} — HCS ERP
-            ${peutFacturer ? '' : '<br>Ce devis est en statut <strong>' + _esc(devis.statut) + '</strong> — envoyez-le au client pour qu\'il le valide.'}
           </div>
 
         </div>
@@ -1835,16 +1939,18 @@ const Sales = (() => {
         `Pour toute question, n'hésitez pas à nous contacter.`,
         ``,
         `Cordialement,`,
-        `High Coffee Shirts — HCS`,
-        `contact@highcoffeeshirts.com`
+        _getDocParams().entreprise,
+        _getDocParams().email
       ].filter(l => l !== '').join('\n');
 
-      const email    = (contact.email || '').trim();
-      const sujet    = encodeURIComponent(`Devis ${devis.ref} — High Coffee Shirts`);
-      const body     = encodeURIComponent(corps);
-      const mailto   = `mailto:${email}?subject=${sujet}&body=${body}`;
+      const pDoc  = _getDocParams();
+      const email = (contact.email || '').trim();
+      const sujet = encodeURIComponent(`Devis ${devis.ref} — ${pDoc.entreprise}`);
+      const body  = encodeURIComponent(corps);
 
-      win.location.href = mailto;
+      /* Ouvre directement Gmail Compose (boîte highcoffeeshirt@gmail.com) */
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&from=${encodeURIComponent(pDoc.gmailFrom)}&to=${encodeURIComponent(email)}&su=${sujet}&body=${body}`;
+      win.open(gmailUrl, '_blank');
     });
   }
 
@@ -3921,6 +4027,132 @@ const Sales = (() => {
      init(toolbar, area, viewId) — appelé par app.js
      ================================================================ */
 
+  /* ----------------------------------------------------------------
+     PARAMÈTRES DE MISE EN FORME DES DOCUMENTS
+     ---------------------------------------------------------------- */
+  function _renderDocParams(toolbar, area) {
+    const p = _getDocParams();
+    toolbar.innerHTML = `<span style="font-weight:600;font-size:14px;">⚙ Paramètres documents</span>`;
+
+    area.innerHTML = `
+      <div style="max-width:640px;margin:0 auto;padding:24px 0;">
+        <div class="form-section">
+          <div class="form-section-title">Identité de l'entreprise</div>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Nom de l'entreprise</label>
+              <input class="form-control" id="dp-entreprise" value="${_esc(p.entreprise)}">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Slogan / sous-titre</label>
+              <input class="form-control" id="dp-slogan" value="${_esc(p.slogan)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Adresse</label>
+              <input class="form-control" id="dp-adresse" value="${_esc(p.adresse)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone</label>
+              <input class="form-control" id="dp-telephone" value="${_esc(p.telephone)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email de contact</label>
+              <input class="form-control" type="email" id="dp-email" value="${_esc(p.email)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Site web</label>
+              <input class="form-control" id="dp-website" value="${_esc(p.website)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gmail d'envoi (bouton email)</label>
+              <input class="form-control" type="email" id="dp-gmail" value="${_esc(p.gmailFrom)}" placeholder="votre@gmail.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">URL Logo (image)</label>
+              <input class="form-control" id="dp-logo" value="${_esc(p.logoUrl)}" placeholder="https://… ou data:image/…">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Mise en forme visuelle</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Couleur principale</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="color" id="dp-color" value="${p.accentColor}"
+                  style="width:44px;height:36px;border:none;cursor:pointer;border-radius:6px;">
+                <input class="form-control" id="dp-color-txt" value="${_esc(p.accentColor)}"
+                  placeholder="#4a5fff" style="font-family:monospace;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Textes du document</div>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Pied de page</label>
+              <input class="form-control" id="dp-footer" value="${_esc(p.footerText)}">
+            </div>
+            <div class="form-group" style="grid-column:1/-1;">
+              <label class="form-label">Conditions générales / mentions légales</label>
+              <textarea class="form-control" id="dp-conditions" rows="3" style="resize:vertical;">${_esc(p.conditions)}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:8px;">
+          <button class="btn btn-ghost" id="dp-preview">👁 Aperçu</button>
+          <button class="btn btn-primary" id="dp-save">✔ Enregistrer</button>
+        </div>
+      </div>`;
+
+    /* Sync color picker ↔ text input */
+    document.getElementById('dp-color')?.addEventListener('input', (e) => {
+      const t = document.getElementById('dp-color-txt');
+      if (t) t.value = e.target.value;
+    });
+    document.getElementById('dp-color-txt')?.addEventListener('input', (e) => {
+      const c = document.getElementById('dp-color');
+      if (c && /^#[0-9a-fA-F]{6}$/.test(e.target.value)) c.value = e.target.value;
+    });
+
+    /* Enregistrer */
+    document.getElementById('dp-save')?.addEventListener('click', () => {
+      const params = {
+        entreprise:  document.getElementById('dp-entreprise')?.value.trim() || p.entreprise,
+        slogan:      document.getElementById('dp-slogan')?.value.trim()     || '',
+        adresse:     document.getElementById('dp-adresse')?.value.trim()    || '',
+        telephone:   document.getElementById('dp-telephone')?.value.trim()  || '',
+        email:       document.getElementById('dp-email')?.value.trim()      || '',
+        website:     document.getElementById('dp-website')?.value.trim()    || '',
+        gmailFrom:   document.getElementById('dp-gmail')?.value.trim()      || '',
+        logoUrl:     document.getElementById('dp-logo')?.value.trim()       || '',
+        accentColor: document.getElementById('dp-color-txt')?.value.trim()  || '#4a5fff',
+        footerText:  document.getElementById('dp-footer')?.value.trim()     || '',
+        conditions:  document.getElementById('dp-conditions')?.value.trim() || '',
+      };
+      localStorage.setItem('hcs_doc_params', JSON.stringify(params));
+      toast('Paramètres documents sauvegardés.', 'success');
+    });
+
+    /* Aperçu rapide */
+    document.getElementById('dp-preview')?.addEventListener('click', () => {
+      /* Sauvegarder d'abord */
+      document.getElementById('dp-save')?.click();
+      /* Créer un devis fictif pour la preview */
+      const fakeDevis = {
+        ref: 'DEV-2026-APERCU', statut: 'Brouillon', date: new Date().toISOString().slice(0,10),
+        client: 'Client Exemple', contactId: null,
+        lignes: [{ description: 'Produit exemple', qte: 2, prixUnitaire: 2500, remise: 0, tauxTVA: 16 }],
+        totalHT: 5000, totalTVA: 800, totalTTC: 5800, notes: ''
+      };
+      _previewDevis(fakeDevis, toolbar, area);
+    });
+  }
+
   function init(toolbar, area, viewId) {
     /* Changement de vue → reset mode liste */
     if (viewId !== _state.view) {
@@ -3949,6 +4181,7 @@ const Sales = (() => {
       case 'invoices':     _renderInvoicesList(toolbar, area); break;
       case 'receipts':     _renderReceiptsList(toolbar, area); break;
       case 'sales-report': _renderSalesReport(toolbar, area);  break;
+      case 'doc-params':   _renderDocParams(toolbar, area);    break;
       default:
         area.innerHTML = `
           <div class="table-empty">
