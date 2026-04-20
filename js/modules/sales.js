@@ -687,6 +687,85 @@ const Sales = (() => {
   }
 
   /* ----------------------------------------------------------------
+     SUIVI BON DE COMMANDE — barre de progression entre devis/cmd/facture
+     ---------------------------------------------------------------- */
+  function _renderSuiviBDC(doc, docType) {
+    if (!doc) return '';
+
+    let devisDoc = null, cmdDoc = null, facDoc = null;
+
+    if (docType === 'devis') {
+      devisDoc = doc;
+      cmdDoc   = Store.getAll('commandes').find(c => c.quoteId === doc.id) || null;
+      facDoc   = Store.getAll('factures').find(f => f.devisId === doc.id)  || null;
+    } else if (docType === 'facture') {
+      facDoc   = doc;
+      if (doc.devisId)    devisDoc = Store.getById('devis', doc.devisId)    || null;
+      if (doc.commandeId) cmdDoc   = Store.getById('commandes', doc.commandeId) || null;
+    } else if (docType === 'commande') {
+      cmdDoc   = doc;
+      if (doc.quoteId) devisDoc = Store.getById('devis', doc.quoteId) || null;
+      facDoc   = Store.getAll('factures').find(f => f.commandeId === doc.id) || null;
+    }
+
+    if (!devisDoc && !cmdDoc && !facDoc) return '';
+
+    /* Valeur de référence = total du devis ou commande ou facture */
+    const valRef    = (devisDoc?.totalTTC || cmdDoc?.totalTTC || facDoc?.totalTTC || 0);
+    const totalFac  = facDoc?.totalTTC || 0;
+    const totalPaye = _totalPaiements(facDoc?.paiements);
+    const reste     = Math.max(0, totalFac - totalPaye);
+    const pct       = valRef > 0 ? Math.min(100, Math.round((totalPaye / valRef) * 100)) : 0;
+    const pctFac    = valRef > 0 ? Math.min(100, Math.round((totalFac / valRef) * 100)) : 0;
+
+    const step = (ref, label, amount, color) => ref
+      ? `<div style="display:flex;align-items:center;gap:6px;">
+           <span style="font-size:11px;color:var(--text-muted);">${label}</span>
+           <span style="font-size:12px;font-family:var(--font-mono);font-weight:600;color:${color};">
+             ${_esc(ref)}
+           </span>
+           ${amount ? `<span style="font-size:11px;color:var(--text-muted);">${_fmt(amount)}</span>` : ''}
+         </div>`
+      : '';
+
+    return `
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;
+        padding:12px 16px;margin-bottom:20px;display:flex;flex-direction:column;gap:8px;">
+
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;
+            letter-spacing:.05em;">Suivi bon de commande</span>
+          <span style="font-size:12px;font-family:var(--font-mono);color:var(--text-primary);font-weight:700;">
+            ${_fmt(valRef)} XPF
+          </span>
+          ${pct > 0 ? `<span style="font-size:11px;color:var(--accent-green);">✓ ${pct}% réglé</span>` : ''}
+        </div>
+
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          ${step(devisDoc?.ref, '📄 Devis', devisDoc?.totalTTC, 'var(--text-primary)')}
+          ${devisDoc && (cmdDoc || facDoc) ? '<span style="color:var(--text-muted);">›</span>' : ''}
+          ${step(cmdDoc?.reference || cmdDoc?.ref, '📦 Commande', cmdDoc?.totalTTC, 'var(--accent-blue)')}
+          ${cmdDoc && facDoc ? '<span style="color:var(--text-muted);">›</span>' : ''}
+          ${!cmdDoc && devisDoc && facDoc ? '<span style="color:var(--text-muted);">›</span>' : ''}
+          ${step(facDoc?.ref, '🧾 Facture', facDoc?.totalTTC, 'var(--accent-green)')}
+        </div>
+
+        ${totalFac > 0 ? `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;height:6px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pctFac}%;background:var(--accent-blue);border-radius:3px;transition:width .4s;"></div>
+          </div>
+          <div style="height:100%;position:absolute;width:${pct}%;background:var(--accent-green);border-radius:3px;opacity:.7;"></div>
+          <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">
+            Payé : <strong style="color:var(--accent-green);">${_fmt(totalPaye)}</strong>
+            ${reste > 0 ? `· Reste : <strong style="color:var(--accent-red);">${_fmt(reste)}</strong>` : ''}
+          </span>
+        </div>` : ''}
+
+      </div>`;
+  }
+
+  /* ----------------------------------------------------------------
      HEADER DE FORMULAIRE DOCUMENT (commun aux 3 types)
      ---------------------------------------------------------------- */
   function _renderFormHeader(ref, statut, badgeMap, chips = '') {
@@ -955,6 +1034,7 @@ const Sales = (() => {
 
     area.innerHTML = `
       ${_renderFormHeader(ref, statut, BADGE_DEVIS, reglChip)}
+      ${isNew ? '' : _renderSuiviBDC(doc, 'devis')}
 
       <!-- Informations générales -->
       <div class="form-section">
@@ -1951,6 +2031,51 @@ const Sales = (() => {
     });
   }
 
+  /** Détecte le type de production depuis les lignes du devis */
+  function _detectTypeProduction(lignes) {
+    const txt = (lignes || []).map(l => `${l.produit || ''} ${l.description || ''}`).join(' ').toLowerCase();
+    if (/vinyl|vinyle|plotter/i.test(txt))    return 'vinyle';
+    if (/dtf|transfert/i.test(txt))           return 'dtf';
+    if (/broderie|broder/i.test(txt))         return 'broderie';
+    if (/casquette|cap/i.test(txt))           return 'casquette';
+    if (/sublim/i.test(txt))                  return 'sublimation';
+    return 'dtf';
+  }
+
+  /** Synchronise une commande ERP → carte Planning dashboard (hcs_planning) */
+  function _pushPlanningCard(devis, cmdRef) {
+    try {
+      const planning = JSON.parse(localStorage.getItem('hcs_planning') || '[]');
+      /* Évite les doublons si la carte existe déjà */
+      if (planning.some(c => c.ref === devis.ref)) return;
+
+      const totalQte = (devis.lignes || []).reduce((s, l) => s + (l.qte || 1), 0);
+      const desc = (devis.lignes || [])
+        .map(l => `${l.qte || 1}× ${l.produit || l.description || '—'}`)
+        .join(' + ');
+
+      planning.push({
+        id:        'erp-' + Date.now(),
+        client:    devis.client || '',
+        ref:       devis.ref,
+        cmdRef:    cmdRef,
+        canal:     'ERP',
+        desc:      desc,
+        type:      _detectTypeProduction(devis.lignes),
+        machine:   '',
+        qty:       totalQte,
+        deadline:  devis.dateLivraison
+          ? new Date(devis.dateLivraison).toISOString()
+          : new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+        priority:  'normal',
+        notes:     devis.notes || '',
+        col:       'attente',
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('hcs_planning', JSON.stringify(planning));
+    } catch (e) { /* silencieux */ }
+  }
+
   function _convertQuoteToOrder(devis, toolbar, area) {
     showConfirm(
       `Convertir "${devis.ref}" en commande ? Le devis passera en "Confirmé".`,
@@ -1972,7 +2097,8 @@ const Sales = (() => {
           notes:        devis.notes || ''
         });
         Store.update('devis', devis.id, { statut: 'Confirmé' });
-        toast(`✔ Commande ${ref} créée depuis ${devis.ref}.`, 'success');
+        _pushPlanningCard(devis, ref);
+        toast(`✔ Commande ${ref} créée + carte ajoutée au planning.`, 'success');
         _goList('quotes', toolbar, area);
       }
     );
@@ -2571,6 +2697,7 @@ const Sales = (() => {
 
     area.innerHTML = `
       ${_renderFormHeader(ref, statut, BADGE_FAC, chips)}
+      ${isNew ? '' : _renderSuiviBDC(doc, 'facture')}
 
       <div class="form-section">
         <div class="form-section-title">Informations générales</div>
