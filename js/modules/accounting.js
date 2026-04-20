@@ -75,6 +75,7 @@ const Accounting = (() => {
       case 'tax-report':      _renderTaxReport(toolbar, area);    break;
       case 'stats-ventes':   _renderStatsVentes(toolbar, area);  break;
       case 'assistant':       _renderAssistant(toolbar, area);   break;
+      case 'session':         _renderSession(toolbar, area);     break;
       default:                _renderTableauBord(toolbar, area);
     }
   }
@@ -3907,6 +3908,186 @@ Sois direct et utile, avec des exemples concrets.`;
     _dlPDF,
     _openImportModal
   };
+
+  /* ================================================================
+     VUE : SESSION COMPTABLE — Sauvegarde & Clôture
+     ================================================================ */
+  function _renderSession(toolbar, area) {
+    const year  = new Date().getFullYear();
+    const now   = new Date().toLocaleString('fr-FR');
+
+    toolbar.innerHTML = `
+      <span style="font-size:13px;color:var(--text-muted);align-self:center;">
+        Session comptable ${year}
+      </span>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button class="btn btn-primary btn-sm" id="sess-backup-json">💾 Backup JSON</button>
+        <button class="btn btn-ghost btn-sm"   id="sess-backup-sql">🗄️ Backup SQL</button>
+        <button class="btn btn-ghost btn-sm"   id="sess-export-xls">📊 Export Excel</button>
+      </div>`;
+
+    /* ── Stats rapides ── */
+    const factures  = Store.getAll('factures')  || [];
+    const devis     = Store.getAll('devis')     || [];
+    const depenses  = Store.getAll('depenses')  || [];
+    const ecritures = Store.getAll('ecritures') || [];
+    const contacts  = Store.getAll('contacts')  || [];
+    const produits  = Store.getAll('produits')  || [];
+
+    const factYear  = factures.filter(f => new Date(f.date||f.created||0).getFullYear() === year);
+    const caHT      = factYear.reduce((s,f) => s + (parseFloat(f.totalHT||f.montant||0)), 0);
+    const tgc       = factYear.reduce((s,f) => s + (parseFloat(f.totalTGC||f.tva||0)), 0);
+    const depYear   = depenses.filter(d => new Date(d.date||0).getFullYear() === year);
+    const totalDep  = depYear.reduce((s,d) => s + (parseFloat(d.montant||d.total||0)), 0);
+    const fmt       = n => Number(n||0).toLocaleString('fr-FR') + ' XPF';
+
+    const kpis = [
+      { label: 'Factures ' + year, val: factYear.length, icon: '🧾', color: 'var(--accent-blue)' },
+      { label: 'CA HT ' + year,    val: fmt(caHT),        icon: '📈', color: 'var(--accent-green)' },
+      { label: 'TGC collectée',    val: fmt(tgc),         icon: '🏛️', color: 'var(--accent-amber)' },
+      { label: 'Dépenses ' + year, val: fmt(totalDep),    icon: '💸', color: 'var(--accent-red)' },
+      { label: 'Résultat net',     val: fmt(caHT - totalDep), icon: '⚖️',
+        color: (caHT - totalDep) >= 0 ? 'var(--accent-green)' : 'var(--accent-red)' },
+      { label: 'Écritures',        val: ecritures.length, icon: '📋', color: 'var(--text-muted)' },
+      { label: 'Clients',          val: contacts.length,  icon: '👥', color: 'var(--text-muted)' },
+      { label: 'Produits',         val: produits.length,  icon: '📦', color: 'var(--text-muted)' },
+    ];
+
+    area.innerHTML = `
+      <div style="padding:24px;max-width:960px;">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:4px;">
+          📁 Session comptable — Exercice ${year}
+        </h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">
+          Générée le ${now} · Sauvegardez régulièrement vos données
+        </p>
+
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px;">
+          ${kpis.map(k => `
+            <div style="background:var(--bg-surface);border:1px solid var(--border);
+              border-radius:10px;padding:16px 20px;">
+              <div style="font-size:22px;margin-bottom:6px;">${k.icon}</div>
+              <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;
+                letter-spacing:.05em;margin-bottom:4px;">${k.label}</div>
+              <div style="font-size:17px;font-weight:700;color:${k.color};
+                font-family:var(--font-mono);">${k.val}</div>
+            </div>`).join('')}
+        </div>
+
+        <!-- Détail tables -->
+        <div style="background:var(--bg-surface);border:1px solid var(--border);
+          border-radius:10px;padding:20px;margin-bottom:24px;">
+          <div style="font-weight:700;margin-bottom:14px;">📊 Inventaire des données</div>
+          <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <thead>
+              <tr style="color:var(--text-muted);font-size:11px;text-transform:uppercase;">
+                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">Collection</th>
+                <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border);">Enregistrements</th>
+                <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);">Stockage</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[
+                ['factures',   factures,  'MySQL + localStorage'],
+                ['devis',      devis,     'MySQL + localStorage'],
+                ['depenses',   depenses,  'localStorage'],
+                ['ecritures',  ecritures, 'localStorage'],
+                ['contacts',   contacts,  'MySQL + localStorage'],
+                ['produits',   produits,  'MySQL + localStorage'],
+              ].map(([name, arr, store]) => `
+                <tr style="border-bottom:1px solid var(--border);">
+                  <td style="padding:8px;font-weight:600;">${name}</td>
+                  <td style="padding:8px;text-align:right;font-family:var(--font-mono);">${arr.length}</td>
+                  <td style="padding:8px;color:var(--text-muted);font-size:12px;">${store}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bouton backup MySQL -->
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);
+          border-radius:10px;padding:20px;display:flex;align-items:center;gap:16px;">
+          <div style="font-size:32px;">🛡️</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;margin-bottom:4px;">Sauvegarde base de données MySQL</div>
+            <div style="font-size:13px;color:var(--text-muted);">
+              Exporte l'intégralité de la base MySQL (${year} + historique) en JSON ou SQL.
+              À conserver en lieu sûr.
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-primary btn-sm" id="sess-backup-json2">💾 JSON</button>
+            <button class="btn btn-ghost btn-sm"   id="sess-backup-sql2">🗄️ SQL</button>
+          </div>
+        </div>
+
+        <div id="sess-status" style="margin-top:12px;font-size:13px;color:var(--text-muted);"></div>
+      </div>`;
+
+    /* ── Handlers ── */
+    function _doBackup(format) {
+      const status = document.getElementById('sess-status');
+      if (status) status.textContent = '⏳ Téléchargement en cours…';
+      const apiBase = (typeof HCSApiConfig !== 'undefined' && HCSApiConfig.BASE_URL)
+        ? HCSApiConfig.BASE_URL
+        : 'https://highcoffeeshirts.com/erp/api';
+      const url = apiBase.replace('/api', '') + '/api/backup.php?format=' + format;
+      fetch(url, { headers: { 'x-api-key': 'hcs-erp-2026' } })
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.blob();
+        })
+        .then(blob => {
+          const date = new Date().toISOString().slice(0,10);
+          const ext  = format === 'sql' ? 'sql' : 'json';
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `hcs-erp-backup-${date}.${ext}`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          if (status) status.textContent = `✅ Backup ${ext.toUpperCase()} téléchargé (${date})`;
+        })
+        .catch(e => {
+          if (status) status.textContent = '❌ Erreur : ' + e.message;
+        });
+    }
+
+    function _doLocalBackup() {
+      /* Backup localStorage (ecritures, depenses, etc.) */
+      const collections = ['factures','devis','depenses','ecritures','contacts','produits',
+        'fournisseurs','employes','commandes','paiements','reglements'];
+      const bundle = { meta: { date: new Date().toISOString(), source: 'localStorage' }, data: {} };
+      collections.forEach(c => { bundle.data[c] = Store.getAll(c) || []; });
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const date = new Date().toISOString().slice(0,10);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `hcs-erp-local-${date}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function _doExcelSession() {
+      if (typeof exportXLS !== 'function') { alert('exportXLS non disponible'); return; }
+      const date = new Date().toISOString().slice(0,10);
+      /* Feuille Factures */
+      exportXLS(`hcs-session-${year}-${date}`, [
+        'N°', 'Client', 'Date', 'HT', 'TGC', 'TTC', 'Statut'
+      ], factures.map(f => [
+        f.numero||f.ref||f.id, f.client||f.clientNom||'', f.date||'',
+        f.totalHT||f.montant||0, f.totalTGC||f.tva||0, f.totalTTC||f.totalHT||0, f.statut||''
+      ]), `Factures ${year}`);
+    }
+
+    ['sess-backup-json', 'sess-backup-json2'].forEach(id =>
+      document.getElementById(id)?.addEventListener('click', () => _doBackup('json'))
+    );
+    ['sess-backup-sql', 'sess-backup-sql2'].forEach(id =>
+      document.getElementById(id)?.addEventListener('click', () => _doBackup('sql'))
+    );
+    document.getElementById('sess-export-xls')?.addEventListener('click', _doExcelSession);
+  }
 
 })();
 

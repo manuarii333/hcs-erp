@@ -129,7 +129,8 @@ const APPS = [
       { id: 'balance',         label: 'Balance',             icon: '📊', section: 'Rapports'    },
       { id: 'tax-report',      label: 'Rapport TVA',         icon: '📑', section: 'Rapports'    },
       { id: 'stats-ventes',   label: 'Stats ventes & TVA',  icon: '📦', section: 'Rapports'    },
-      { id: 'assistant',       label: '✨ Assistant Comptable', icon: '🤖', section: 'IA'       }
+      { id: 'assistant',       label: '✨ Assistant Comptable', icon: '🤖', section: 'IA'       },
+      { id: 'session',         label: '💾 Session / Backup',   icon: '🛡', section: 'IA'       }
     ]
   },
   {
