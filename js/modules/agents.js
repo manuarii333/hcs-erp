@@ -1169,3 +1169,5 @@ Apps disponibles :
   return { init, createTache, getTaches, updateTacheStatut };
 
 })();
+
+window.Agents = Agents;

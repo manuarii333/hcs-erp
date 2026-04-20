@@ -133,6 +133,18 @@ const APPS = [
     ]
   },
   {
+    id: 'agents',
+    label: 'Agents IA',
+    icon: '🤖',
+    color: '#00d4aa',
+    pinned: false,
+    views: [
+      { id: 'dashboard', label: 'Tableau de bord', icon: '⬡',  section: 'Agents IA' },
+      { id: 'chat',      label: 'Chat agents',     icon: '💬', section: 'Agents IA' },
+      { id: 'sessions',  label: 'Historique',      icon: '📋', section: 'Agents IA' }
+    ]
+  },
+  {
     id: 'rh',
     label: 'RH',
     icon: '👤',
@@ -507,6 +519,15 @@ function renderView() {
       break;
     case 'caisse':
       renderIframe(`modules/${view}.html`, container);
+      break;
+    case 'agents':
+      container.style.padding = '';
+      container.style.overflow = '';
+      if (typeof Agents !== 'undefined') {
+        Agents.init(document.getElementById('toolbar-actions'), container, view);
+      } else {
+        container.innerHTML = `<div class="table-empty"><p>🤖 Module Agents IA non chargé — vérifiez js/modules/agents.js</p></div>`;
+      }
       break;
     case 'outils': {
       /* Vue Advisor IA — rendu inline (pas d'iframe) */
