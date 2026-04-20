@@ -37,7 +37,7 @@ const Sales = (() => {
   ];
 
   const STATUTS_FAC = [
-    'Brouillon', 'Envoyé', 'Payé partiel', 'Payé', 'En retard'
+    'Brouillon', 'Envoyé', 'Payé partiel', 'Payé', 'En retard', 'Annulé'
   ];
 
   const BADGE_DEVIS = {
@@ -61,7 +61,8 @@ const Sales = (() => {
     'Envoyé':       'badge-blue',
     'Payé partiel': 'badge-orange',
     'Payé':         'badge-green',
-    'En retard':    'badge-red'
+    'En retard':    'badge-red',
+    'Annulé':       'badge-red'
   };
 
   const METHODES_PAIEMENT = ['Espèces', 'Carte bancaire', 'Virement', 'Chèque'];
@@ -2139,15 +2140,12 @@ const Sales = (() => {
         let totalTTC = devis.totalTTC;
 
         if (isAcompte && data.montantAcompte) {
-          const montant = parseFloat(data.montantAcompte) || 0;
-          /* Ligne unique acompte */
-          lignes = [{
-            produitId:    '',
-            description:  `Acompte sur devis ${_esc(devis.ref)}`,
-            qte:          1,
-            prixUnitaire: Math.round(montant / 1.13),
-            remise:       0
-          }];
+          const montantAc = parseFloat(data.montantAcompte) || 0;
+          const ratio = devis.totalTTC > 0 ? montantAc / devis.totalTTC : 1;
+          lignes = devis.lignes.map(l => ({
+            ...l,
+            prixUnitaire: Math.round((l.prixUnitaire || 0) * ratio)
+          }));
           const t = _calcTotaux(lignes);
           totalHT  = t.totalHT;
           totalTVA = t.totalTVA;
@@ -2639,10 +2637,10 @@ const Sales = (() => {
         },
         { key: 'statut',   label: 'Statut', type: 'badge', badgeMap: BADGE_FAC },
         { type: 'actions', width: '60px', actions: [
-            { label: '🗑', className: 'btn btn-ghost btn-sm', title: 'Supprimer', onClick: (row) => {
-                showConfirm(`Supprimer la facture ${row.ref || row.id} ?`, () => {
-                  Store.remove('factures', row.id);
-                  toast('Facture supprimée.', 'success');
+            { label: '🗑', className: 'btn btn-ghost btn-sm', title: 'Annuler', onClick: (row) => {
+                showConfirm(`Annuler la facture ${row.ref || row.id} ? (statut → Annulé, non supprimée)`, () => {
+                  Store.update('factures', row.id, { statut: 'Annulé' });
+                  toast(`Facture ${row.ref} annulée.`, 'success');
                   _goList('invoices', toolbar, area);
                 });
               }
