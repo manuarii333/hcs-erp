@@ -104,6 +104,20 @@
   border-radius: 2px 2px 0 0;
 }
 
+/* Raccourcis directs (Devis, Factures) — léger retrait visuel */
+.app-item.app-shortcut {
+  opacity: 0.85;
+  font-size: 0.9em;
+}
+.app-item.app-shortcut .app-icon { font-size: 1rem; }
+.app-item.app-shortcut::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 20%; bottom: 20%;
+  width: 1px;
+  background: var(--topbar-hover);
+}
+
 /* Zone droite topbar */
 .topbar-right {
   display: flex;

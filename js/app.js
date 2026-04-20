@@ -279,12 +279,24 @@ function renderTopbar() {
   const moreApps      = allAccessible.filter(app => app.pinned === false);
 
   /* Modules principaux */
-  menu.innerHTML = pinnedApps.map(app => `
-    <button class="app-item" data-app="${app.id}" onclick="openApp('${app.id}')">
+  menu.innerHTML = pinnedApps.map(app => {
+    const btn = `<button class="app-item" data-app="${app.id}" onclick="openApp('${app.id}')">
       <span class="app-icon">${app.icon}</span>
       <span class="app-label">${app.label}</span>
+    </button>`;
+    if (app.id === 'ventes') {
+      return btn + `
+    <button class="app-item app-shortcut" onclick="openApp('ventes');setTimeout(()=>openView('quotes'),80)" title="Devis">
+      <span class="app-icon">📄</span>
+      <span class="app-label">Devis</span>
     </button>
-  `).join('');
+    <button class="app-item app-shortcut" onclick="openApp('ventes');setTimeout(()=>openView('invoices'),80)" title="Factures">
+      <span class="app-icon">🧾</span>
+      <span class="app-label">Factures</span>
+    </button>`;
+    }
+    return btn;
+  }).join('');
 
   /* Bouton "⋯ Plus" pour les modules secondaires */
   if (moreApps.length > 0) {
